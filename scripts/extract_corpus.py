@@ -6,7 +6,7 @@ first tier means the Board's index page listed the document, the second means
 its own PDF was opened and supplied the values. Only the second permits scoring.
 
 The flip is performed here, by a program, rather than by hand. A hand-edited
-manifest is how the 39.3 cfs figure entered four artifacts including a public
+manifest is how the retired 39.3 cfs figure entered four artifacts, a public
 README: a number that appears nowhere in Shasta Addendum 6 was written into the
 record as though the document had supplied it, and it survived a verification
 pass and a passing test suite. A record touched only by this script cannot claim

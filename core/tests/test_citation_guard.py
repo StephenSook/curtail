@@ -33,9 +33,22 @@ SCANNED_SUFFIXES = {".md", ".py", ".json", ".yml", ".yaml", ".txt", ".html", ".t
 
 
 def _tracked_files() -> list[Path]:
-    """Every git-tracked file, which is exactly the set that ships."""
+    """Every file that ships, plus every new file that is about to.
+
+    `git ls-files` alone was a false green with a precise shape. A newly written
+    file is untracked, so the guard could not see it, so the suite passed
+    locally; the file was then committed, became tracked, and the very same
+    assertion failed in CI. The local run was structurally incapable of catching
+    it, and the first CI run after adding a file was the first real test of that
+    file. That happened to `scripts/extract_corpus.py` on 2026-08-10.
+
+    `--others --exclude-standard` adds untracked files that gitignore does not
+    exclude, which is exactly the set that will ship on the next commit. Ignored
+    files stay out: the research PDFs and the corpus are deliberately excluded
+    and are not artifacts.
+    """
     out = subprocess.run(
-        ["git", "ls-files"],
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
