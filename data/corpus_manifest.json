@@ -65,6 +65,9 @@
               30.0,
               33.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 26591,
             "notes": []
           }
@@ -99,6 +102,9 @@
               30.0,
               33.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 31959,
             "notes": []
           }
@@ -135,6 +141,9 @@
               30.0,
               33.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 26809,
             "notes": []
           }
@@ -185,6 +194,9 @@
               307.0,
               800.0
             ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 150716,
             "notes": []
           }
@@ -217,6 +229,9 @@
               344.0,
               800.0
             ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 151263,
             "notes": []
           }
@@ -239,6 +254,9 @@
               "2022-01-08"
             ],
             "cfs_values": [],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147410,
             "notes": []
           }
@@ -263,6 +281,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147842,
             "notes": []
           }
@@ -287,6 +308,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147707,
             "notes": []
           }
@@ -311,6 +335,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147676,
             "notes": []
           }
@@ -335,6 +362,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147842,
             "notes": []
           }
@@ -360,6 +390,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 147852,
             "notes": []
           }
@@ -385,6 +418,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19552,
             "notes": []
           }
@@ -411,6 +447,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 18763,
             "notes": []
           }
@@ -436,6 +475,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19359,
             "notes": []
           }
@@ -462,6 +504,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19444,
             "notes": []
           }
@@ -489,6 +534,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 3614,
             "notes": []
           }
@@ -516,6 +564,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 3609,
             "notes": []
           }
@@ -543,6 +594,9 @@
               1.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 3667,
             "notes": []
           }
@@ -573,6 +627,9 @@
               150.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19713,
             "notes": []
           }
@@ -600,6 +657,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19236,
             "notes": []
           }
@@ -626,6 +686,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19343,
             "notes": []
           }
@@ -652,6 +715,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19555,
             "notes": []
           }
@@ -678,6 +744,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19533,
             "notes": []
           }
@@ -687,7 +756,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-23.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 24,
@@ -711,6 +780,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 18869,
             "notes": []
           }
@@ -737,6 +809,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19073,
             "notes": []
           }
@@ -763,6 +838,9 @@
               1.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19070,
             "notes": []
           }
@@ -790,6 +868,9 @@
               125.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19253,
             "notes": []
           }
@@ -815,6 +896,9 @@
             "cfs_values": [
               1.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19071,
             "notes": []
           }
@@ -840,6 +924,9 @@
             "cfs_values": [
               1.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 19607,
             "notes": []
           }
@@ -870,6 +957,9 @@
               90.0,
               125.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 20999,
             "notes": []
           }
@@ -900,6 +990,9 @@
               90.0,
               125.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 21003,
             "notes": []
           }
@@ -909,7 +1002,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum32.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 33,
@@ -928,6 +1021,9 @@
               "2022-07-06"
             ],
             "cfs_values": [],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 4311,
             "notes": []
           }
@@ -950,6 +1046,9 @@
             "cfs_values": [
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 4215,
             "notes": []
           }
@@ -959,7 +1058,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum35.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 36,
@@ -981,6 +1080,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 163196,
             "notes": []
           }
@@ -1005,6 +1107,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 163581,
             "notes": []
           }
@@ -1029,6 +1134,9 @@
             "cfs_values": [
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162443,
             "notes": []
           }
@@ -1053,6 +1161,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162923,
             "notes": []
           }
@@ -1077,6 +1188,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162994,
             "notes": []
           }
@@ -1101,6 +1215,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162994,
             "notes": []
           }
@@ -1125,6 +1242,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162994,
             "notes": []
           }
@@ -1149,6 +1269,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162989,
             "notes": []
           }
@@ -1173,6 +1296,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162988,
             "notes": []
           }
@@ -1197,6 +1323,9 @@
               200.0,
               500.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162435,
             "notes": []
           }
@@ -1220,6 +1349,9 @@
             "cfs_values": [
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 161863,
             "notes": []
           }
@@ -1243,6 +1375,9 @@
             "cfs_values": [
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162085,
             "notes": []
           }
@@ -1266,6 +1401,9 @@
             "cfs_values": [
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162089,
             "notes": []
           }
@@ -1291,6 +1429,9 @@
               125.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 162141,
             "notes": []
           }
@@ -1315,6 +1456,9 @@
               50.0,
               90.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 161720,
             "notes": []
           }
@@ -1338,6 +1482,9 @@
             "cfs_values": [
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 35466,
             "notes": []
           }
@@ -1381,6 +1528,9 @@
               46.1,
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 28924,
             "notes": []
           }
@@ -1416,6 +1566,9 @@
               46.1,
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 35409,
             "notes": []
           }
@@ -1460,6 +1613,9 @@
               175.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 37301,
             "notes": []
           }
@@ -1504,6 +1660,9 @@
               125.0,
               130.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 36175,
             "notes": []
           }
@@ -1530,6 +1689,9 @@
               33.0,
               35.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 5242,
             "notes": []
           }
@@ -1553,6 +1715,9 @@
               0.5,
               33.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 6163,
             "notes": []
           }
@@ -1640,6 +1805,9 @@
               40.0,
               44.8
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": "2024-10-31",
             "text_chars": 8697,
             "notes": []
           },
@@ -1668,6 +1836,9 @@
             "cfs_values": [
               60.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 4279,
             "notes": []
           }
@@ -1744,6 +1915,9 @@
               145.0,
               150.0
             ],
+            "body_action": "reinstate",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 55005,
             "notes": []
           }
@@ -1778,6 +1952,9 @@
               162.0,
               167.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 87429,
             "notes": []
           }
@@ -1812,6 +1989,9 @@
               175.0,
               200.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 117119,
             "notes": []
           }
@@ -1852,6 +2032,9 @@
               125.0,
               137.0
             ],
+            "body_action": "reinstate",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 59534,
             "notes": []
           }
@@ -1884,6 +2067,9 @@
               59.0,
               90.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 47945,
             "notes": []
           }
@@ -1925,6 +2111,9 @@
               31.0,
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 28376,
             "notes": []
           }
@@ -1957,6 +2146,9 @@
               104.0,
               125.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 28011,
             "notes": []
           }
@@ -1986,6 +2178,9 @@
               "2022-05-08"
             ],
             "cfs_values": [],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 26069,
             "notes": []
           }
@@ -1995,7 +2190,7 @@
           "url": "docs/2022/shasta-curtailment-order-wr-2022-0161-dwr-signed.pdf",
           "index_verified": true,
           "document_read": false,
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "order_number": "WR 2022-0162-DWR",
@@ -2032,6 +2227,9 @@
               34.5,
               50.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 63996,
             "notes": []
           }
@@ -2072,6 +2270,9 @@
               75.0,
               105.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 135136,
             "notes": []
           }
@@ -2092,7 +2293,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order162-addendum01.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 2,
@@ -2131,6 +2332,9 @@
               135.0,
               150.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 7897,
             "notes": []
           }
@@ -2164,6 +2368,9 @@
               152.0,
               160.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 15483,
             "notes": []
           }
@@ -2192,6 +2399,9 @@
               157.0,
               178.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 20882,
             "notes": []
           }
@@ -2201,21 +2411,21 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-addendum7.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 8,
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Shasta_Addendum8.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 9,
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta_addendum_9.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         },
         {
           "n": 10,
@@ -2247,6 +2457,9 @@
               125.0,
               237.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 51554,
             "notes": []
           }
@@ -2279,6 +2492,9 @@
               220.0,
               240.0
             ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 50090,
             "notes": []
           }
@@ -2314,6 +2530,9 @@
               125.0,
               174.0
             ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 49335,
             "notes": []
           }
@@ -2348,6 +2567,9 @@
               125.0,
               159.0
             ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 49220,
             "notes": []
           }
@@ -2357,7 +2579,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum14.pdf",
-          "extraction_blocked": "text layer present but action could not be classified"
+          "extraction_blocked": "text layer present but the action could not be classified"
         }
       ],
       "index_page": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/shasta_addendums.html",
@@ -2406,6 +2628,9 @@
               70.0,
               71.4
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 79453,
             "notes": []
           }
@@ -2440,6 +2665,9 @@
               57.7,
               93.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 53095,
             "notes": []
           }
@@ -2474,6 +2702,9 @@
               126.0,
               220.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 35797,
             "notes": []
           }
@@ -2508,6 +2739,9 @@
               140.0,
               220.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 36079,
             "notes": []
           }
@@ -2545,6 +2779,9 @@
               56.8,
               210.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 54821,
             "notes": []
           }
@@ -2574,6 +2811,9 @@
               125.0,
               145.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 41170,
             "notes": []
           }
@@ -2623,6 +2863,9 @@
               200.0,
               215.0
             ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
             "text_chars": 59647,
             "notes": []
           }
@@ -2649,11 +2892,11 @@
     }
   ],
   "open_items": [
-    "No document has been parsed yet. Every action verb, priority cutoff and cfs trigger is still UNREAD, and the backtest must not score a record until its own PDF supplies the expected value.",
-    "The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.",
-    "The Scott 2021 surface-water order carries no order number on the index page.",
+    "RESOLVED 2026-08-10: superseded. This item read 'No document has been parsed yet'. 85 of 98 documents are now read and scorable. Retired rather than deleted so the record shows it was answered, not lost.",
+    "OPEN (undated, carried from an earlier haul): The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.",
+    "OPEN (undated, carried from an earlier haul): The Scott 2021 surface-water order carries no order number on the index page.",
     "RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.",
-    "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.",
+    "OPEN (undated, carried from an earlier haul): Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.",
     "OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.",
     "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.",
     "RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.",

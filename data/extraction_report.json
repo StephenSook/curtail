@@ -5,9 +5,11 @@
   "scott_2021/addenda/10": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -19,15 +21,18 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 147852
+    "text_chars": 147852,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/11": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -38,15 +43,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19552
+    "text_chars": 19552,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/12": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -58,15 +66,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 18763
+    "text_chars": 18763,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/13": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -77,15 +88,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19359
+    "text_chars": 19359,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/14": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -97,15 +111,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19444
+    "text_chars": 19444,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/15": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -118,15 +135,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 3614
+    "text_chars": 3614,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/16": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -139,15 +159,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 3609
+    "text_chars": 3609,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/17": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -160,16 +183,19 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 3667
+    "text_chars": 3667,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/18": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -184,15 +210,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19713
+    "text_chars": 19713,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/19": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -205,7 +234,8 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19236
+    "text_chars": 19236,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/2": {
     "status": "not_fetched"
@@ -213,10 +243,12 @@
   "scott_2021/addenda/20": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -228,15 +260,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19343
+    "text_chars": 19343,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/21": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -248,15 +283,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19555
+    "text_chars": 19555,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/22": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -268,15 +306,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19533
+    "text_chars": 19533,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/23": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'Subject:       6FRWW\\x035LYHU \\x037HPSRUDU\\\\\\x03([WHQVLRQ\\x03RI\\x03&RQGLWLRQDO\\x036XVSHQVLRQ\\x03RI\\x03&XUWDLOPHQWV Date:          )ULGD\\\\\\x0f\\x03$SULO\\x03\\x15'. Recorded as undetermined rather than guessed."
@@ -290,15 +331,18 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 19540
+    "text_chars": 19540,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/24": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -310,15 +354,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 18869
+    "text_chars": 18869,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/25": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -330,15 +377,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19073
+    "text_chars": 19073,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/26": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -350,16 +400,19 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19070
+    "text_chars": 19070,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/27": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       125.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -371,14 +424,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19253
+    "text_chars": 19253,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/28": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -390,14 +446,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19071
+    "text_chars": 19071,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/29": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -409,11 +468,13 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 19607
+    "text_chars": 19607,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/3": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       17.0,
       32.0,
@@ -424,6 +485,7 @@
       307.0,
       800.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -434,11 +496,13 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 150716
+    "text_chars": 150716,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/30": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       50.0,
@@ -446,6 +510,7 @@
       90.0,
       125.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -458,11 +523,13 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 20999
+    "text_chars": 20999,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/31": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       1.0,
       50.0,
@@ -470,6 +537,7 @@
       90.0,
       125.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -482,16 +550,19 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 21003
+    "text_chars": 21003,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/32": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0,
       76.2,
       80.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'Subject:       Scott River Curtailments in Effect for All Surface Water Diverters (List A2) as of 12:00 pm (noon) on Jul'. Recorded as undetermined rather than guessed."
@@ -503,12 +574,15 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 34100
+    "text_chars": 34100,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/33": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -518,14 +592,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 4311
+    "text_chars": 4311,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/34": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -534,14 +611,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 4215
+    "text_chars": 4215,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/35": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       35.8
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'Subject:     Scott River Watershed: Curtailments in Effect for All Surface Water and Groundwater Diversions Date:       '. Recorded as undetermined rather than guessed."
@@ -553,14 +633,17 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 3725
+    "text_chars": 3725,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/36": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -571,14 +654,17 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 163196
+    "text_chars": 163196,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/37": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -589,14 +675,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 163581
+    "text_chars": 163581,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/38": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -607,15 +696,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162443
+    "text_chars": 162443,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/39": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -625,11 +717,13 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162923
+    "text_chars": 162923,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/4": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       17.0,
       20.0,
@@ -640,6 +734,7 @@
       344.0,
       800.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -651,15 +746,18 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 151263
+    "text_chars": 151263,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/40": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -669,15 +767,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162994
+    "text_chars": 162994,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/41": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -687,15 +788,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162994
+    "text_chars": 162994,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/42": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -705,15 +809,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162994
+    "text_chars": 162994,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/43": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -723,15 +830,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162989
+    "text_chars": 162989,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/44": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -741,15 +851,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162988
+    "text_chars": 162988,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/45": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0,
       500.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -759,14 +872,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162435
+    "text_chars": 162435,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/46": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -776,14 +892,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 161863
+    "text_chars": 161863,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/47": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -793,14 +912,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162085
+    "text_chars": 162085,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/48": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -810,16 +932,19 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162089
+    "text_chars": 162089,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/49": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       90.0,
       125.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -829,12 +954,15 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 162141
+    "text_chars": 162141,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/5": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -845,15 +973,18 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 147410
+    "text_chars": 147410,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/50": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0,
       90.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -863,14 +994,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 161720
+    "text_chars": 161720,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/51": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -880,14 +1014,17 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 35466
+    "text_chars": 35466,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/6": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -898,14 +1035,17 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 147842
+    "text_chars": 147842,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/7": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -916,14 +1056,17 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 147707
+    "text_chars": 147707,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/8": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -934,14 +1077,17 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 147676
+    "text_chars": 147676,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/9": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -952,11 +1098,13 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 147842
+    "text_chars": 147842,
+    "title_body_conflict": false
   },
   "scott_2021/order/UNNUMBERED_ON_INDEX": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       8.0,
       9.0,
@@ -965,6 +1113,7 @@
       30.0,
       33.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -980,11 +1129,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 26809
+    "text_chars": 26809,
+    "title_body_conflict": false
   },
   "scott_2021/order/WR 2021-0083-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       8.0,
       9.0,
@@ -993,6 +1144,7 @@
       30.0,
       33.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1009,11 +1161,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 26591
+    "text_chars": 26591,
+    "title_body_conflict": false
   },
   "scott_2021/order/WR 2021-0084-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       8.0,
       9.0,
@@ -1022,6 +1176,7 @@
       30.0,
       33.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1036,16 +1191,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 31959
+    "text_chars": 31959,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/1": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       30.0,
       33.0,
       35.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1054,17 +1212,20 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary_conditional",
-    "text_chars": 5242
+    "text_chars": 5242,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/10": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       137.0,
       150.0,
       162.0,
       167.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1082,11 +1243,13 @@
       8
     ],
     "qualifier": "limited_conditional",
-    "text_chars": 87429
+    "text_chars": 87429,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/11": {
     "action": "suspend",
     "affects_all": true,
+    "body_action": "undetermined",
     "cfs_values": [
       125.0,
       137.0,
@@ -1095,6 +1258,7 @@
       175.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1110,16 +1274,19 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 117119
+    "text_chars": 117119,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/12": {
     "action": "reinstate",
     "affects_all": true,
+    "body_action": "reinstate",
     "cfs_values": [
       119.0,
       125.0,
       137.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1144,15 +1311,18 @@
       8
     ],
     "qualifier": "not_applicable",
-    "text_chars": 59534
+    "text_chars": 59534,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/2": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       0.5,
       33.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1161,37 +1331,21 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 6163
+    "text_chars": 6163,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/3": {
-    "action": "undetermined",
-    "affects_all": false,
-    "cfs_values": [],
-    "method": "requires_ocr",
-    "notes": [
-      "No usable text layer (5 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
-    ],
-    "priority_dates": [],
-    "priority_groups": [],
-    "qualifier": "not_applicable",
-    "text_chars": 5
+    "document_read": true,
+    "status": "vision_read"
   },
   "scott_2024/addenda/4": {
-    "action": "undetermined",
-    "affects_all": false,
-    "cfs_values": [],
-    "method": "requires_ocr",
-    "notes": [
-      "No usable text layer (4 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
-    ],
-    "priority_dates": [],
-    "priority_groups": [],
-    "qualifier": "not_applicable",
-    "text_chars": 4
+    "document_read": true,
+    "status": "vision_read"
   },
   "scott_2024/addenda/5": {
     "action": "amend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       0.5,
       7.0,
@@ -1200,6 +1354,7 @@
       40.0,
       44.8
     ],
+    "expires_on": "2024-10-31",
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1212,14 +1367,17 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 8697
+    "text_chars": 8697,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/6": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       60.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1228,41 +1386,26 @@
     ],
     "priority_groups": [],
     "qualifier": "full",
-    "text_chars": 4279
+    "text_chars": 4279,
+    "title_body_conflict": false
   },
   "scott_2024/addenda/7": {
-    "action": "undetermined",
-    "affects_all": false,
-    "cfs_values": [],
-    "method": "requires_ocr",
-    "notes": [
-      "No usable text layer (3 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
-    ],
-    "priority_dates": [],
-    "priority_groups": [],
-    "qualifier": "not_applicable",
-    "text_chars": 3
+    "document_read": true,
+    "status": "vision_read"
   },
   "scott_2024/addenda/8": {
-    "action": "undetermined",
-    "affects_all": false,
-    "cfs_values": [],
-    "method": "requires_ocr",
-    "notes": [
-      "No usable text layer (3 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
-    ],
-    "priority_dates": [],
-    "priority_groups": [],
-    "qualifier": "not_applicable",
-    "text_chars": 3
+    "document_read": true,
+    "status": "vision_read"
   },
   "scott_2024/addenda/9": {
     "action": "reinstate",
     "affects_all": true,
+    "body_action": "reinstate",
     "cfs_values": [
       145.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1283,11 +1426,13 @@
       8
     ],
     "qualifier": "not_applicable",
-    "text_chars": 55005
+    "text_chars": 55005,
+    "title_body_conflict": false
   },
   "scott_2024/addenda_to_2026_0008/1": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       30.0,
       33.0,
@@ -1297,6 +1442,7 @@
       59.0,
       90.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1307,15 +1453,18 @@
     ],
     "priority_groups": [],
     "qualifier": "conditional",
-    "text_chars": 47945
+    "text_chars": 47945,
+    "title_body_conflict": false
   },
   "scott_2024/order/WR 2024-0024-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       46.1,
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1335,15 +1484,18 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 28924
+    "text_chars": 28924,
+    "title_body_conflict": false
   },
   "scott_2024/order/WR 2024-0025-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       46.1,
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1363,11 +1515,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 35409
+    "text_chars": 35409,
+    "title_body_conflict": false
   },
   "scott_2024/order/WR 2026-0005-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       124.0,
       125.0,
@@ -1375,6 +1529,7 @@
       175.0,
       200.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1399,16 +1554,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 37301
+    "text_chars": 37301,
+    "title_body_conflict": false
   },
   "scott_2024/order/WR 2026-0008-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       124.0,
       125.0,
       130.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1436,12 +1594,15 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 36175
+    "text_chars": 36175,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/1": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'State Water Resources Control Board December 27, 2022 ADDENDUM 1 TO ORDER WR 2022-0162-DWR:'. Recorded as undetermined rather than guessed."
@@ -1457,16 +1618,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 61183
+    "text_chars": 61183,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/10": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       5.0,
       125.0,
       237.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1485,11 +1649,13 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 51554
+    "text_chars": 51554,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/11": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       70.0,
       105.0,
@@ -1497,6 +1663,7 @@
       220.0,
       240.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1511,11 +1678,13 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 50090
+    "text_chars": 50090,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/12": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       50.0,
       70.0,
@@ -1524,6 +1693,7 @@
       125.0,
       174.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1540,11 +1710,13 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 49335
+    "text_chars": 49335,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/13": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       50.0,
       61.3,
@@ -1553,6 +1725,7 @@
       125.0,
       159.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1568,11 +1741,13 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 49220
+    "text_chars": 49220,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/14": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       47.8,
       50.0,
@@ -1580,6 +1755,7 @@
       105.0,
       125.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'Subject: Order WR 2021-0082-DWR, Addendum 14: Imposition of Full Curtailment for Junior Water Rights in Shasta River Wat'. Recorded as undetermined rather than guessed."
@@ -1596,7 +1772,8 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 40980
+    "text_chars": 40980,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/2": {
     "status": "not_fetched"
@@ -1607,11 +1784,13 @@
   "shasta_2021/addenda/4": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       125.0,
       135.0,
       150.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1625,17 +1804,20 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 7897
+    "text_chars": 7897,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/5": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       4.0,
       135.0,
       152.0,
       160.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1652,16 +1834,19 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 15483
+    "text_chars": 15483,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/6": {
     "action": "suspend",
     "affects_all": true,
+    "body_action": "undetermined",
     "cfs_values": [
       135.0,
       157.0,
       178.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1674,16 +1859,19 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 20882
+    "text_chars": 20882,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/7": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       135.0,
       152.0,
       179.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'State Water Resources Control Board January 26, 2022 ADDENDUM 7 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
@@ -1698,16 +1886,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 19843
+    "text_chars": 19843,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/8": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "suspend",
     "cfs_values": [
       135.0,
       147.0,
       156.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'State Water Resources Control Board February 25, 2022 ADDENDUM 8 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
@@ -1725,11 +1916,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 20198
+    "text_chars": 20198,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/9": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       5.0,
       6.0,
@@ -1740,6 +1933,7 @@
       129.0,
       135.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'State Water Resources Control Board March 15, 2022 ADDENDUM 9 TO ORDERS WR 2021-0082-DWR and WR 2021-0085-DWR 1:'. Recorded as undetermined rather than guessed."
@@ -1755,16 +1949,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 38764
+    "text_chars": 38764,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2021-0082-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       30.0,
       31.0,
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1780,16 +1977,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 28376
+    "text_chars": 28376,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2021-0085-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       21.0,
       104.0,
       125.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1806,12 +2006,15 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 28011
+    "text_chars": 28011,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2022-0142-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1829,12 +2032,15 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 26069
+    "text_chars": 26069,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2022-0161-DWR": {
     "action": "undetermined",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [
       "Action could not be classified from the headline: 'Koua Yang                                                                    July 19, 2022 Due to the drought and extrem'. Recorded as undetermined rather than guessed."
@@ -1854,15 +2060,18 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 24131
+    "text_chars": 24131,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2022-0162-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       34.5,
       50.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1887,16 +2096,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 63996
+    "text_chars": 63996,
+    "title_body_conflict": false
   },
   "shasta_2021/order/WR 2022-0167-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0,
       75.0,
       105.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1921,11 +2133,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 135136
+    "text_chars": 135136,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/1": {
     "action": "reinstate",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       40.7,
       50.0,
@@ -1933,6 +2147,7 @@
       57.7,
       93.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1947,16 +2162,19 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 53095
+    "text_chars": 53095,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/2": {
     "action": "suspend",
     "affects_all": true,
+    "body_action": "undetermined",
     "cfs_values": [
       105.0,
       126.0,
       220.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -1975,17 +2193,20 @@
     ],
     "priority_groups": [],
     "qualifier": "temporary",
-    "text_chars": 35797
+    "text_chars": 35797,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/3": {
     "action": "suspend",
     "affects_all": true,
+    "body_action": "undetermined",
     "cfs_values": [
       105.0,
       125.0,
       140.0,
       220.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -2003,11 +2224,13 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 36079
+    "text_chars": 36079,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/4": {
     "action": "reinstate",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       50.0,
       53.1,
@@ -2015,6 +2238,7 @@
       56.8,
       210.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -2034,17 +2258,20 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 54821
+    "text_chars": 54821,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/5": {
     "action": "suspend",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       2.0,
       105.0,
       125.0,
       145.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -2057,11 +2284,13 @@
     ],
     "priority_groups": [],
     "qualifier": "unqualified",
-    "text_chars": 41170
+    "text_chars": 41170,
+    "title_body_conflict": false
   },
   "shasta_2024/addenda/6": {
     "action": "reinstate",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       45.3,
       46.5,
@@ -2075,6 +2304,7 @@
       200.0,
       215.0
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -2092,11 +2322,13 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 59647
+    "text_chars": 59647,
+    "title_body_conflict": false
   },
   "shasta_2024/order/WR 2024-0006-DWR": {
     "action": "impose",
     "affects_all": false,
+    "body_action": "undetermined",
     "cfs_values": [
       5.0,
       20.0,
@@ -2109,6 +2341,7 @@
       70.0,
       71.4
     ],
+    "expires_on": null,
     "method": "text_layer",
     "notes": [],
     "priority_dates": [
@@ -2127,6 +2360,7 @@
     ],
     "priority_groups": [],
     "qualifier": "not_applicable",
-    "text_chars": 79453
+    "text_chars": 79453,
+    "title_body_conflict": false
   }
 }
