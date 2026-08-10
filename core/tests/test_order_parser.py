@@ -560,3 +560,86 @@ class TestExpiryIsCaptured:
         """Base orders run until suspended or rescinded. Inventing an end date
         would show a live curtailment as lapsed."""
         assert extract(SCOTT_BASE_ORDER).expires_on is None
+
+
+#: Shasta 2021 Addendum 7, verbatim. The sentence that broke the terminating
+#: pattern through a missing word boundary.
+ADDENDUM_EXTENDING_RELIEF = """State Water Resources Control Board
+Subject: Order WR 2021-0082-DWR, Addendum 7
+
+This Addendum amends Order WR 2021-0082-DWR to extend the temporary suspension
+of all curtailments of water rights in the Shasta River watershed through the
+end of the month, as long as flows remain above the required minimum.
+"""
+
+
+class TestAWordBoundaryDecidesTheLegalEffect:
+    """`ends?` with no word boundary matches inside "extend".
+
+    Shasta 2021 Addenda 7 and 8 both say "this Addendum amends Order WR
+    2021-0082-DWR to EXTEND the temporary suspension". The terminating pattern
+    matched that, reading an EXTENSION OF RELIEF as a REINSTATEMENT OF
+    CURTAILMENT: telling diverters to stop at the exact moment the Board
+    extended their permission to divert.
+
+    It is the same inversion the terminating patterns were written to prevent,
+    arriving through the other door, and it was introduced by the fix for the
+    first one. Found by an adversarial review of that fix.
+    """
+
+    def test_extending_a_suspension_is_not_read_as_ending_one(self) -> None:
+        assert extract(ADDENDUM_EXTENDING_RELIEF).body_action is not OrderAction.REINSTATE
+
+    def test_extending_a_suspension_continues_relief(self) -> None:
+        assert extract(ADDENDUM_EXTENDING_RELIEF).body_action is OrderAction.SUSPEND
+
+    def test_ending_a_suspension_still_reads_as_reinstatement(self) -> None:
+        """The original fix must survive the fix to the fix."""
+        assert extract(ADDENDUM_12_BODY).body_action is OrderAction.REINSTATE
+
+    def test_granting_a_suspension_still_reads_as_suspension(self) -> None:
+        assert extract(ADDENDUM_3_BODY).body_action is OrderAction.SUSPEND
+
+    @pytest.mark.parametrize("verb", ["amends", "suspends", "appends", "recommends", "depends on"])
+    def test_no_other_word_containing_end_triggers_a_termination(self, verb: str) -> None:
+        """The bug class, swept. Every one of these contains the letters "end"."""
+        text = (
+            f"Subject: Notice\n\nThis Addendum {verb} the conditional suspension "
+            "described elsewhere. " + "Body text. " * 30
+        )
+        assert extract(text).body_action is not OrderAction.REINSTATE
+
+
+class TestGroupRangesWithMoreThanOneDigit:
+    def test_a_two_digit_range_expands_fully(self) -> None:
+        """A single-digit capture read "Groups 1-10" as 1 to 1, silently dropping
+        groups 2 through 10. An empty or truncated grouping is indistinguishable
+        from a document that named no grouping at all."""
+        text = "Subject: Reinstatement of Curtailments for Groups 1-10\n" + "body. " * 40
+        assert extract(text).priority_groups == (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+    def test_a_two_digit_single_group_is_read(self) -> None:
+        text = "Subject: Limited Conditional Suspension for Group 12\n" + "body. " * 40
+        assert extract(text).priority_groups == (12,)
+
+    def test_the_scott_ladder_range_still_reads_correctly(self) -> None:
+        assert extract(SCOTT_ADDENDUM_12).priority_groups == (1, 2, 3, 4, 5, 6, 7, 8)
+
+
+class TestDatesInCapitalsAreNotInvisible:
+    def test_an_all_caps_priority_date_is_read(self) -> None:
+        """These documents print decree tier boundaries in capitals, for example
+        "(PRIORITY DATES APRIL 1, 1912 TO MARCH 1, 1885)". A case-sensitive
+        pattern skipped them while the record still read as parsed, so a missing
+        priority date was indistinguishable from a document naming none."""
+        from datetime import date as _date
+
+        text = "Subject: Notice\n\n(PRIORITY DATES APRIL 1, 1912 TO MARCH 1, 1885)\n" + "x " * 90
+        dates = extract(text).priority_dates
+        assert _date(1912, 4, 1) in dates
+        assert _date(1885, 3, 1) in dates
+
+    def test_mixed_case_dates_still_read(self) -> None:
+        from datetime import date as _date
+
+        assert _date(1912, 11, 25) in extract(SHASTA_ADDENDUM_6).priority_dates

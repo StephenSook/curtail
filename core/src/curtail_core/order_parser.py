@@ -143,13 +143,23 @@ _ALL_SCOPE = re.compile(r"\ball\s+(?:surface\s+water\s+rights|curtailments?)\b",
 #: The separator is kept because headline typography varies across a decade of
 #: documents and the cost of a miss is silently dropping a priority grouping.
 _RANGE_SEPARATORS = "-\u2013"  # hyphen-minus, en dash
-_GROUPS_RANGE = re.compile(rf"Groups?\s+(\d)\s*(?:[{_RANGE_SEPARATORS}]|through|to)\s*(\d)", re.I)
-_GROUP_SINGLE = re.compile(r"Group\s+(\d)\b", re.I)
+#: Multi-digit on purpose. A single-digit capture read "Groups 1-10" as 1 to 1,
+#: silently dropping groups 2 through 10, and an empty result is
+#: indistinguishable from a document that named no grouping at all.
+_GROUPS_RANGE = re.compile(
+    rf"Groups?\s+(\d+)\b\s*(?:[{_RANGE_SEPARATORS}]|through|to)\s*\b(\d+)\b", re.I
+)
+_GROUP_SINGLE = re.compile(r"Group\s+(\d+)\b", re.I)
 
 #: A priority cutoff date, e.g. "November 25, 1912" or "January 1, 1958".
+#: Case-insensitive on purpose. These documents print decree tier boundaries in
+#: capitals, for example "(PRIORITY DATES APRIL 1, 1912 TO MARCH 1, 1885)", and a
+#: case-sensitive pattern silently skips them while the record still reads as
+#: successfully parsed.
 _PRIORITY_DATE = re.compile(
     r"\b(January|February|March|April|May|June|July|August|September|October|November|December)"
-    r"\s+(\d{1,2}),\s*(1[89]\d{2}|20\d{2})\b"
+    r"\s+(\d{1,2}),\s*(1[89]\d{2}|20\d{2})\b",
+    re.I,
 )
 
 #: Discharge values. Captures the number preceding a cfs unit.
@@ -247,11 +257,33 @@ _SELF_REFERENTIAL = r"this\s+(?:addendum|order)\b"
 #: Note also that `[^.]` matches newlines, so a permissive gap silently reaches
 #: across paragraph breaks in a way that is invisible when testing with grep.
 #: Every pattern below is anchored on an affirmative or terminating verb.
-_GRANTS = r"(?:provides?\s+for|is|constitutes?|hereby\s+\w+)"
-_ENDS = r"(?:ends?|terminat\w+|rescind\w*|lift\w*|conclud\w*)"
+#: Word boundaries are load-bearing on BOTH sides.
+#:
+#: Without them `ends?` matches inside "extend", "amends", "suspends",
+#: "appends" and "recommends". Shasta 2021 Addenda 7 and 8 both say "this
+#: Addendum amends Order WR 2021-0082-DWR to EXTEND the temporary suspension",
+#: and the terminating pattern matched it, reading an EXTENSION OF RELIEF as a
+#: REINSTATEMENT OF CURTAILMENT. That is the same inversion the terminating
+#: patterns exist to prevent, arriving through the other door.
+_GRANTS = r"(?:\bprovides?\s+for\b|\bis\b|\bconstitutes?\b|\bhereby\s+\w+)"
+_ENDS = r"\b(?:ends?|terminat\w+|rescind\w*|lift\w*|conclud\w*)\b"
+
+#: An extension of an existing suspension CONTINUES relief. It is neither a new
+#: grant nor a termination, and matching it as either inverts or overstates the
+#: act, so it is detected explicitly and matched before anything else.
+_EXTENDS = r"\b(?:extends?|extending|extended|continu\w+)\b"
 
 _BODY_ACTION_PATTERNS: tuple[tuple[re.Pattern[str], OrderAction, SuspensionQualifier], ...] = (
-    # Terminating forms FIRST. "ends the conditional suspension" is a
+    # Extension of an existing suspension FIRST: relief continues, so this is
+    # neither a termination nor a fresh grant, and it must not reach either.
+    (
+        re.compile(
+            rf"{_SELF_REFERENTIAL}[^.]{{0,80}}?{_EXTENDS}\s+the\s+[^.]{{0,40}}?suspension", re.I
+        ),
+        OrderAction.SUSPEND,
+        SuspensionQualifier.UNQUALIFIED,
+    ),
+    # Terminating forms next. "ends the conditional suspension" is a
     # reinstatement, and must never fall through to a suspension pattern.
     (
         re.compile(
@@ -409,7 +441,7 @@ def extract(text: str) -> Extraction:
     dates: list[date] = []
     for month, day, year in _PRIORITY_DATE.findall(text):
         try:
-            dates.append(date(int(year), _MONTHS[month], int(day)))
+            dates.append(date(int(year), _MONTHS[month.title()], int(day)))
         except ValueError:
             continue  # a malformed date is dropped, never coerced
 
