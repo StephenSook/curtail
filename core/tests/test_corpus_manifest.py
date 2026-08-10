@@ -188,12 +188,36 @@ class TestTheMetricDenominatorCannotBeInflated:
         assert "extraction_status" in manifest
 
     def test_scorable_never_exceeds_documents_actually_read(self, manifest: dict[str, Any]) -> None:
+        """Read by either path, but read by some path.
+
+        A document is scorable when the deterministic parser returned an action
+        from its text layer, or when a scan was read from its rendered pages and
+        the figures transcribed with the source sentence quoted. Nothing else
+        counts, and the sum of the two paths is a hard ceiling on the metric.
+        """
         status = manifest["extraction_status"]
-        assert status["scorable"] <= status["read_via_text_layer"]
+        actually_read = status["read_via_text_layer"] + status.get("read_via_vision", 0)
+        assert status["scorable"] <= actually_read, (
+            f"{status['scorable']} scorable but only {actually_read} documents were read"
+        )
 
     def test_read_never_exceeds_pdfs_fetched(self, manifest: dict[str, Any]) -> None:
         status = manifest["extraction_status"]
-        assert status["read_via_text_layer"] <= status["pdfs_fetched"]
+        actually_read = status["read_via_text_layer"] + status.get("read_via_vision", 0)
+        assert actually_read <= status["pdfs_fetched"]
+
+    def test_a_scan_is_either_read_by_vision_or_still_refused(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """The four scans must be fully accounted for, with none silently lost.
+
+        Two were read from their rendered pages. Two remain unread. A scan that
+        stopped being counted in either bucket would vanish from the record
+        while the totals still looked consistent.
+        """
+        status = manifest["extraction_status"]
+        scans = status.get("read_via_vision", 0) + status["refused_no_text_layer"]
+        assert scans == 4, f"4 scans were measured on disk but {scans} are accounted for"
 
     def test_fetched_never_exceeds_enumerated_records(self, manifest: dict[str, Any]) -> None:
         status = manifest["extraction_status"]
@@ -224,7 +248,20 @@ class TestTheMetricDenominatorCannotBeInflated:
         )
 
     def test_every_record_flagged_read_carries_what_it_read(self, manifest: dict[str, Any]) -> None:
-        """`document_read: true` without extracted values is an empty claim."""
+        """`document_read: true` without recorded values is an empty claim.
+
+        Two provenances are permitted and they carry different evidence:
+
+        `text_layer`  the deterministic parser returned an action. The extracted
+                      block is the evidence, and it is reproducible by rerunning
+                      the script.
+        `vision`      the document is a scan with no text layer, so the pages
+                      were read and the figures transcribed. That is not
+                      reproducible by rerunning a script, so it must carry a
+                      transcription note quoting the sentences it took the
+                      figures from. A vision read without its quotation is
+                      indistinguishable from a value someone remembered.
+        """
         for series in manifest["series"]:
             groups: list[dict[str, Any]] = list(series["base_orders"])
             for group in ("addenda", "addenda_to_2026_0008"):
@@ -232,17 +269,44 @@ class TestTheMetricDenominatorCannotBeInflated:
             for node in groups:
                 if not node.get("document_read"):
                     continue
+                if node.get("read_method") == "vision":
+                    assert node.get("transcription_note"), (
+                        f"{node.get('n', node.get('order_number'))} claims a vision read "
+                        "but quotes nothing from the document"
+                    )
+                    assert node.get("action"), "a vision read must record the action it read"
+                    continue
                 assert "extracted" in node, f"{node} claims to be read but recorded nothing"
                 assert node["extracted"]["method"] == "text_layer"
                 assert node["extracted"]["action"] != "undetermined"
 
-    def test_documents_with_no_text_layer_are_never_marked_read(
+    def test_a_vision_read_quotes_the_sentence_its_figures_came_from(
         self, manifest: dict[str, Any]
     ) -> None:
-        """Four fetched documents are pure scans, one of them the July 2025 fixture.
+        """The July 2025 figures are the ones an earlier draft got wrong.
 
-        A scan marked read would be a document scored against an action nothing
-        extracted, which is the failure this two-tier scheme exists to prevent.
+        Drafts carried "above 75 cfs", taken from the August 5 2025 Executive
+        Director's Report paraphrase rather than from the Addendum. The Addendum
+        states 78.4. The quotation requirement is what makes that checkable
+        without reopening the PDF.
+        """
+        scott = next(s for s in manifest["series"] if s["id"] == "scott_2024")
+        add8 = next(a for a in scott["addenda"] if a["n"] == 8)
+        assert add8["gage_reading_cfs"] == 78.4
+        assert "78.4 cfs" in add8["transcription_note"]
+
+        add7 = next(a for a in scott["addenda"] if a["n"] == 7)
+        assert add7["gage_reading_cfs"] == 48.7
+        assert "48.7 cfs" in add7["transcription_note"]
+
+    def test_documents_with_no_text_layer_are_never_marked_read_without_vision(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """A scan is read by looking at it or it is not read at all.
+
+        A scan marked read with neither a text layer nor a vision transcription
+        would be a document scored against an action nothing extracted, which is
+        the failure this two-tier scheme exists to prevent.
         """
         blocked = 0
         for series in manifest["series"]:

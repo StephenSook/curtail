@@ -343,16 +343,42 @@
           "n": 7,
           "date": "2025-07-20",
           "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf",
-          "document_read": false,
-          "extraction_blocked": "no text layer, requires OCR"
+          "document_read": true,
+          "read_method": "vision",
+          "title": "Addendum 7 - Reinstatement of Curtailments for All Surface Water and Groundwater Diverters, Scott River Watershed",
+          "action": "reinstate",
+          "affects_all": true,
+          "effective_date": "2025-07-20",
+          "gage_reading_cfs": 48.7,
+          "gage_reading_timestamp": "2025-07-20T21:30:00-07:00",
+          "minimum_flow_cfs_stated": {
+            "july": 50,
+            "august": 30
+          },
+          "orders_amended": [
+            "WR 2024-0024-DWR",
+            "WR 2024-0025-DWR"
+          ],
+          "transcription_note": "No text layer; pdftotext returns 3 bytes. Read from the rendered pages. Figures transcribed from page 1: 'Flows at the USGS Fort Jones gage are 48.7 cfs as of July 20, 2025, at 9:30 pm' and 'the required minimum flow at the Fort Jones USGS gage for July is 50 cubic feet per second (cfs) and 30 cfs for August.'"
         },
         {
           "n": 8,
           "date": "2025-07-22",
           "url": "docs/2025/addendum8-scottriver-7-22-2025.pdf",
           "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture.",
-          "document_read": false,
-          "extraction_blocked": "no text layer, requires OCR"
+          "document_read": true,
+          "read_method": "vision",
+          "title": "Addendum 8 - Suspension of All Curtailments in the Scott River Watershed",
+          "action": "suspend",
+          "qualifier": "unqualified",
+          "affects_all": true,
+          "effective_date": "2025-07-22",
+          "gage_reading_cfs": 78.4,
+          "gage_reading_timestamp": "2025-07-22T07:30:00-07:00",
+          "signatory": "Erik Ekdahl",
+          "signatory_role": "Chief Deputy Director",
+          "revision_cause": "USGS rating curve revised upward on Watermaster field measurements",
+          "transcription_note": "No text layer; pdftotext returns 3 bytes. Read from the rendered pages. Verbatim: 'Several community members expressed concern regarding the accuracy of the measurement, and USGS has revised its flow measurements upward based on measurements taken by the Scott Valley and Shasta Valley Watermaster District (Watermaster). As of 7:30 am this morning, flows at the Fort Jones USGS gage were measured at 78.4 cfs.'"
         },
         {
           "n": 9,
@@ -878,7 +904,9 @@
     "RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.",
     "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.",
     "OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.",
-    "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them."
+    "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.",
+    "RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.",
+    "OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",
@@ -886,8 +914,9 @@
     "records_individually_enumerated": 33,
     "pdfs_fetched": 24,
     "read_via_text_layer": 20,
-    "scorable": 20,
-    "refused_no_text_layer": 4,
-    "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M."
+    "scorable": 22,
+    "refused_no_text_layer": 2,
+    "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
+    "read_via_vision": 2
   }
 }
