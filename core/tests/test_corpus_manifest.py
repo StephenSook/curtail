@@ -197,14 +197,27 @@ class TestKnownConflictsAreRecordedNotResolved:
     ) -> None:
         shasta = next(s for s in manifest["series"] if s["id"] == "shasta_2021")
         note = shasta["data_quality_note"]
-        assert "2022-0162" in note or "2021-0162" in note
+        assert "2022-0162" in note
         assert "index page is internally inconsistent" in note
+        # Resolved 2026-08-10, and the resolution must cite the documents rather
+        # than simply asserting a winner. Each order prints its own number on its
+        # own face; the index page's 2021 reference points at the parent order
+        # both of them amend.
+        assert "RESOLVED" in note
+        assert "August 2, 2022" in note
 
     def test_the_unnumbered_scott_order_is_flagged(self, manifest: dict[str, Any]) -> None:
         scott = next(s for s in manifest["series"] if s["id"] == "scott_2021")
         unnumbered = [o for o in scott["base_orders"] if o["order_number"] == "UNNUMBERED_ON_INDEX"]
         assert len(unnumbered) == 1
-        assert "data_quality_note" in unnumbered[0]
+        note = unnumbered[0]["data_quality_note"]
+        # Resolved by reading the document: it carries no WR identifier anywhere,
+        # so this was never an index-page omission. The placeholder key stays
+        # because the order genuinely has no number, and inventing one would put
+        # a fabricated identifier into a legal record.
+        assert "RESOLVED" in note
+        assert "no WR identifier" in note
+        assert unnumbered[0]["signatory_role"] == "Deputy Director"
 
     def test_the_1912_cutoff_conflict_is_resolved_from_the_document(
         self, manifest: dict[str, Any]

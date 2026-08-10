@@ -115,7 +115,7 @@
           "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/surface_water_curtailment_order_scott.pdf",
           "index_verified": true,
           "document_read": true,
-          "data_quality_note": "The Board's index page links this surface-water order without stating its order number. The number must be read from the PDF before this record is scored.",
+          "data_quality_note": "RESOLVED 2026-08-10 by reading the document. This is NOT an index-page omission: the order carries no WR identifier anywhere in its 24,830 characters. It is titled 'ORDER IMPOSING WATER RIGHT CURTAILMENT AND REPORTING REQUIREMENTS FOR REPORTED WATER RIGHTS IN THE SCOTT RIVER WATERSHED', dated September 9, 2021, and signed by the Deputy Director. The only 2021 numbers it contains belong to other instruments. The placeholder key stays because the document genuinely has no number to use, and inventing one would put a fabricated identifier into a legal record.",
           "extracted": {
             "method": "text_layer",
             "action": "impose",
@@ -146,7 +146,10 @@
             "expires_on": null,
             "text_chars": 26809,
             "notes": []
-          }
+          },
+          "title_from_document": "ORDER IMPOSING WATER RIGHT CURTAILMENT AND REPORTING REQUIREMENTS FOR REPORTED WATER RIGHTS IN THE SCOTT RIVER WATERSHED",
+          "order_date": "2021-09-09",
+          "signatory_role": "Deputy Director"
         }
       ],
       "addenda_count": 51,
@@ -2366,7 +2369,7 @@
       },
       "index_verified": true,
       "documents_read": 0,
-      "data_quality_note": "The Board's own index page is internally inconsistent on two order numbers. Its order list names WR 2022-0162-DWR and WR 2022-0167-DWR, while the addendum sections beneath refer to WR 2021-0162-DWR and WR 2021-0167-DWR. Recorded rather than silently normalized. The year must be resolved from the PDFs before either record is scored, because an order number is an identifier in a legal record and guessing at one is exactly the class of error this project exists to prevent.",
+      "data_quality_note": "RESOLVED 2026-08-10 from the documents themselves. The Board's index page is internally inconsistent on two order numbers, naming them under both 2021 and 2022. Each document settles it on its own face: WR 2022-0162-DWR is dated August 2, 2022 and prints that number, and WR 2022-0167-DWR is dated September 13, 2022 and prints that number. Both amend the 2021 parent order WR 2021-0082-DWR, which is the likely source of the 2021 reference on the index page. The 2022 numbering is correct and is what this manifest uses.",
       "addenda": [
         {
           "n": 1,
@@ -3175,7 +3178,8 @@
     "PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.",
     "OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.",
     "OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment.",
-    "RESOLVED 2026-08-10: the four records that carried a note instead of a URL are resolved. Their filenames carry no number (scott-curtailment-suspension, scott-more-suspensions, addendum-two-to-order-... spelling the number out, shasta-more-suspensions), which is exactly what the plan predicted would defeat a filename-based mapping. Each number was then CONFIRMED FROM THE DOCUMENT'S OWN TEXT rather than from its position on the index page, because page order is an inference and the title is evidence."
+    "RESOLVED 2026-08-10: the four records that carried a note instead of a URL are resolved. Their filenames carry no number (scott-curtailment-suspension, scott-more-suspensions, addendum-two-to-order-... spelling the number out, shasta-more-suspensions), which is exactly what the plan predicted would defeat a filename-based mapping. Each number was then CONFIRMED FROM THE DOCUMENT'S OWN TEXT rather than from its position on the index page, because page order is an inference and the title is evidence.",
+    "RESOLVED 2026-08-10: both recorded conflicts are closed from the documents. (1) The Shasta order-number year is 2022, not 2021: WR 2022-0162-DWR is dated August 2 2022 and WR 2022-0167-DWR September 13 2022, each printing its own number, and both amend the 2021 parent order which is the likely source of the index page's 2021 reference. (2) The Scott September 9 2021 surface-water order is genuinely UNNUMBERED as published, carrying no WR identifier at all, so this was never an index-page omission to fix."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",

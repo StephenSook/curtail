@@ -198,7 +198,7 @@ formatting convention was the worst defect in this file.
 - OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.
 - OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment.
 
-### Closed, kept for provenance (8)
+### Closed, kept for provenance (9)
 
 - RESOLVED 2026-08-10: superseded. This item read 'No document has been parsed yet'. 85 of 98 documents are now read and scorable. Retired rather than deleted so the record shows it was answered, not lost.
 - RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.
@@ -208,7 +208,8 @@ formatting convention was the worst defect in this file.
 - CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.
 - PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.
 - RESOLVED 2026-08-10: the four records that carried a note instead of a URL are resolved. Their filenames carry no number (scott-curtailment-suspension, scott-more-suspensions, addendum-two-to-order-... spelling the number out, shasta-more-suspensions), which is exactly what the plan predicted would defeat a filename-based mapping. Each number was then CONFIRMED FROM THE DOCUMENT'S OWN TEXT rather than from its position on the index page, because page order is an inference and the title is evidence.
+- RESOLVED 2026-08-10: both recorded conflicts are closed from the documents. (1) The Shasta order-number year is 2022, not 2021: WR 2022-0162-DWR is dated August 2 2022 and WR 2022-0167-DWR September 13 2022, each printing its own number, and both amend the 2021 parent order which is the likely source of the index page's 2021 reference. (2) The Scott September 9 2021 surface-water order is genuinely UNNUMBERED as published, carrying no WR identifier at all, so this was never an index-page omission to fix.
 
-_All 17 items accounted for: 9 open, 8 closed._
+_All 18 items accounted for: 9 open, 9 closed._
 
 _Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._
