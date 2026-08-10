@@ -9,8 +9,6 @@ the Devpost description must come from this file and from nowhere else. A
 figure sourced from a memory ledger or a research summary is exactly how a
 published artifact ends up contradicting its own repository.
 
-- Generated from commit `5a85ce9`
-- Test suite at generation time: 20 commits
 
 ---
 
@@ -174,4 +172,4 @@ matches the encoded 2025-readopted schedule.
 - OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.
 - OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.
 
-_Generated from commit 5a85ce9._
+_Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._

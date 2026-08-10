@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -37,15 +36,6 @@ from curtail_core.flow_minimums import (  # noqa: E402
 
 OUT = REPO / "docs" / "FACTS.md"
 MANIFEST = REPO / "data" / "corpus_manifest.json"
-
-
-def _git(*args: str) -> str:
-    try:
-        return subprocess.run(
-            ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unavailable"
 
 
 def _schedule_rows(basin: Basin) -> list[str]:
@@ -80,8 +70,14 @@ def build() -> str:
     add("figure sourced from a memory ledger or a research summary is exactly how a")
     add("published artifact ends up contradicting its own repository.")
     add("")
-    add(f"- Generated from commit `{_git('rev-parse', '--short', 'HEAD')}`")
-    add(f"- Test suite at generation time: {_git('rev-list', '--count', 'HEAD')} commits")
+    # Deliberately NO commit SHA and no timestamp in this file.
+    #
+    # A generated artifact must be a pure function of its inputs, and git HEAD is
+    # not one of its inputs. Embedding the commit made the file unsatisfiable:
+    # generating at commit A wrote "commit A", committing produced commit B, and
+    # the CI check then regenerated "commit B" and reported permanent staleness.
+    # Provenance comes from `git log -- docs/FACTS.md`, which is authoritative
+    # and costs nothing.
     add("")
     add("---")
     add("")
@@ -227,9 +223,11 @@ def build() -> str:
         if item.startswith("OPEN"):
             add(f"- {item}")
     add("")
-    # Dated from the commit, not the wall clock, so regenerating on a
-    # different day does not make the file look stale to the --check gate.
-    add(f"_Generated from commit {_git('rev-parse', '--short', 'HEAD')}._")
+    add(
+        "_Provenance: run `git log -- docs/FACTS.md` for when this was last "
+        "regenerated, and `git log -- data/ core/src/` for the inputs it was "
+        "computed from._"
+    )
     add("")
     return "\n".join(lines)
 
