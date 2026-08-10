@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 
 from curtail_core.basins import COMPLIANCE_GAGE, Basin
 
@@ -88,12 +89,66 @@ SCHEDULES: dict[Basin, tuple[FlowPeriod, ...]] = {
 }
 
 
+class RegulatoryEra(StrEnum):
+    """Which emergency regulation governed on a given date.
+
+    The tables above are the readopted regulation. The 2021 emergency cycle ran
+    a DIFFERENT table and a 135 cfs sustained suspension threshold, and its
+    orders were still being amended into 2023: Scott Addendum 51 issued that
+    year. Applying the readopted table to a 2021 decision would mark the Board
+    wrong for correctly applying the rule that was actually in force, which is a
+    worse failure than refusing to answer.
+    """
+
+    ERA_2021 = "2021_emergency"
+    ERA_2024 = "2024_readopted"
+
+
+#: Conservative boundary, chosen where the evidence begins rather than where the
+#: regulation changed.
+#:
+#: Direct document confirmation of the encoded table starts in September 2024:
+#: Scott Addendum 3 states 33 cfs for September, Addendum 5 states 40 cfs for
+#: October, Shasta Addendum 2 states 105 cfs for October. Dates earlier in 2024
+#: rest on the regulation's continuity rather than on a document, and that is
+#: stated here rather than hidden. Move this boundary only with a primary source.
+ERA_2024_BEGINS = date(2024, 1, 1)
+
+
+def era_for(when: date) -> RegulatoryEra:
+    """Which regulatory era governs a date."""
+    return RegulatoryEra.ERA_2024 if when >= ERA_2024_BEGINS else RegulatoryEra.ERA_2021
+
+
+#: Schedules per era. The 2021 entry is DELIBERATELY EMPTY.
+#:
+#: Leaving it empty rather than omitting the era makes the gap explicit and makes
+#: the wrong answer unrepresentable: there is no path by which a 2021 date
+#: quietly receives the readopted table. It gets filled only from the 2021
+#: regulation or the 2021 orders themselves, read directly.
+SCHEDULES_BY_ERA: dict[RegulatoryEra, dict[Basin, tuple[FlowPeriod, ...]]] = {
+    RegulatoryEra.ERA_2024: SCHEDULES,
+    RegulatoryEra.ERA_2021: {},
+}
+
+
 class ScheduleGapError(LookupError):
     """Raised when no period covers a date.
 
     This fails loudly rather than returning a default. A silently defaulted
     minimum flow would produce a confident curtailment recommendation built on
     a number nobody chose.
+    """
+
+
+class EraNotEncodedError(ScheduleGapError):
+    """Raised when the governing era's table has not been encoded.
+
+    A subclass of ScheduleGapError so existing callers that already refuse on a
+    gap keep refusing, and so nothing has to be taught a new failure mode to stay
+    safe. The distinction exists because the two are different problems: a gap
+    means the encoded table has a hole, an unencoded era means the right table
+    was never entered at all.
     """
 
 
@@ -120,7 +175,19 @@ def minimum_flow(
             if period.contains(when):
                 return period.cfs
 
-    for period in SCHEDULES[basin]:
+    era = era_for(when)
+    schedule = SCHEDULES_BY_ERA[era].get(basin)
+    if not schedule:
+        raise EraNotEncodedError(
+            f"{when.isoformat()} falls in the {era.value} era, whose flow table is "
+            f"not encoded. The 2021 emergency cycle used different monthly values "
+            f"and a 135 cfs sustained suspension threshold, so answering from the "
+            f"readopted table would apply the wrong rule and mark the Board wrong "
+            f"for following the one actually in force. Encode the {era.value} "
+            f"schedule from a primary source before evaluating this date."
+        )
+
+    for period in schedule:
         if period.contains(when):
             return period.cfs
 

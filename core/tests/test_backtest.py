@@ -200,3 +200,31 @@ class TestTheJulySequenceScoresAsExpected:
         eight = next(r for r in report.results if r.case_id == "scott_2024/addenda/8")
         assert seven.minimum_cfs == eight.minimum_cfs == 50.0
         assert seven.basin is eight.basin is Basin.SCOTT
+
+
+class TestTheEraDefenceIsTwoIndependentLayers:
+    """The harness refuses pre-era cases, and so does the schedule beneath it.
+
+    Two layers, because they fail for different reasons and a single point of
+    control is one edit away from being removed. The harness guard is a policy
+    (do not score what we cannot fairly score); the schedule guard is a fact
+    (that table was never entered). Either alone would be enough today, and that
+    is exactly why both exist.
+    """
+
+    def test_the_harness_refuses_a_pre_era_case(self) -> None:
+        result = score_case(_case(decision_date="2021-09-15"), earliest_scorable=ERA_START)
+        assert result.outcome is Outcome.NOT_SCORABLE
+
+    def test_the_schedule_still_refuses_with_the_harness_guard_disabled(self) -> None:
+        """The load-bearing assertion. Widening the harness window, by accident
+        or by a hopeful edit, must not produce a scored 2021 result computed from
+        the wrong table."""
+        result = score_case(_case(decision_date="2021-09-15"), earliest_scorable=date(1900, 1, 1))
+        assert result.outcome is Outcome.NOT_SCORABLE
+        assert "2021_emergency" in result.reasoning
+
+    def test_a_current_era_case_is_unaffected_by_either_layer(self) -> None:
+        """Non-vacuity: the layers must not simply refuse everything."""
+        result = score_case(_case(), earliest_scorable=date(1900, 1, 1))
+        assert result.outcome is Outcome.MATCH

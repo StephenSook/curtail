@@ -16,9 +16,13 @@ from hypothesis import strategies as st
 from curtail_core.flow_minimums import (
     NEAR_THRESHOLD_BAND_CFS,
     SCHEDULES,
+    SCHEDULES_BY_ERA,
     Basin,
+    EraNotEncodedError,
     FlowPeriod,
+    RegulatoryEra,
     ScheduleGapError,
+    era_for,
     is_below_minimum,
     is_near_threshold,
     minimum_flow,
@@ -207,3 +211,60 @@ class TestProperties:
         minimum = minimum_flow(basin, when)
         assert is_near_threshold(basin, when, minimum + delta)
         assert is_near_threshold(basin, when, minimum - delta)
+
+
+class TestTheEraGuardMakesTheWrongTableUnreachable:
+    """The 2021 emergency cycle ran a different table and a 135 cfs sustained
+    suspension threshold, and its orders were amended into 2023.
+
+    Answering a 2021 question from the readopted table would apply the wrong rule
+    and mark the Board wrong for following the one actually in force. That is a
+    worse failure than refusing, so the 2021 schedule is deliberately empty and
+    every path through it raises.
+    """
+
+    def test_a_2021_date_refuses_rather_than_answering(self) -> None:
+        with pytest.raises(EraNotEncodedError):
+            minimum_flow(Basin.SCOTT, date(2021, 9, 15))
+
+    def test_a_2023_date_refuses_too(self) -> None:
+        """Scott Addendum 51 issued in 2023 under the 2021 orders, so the old
+        era extends well past 2021 and the guard has to cover it."""
+        with pytest.raises(EraNotEncodedError):
+            minimum_flow(Basin.SHASTA, date(2023, 7, 1))
+
+    def test_the_refusal_explains_which_era_and_why(self) -> None:
+        with pytest.raises(EraNotEncodedError) as excinfo:
+            minimum_flow(Basin.SCOTT, date(2021, 9, 15))
+        message = str(excinfo.value)
+        assert "2021_emergency" in message
+        assert "135" in message
+
+    def test_the_boundary_is_exact(self) -> None:
+        """One day either side, so a drifting boundary is visible."""
+        assert era_for(date(2023, 12, 31)) is RegulatoryEra.ERA_2021
+        assert era_for(date(2024, 1, 1)) is RegulatoryEra.ERA_2024
+
+    def test_a_current_era_date_still_answers(self) -> None:
+        """Non-vacuity for the guard: it must not refuse everything."""
+        assert minimum_flow(Basin.SCOTT, date(2025, 7, 20)) == 50.0
+
+    def test_the_2021_schedule_is_empty_on_purpose(self) -> None:
+        """If this ever becomes populated by copying the readopted table, every
+        refusal above silently turns into a confident wrong answer. The emptiness
+        is the safety property, so it is asserted directly."""
+        assert SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021] == {}
+
+    def test_an_unencoded_era_is_still_a_schedule_gap(self) -> None:
+        """Subclassing matters: callers that already refuse on ScheduleGapError
+        stay safe without being taught a new exception type."""
+        assert issubclass(EraNotEncodedError, ScheduleGapError)
+        with pytest.raises(ScheduleGapError):
+            minimum_flow(Basin.SCOTT, date(2021, 9, 15))
+
+    def test_an_explicit_override_still_wins(self) -> None:
+        """A CDFW alternative-flow table under 875(c)(2)(B) to (D) is an
+        authoritative instruction, so it answers even in an unencoded era. The
+        caller supplied the number; nothing was guessed."""
+        ramp = (FlowPeriod(9, 1, 9, 30, 42),)
+        assert minimum_flow(Basin.SCOTT, date(2021, 9, 15), override=ramp) == 42
