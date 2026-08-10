@@ -71,7 +71,11 @@ strict = true
 warn_unreachable = true
 warn_return_any = true
 disallow_untyped_defs = true
-mypy_path = ["core/src", "agents/src"]
+# `scripts` is on the path because tests import the corpus tooling to guard it,
+# for example asserting that every computed Extraction field is serialised. CI
+# type-checks `core/tests` as well as the source, so a script imported by a test
+# has to resolve here or the check fails in CI while passing locally.
+mypy_path = ["core/src", "agents/src", "scripts"]
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
