@@ -1,0 +1,138 @@
+# ---------------------------------------------------------------------------
+# Internal research and strategy. NEVER commit these.
+#
+# The build constitution and the research hauls are internal working documents.
+# Publishing them would leak strategy, competitor analysis, and third-party
+# contact details into a public repo. Gitignored before `git init` on purpose:
+# untracked is not protection, and one reflexive `git add -A` is the whole
+# distance between local and published.
+# ---------------------------------------------------------------------------
+*.pdf
+!docs/**/*.pdf
+CLAUDE*.md
+AGENTS.md
+GEMINI.md
+VERIFICATION_FINDINGS*
+Curtail_Mobile_Layer_Spec*
+_research/
+_private/
+_plan/
+
+# Third-party reference material. This is another company's proprietary
+# minified bundle, studied for motion patterns and never redistributed.
+noomo-showcase-frontend.txt
+
+# ---------------------------------------------------------------------------
+# Secrets. Cardinal rule: never commit one.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+service-account*.json
+gha-creds-*.json
+.npmrc
+.pypirc
+application_default_credentials.json
+
+# ---------------------------------------------------------------------------
+# JavaScript / TypeScript
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+.pnpm-store/
+coverage/
+
+# Service worker output, generated from app/sw.ts at build time
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/swe-worker-*.js
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.tox/
+
+# ---------------------------------------------------------------------------
+# Infrastructure
+# ---------------------------------------------------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+.gcloudignore
+
+# ---------------------------------------------------------------------------
+# Test and capture artifacts
+# ---------------------------------------------------------------------------
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+*.webm
+*.mp4
+*.mov
+!docs/media/**
+
+# ---------------------------------------------------------------------------
+# Data. The order corpus and gage snapshots are fetched, not vendored.
+# Cached responses can be large and are reproducible from public sources.
+# ---------------------------------------------------------------------------
+data/cache/
+data/corpus/**/*.pdf
+data/snapshots/
+*.pmtiles
+*.mbtiles
+
+# ---------------------------------------------------------------------------
+# OS and editor
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# ---------------------------------------------------------------------------
+# Local agent tooling. Project-scoped Claude settings stay local.
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
+.serena/
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-error.log*
