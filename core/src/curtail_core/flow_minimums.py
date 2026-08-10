@@ -92,12 +92,23 @@ SCHEDULES: dict[Basin, tuple[FlowPeriod, ...]] = {
 class RegulatoryEra(StrEnum):
     """Which emergency regulation governed on a given date.
 
-    The tables above are the readopted regulation. The 2021 emergency cycle ran
-    a DIFFERENT table and a 135 cfs sustained suspension threshold, and its
-    orders were still being amended into 2023: Scott Addendum 51 issued that
-    year. Applying the readopted table to a 2021 decision would mark the Board
-    wrong for correctly applying the rule that was actually in force, which is a
+    The tables above are the readopted regulation. The 2021 emergency cycle is a
+    separate adoption whose table has NOT been verified in full against a primary
+    source, and its orders were still being amended into 2023: Scott Addendum 51
+    issued that year. Applying an unverified table to a 2021 decision could mark
+    the Board wrong for correctly applying the rule actually in force, which is a
     worse failure than refusing to answer.
+
+    **What the documents actually show, measured 2026-08-10 across 60 fetched
+    2021-era documents.** Every Scott month those documents state MATCHES the
+    readopted table: January 200, February 200, March 200, April 150, May 150,
+    June 125, July 50. Scott Addendum 30 also confirms the June 24 mid-month
+    break, 125 cfs through June 23 and 90 cfs from June 24, existed in 2022.
+
+    An earlier draft of this module asserted the 2021 cycle used "a 135 cfs
+    sustained suspension threshold". That figure appears in NONE of the 60
+    documents and is not asserted here. It came from a research summary, which is
+    the same path the retired 39.3 cfs reading took.
     """
 
     ERA_2021 = "2021_emergency"
@@ -114,6 +125,10 @@ class RegulatoryEra(StrEnum):
 #: stated here rather than hidden. Move this boundary only with a primary source.
 ERA_2024_BEGINS = date(2024, 1, 1)
 
+#: Used in the refusal message. States the real reason: not that the tables are
+#: known to differ, but that the older one has not been verified.
+VERIFIED_PHRASE = "not been verified in full against a primary source"
+
 
 def era_for(when: date) -> RegulatoryEra:
     """Which regulatory era governs a date."""
@@ -126,9 +141,44 @@ def era_for(when: date) -> RegulatoryEra:
 #: the wrong answer unrepresentable: there is no path by which a 2021 date
 #: quietly receives the readopted table. It gets filled only from the 2021
 #: regulation or the 2021 orders themselves, read directly.
+#: Scott, 2021 era. PARTIAL BY DESIGN: exactly the periods a 2021-era document
+#: states, nothing more.
+#:
+#: Each entry cites the document that stated it. Every one of these MATCHES the
+#: readopted table, which is the empirical answer to whether the tables differ,
+#: at least for these months. The remaining five months are absent rather than
+#: copied across, so a date in August through December of this era raises instead
+#: of receiving a number nobody read off a page.
+#:
+#: Extending this by assuming the rest of the readopted table would recreate
+#: exactly the failure the era split exists to prevent.
+SCOTT_SCHEDULE_2021: tuple[FlowPeriod, ...] = (
+    FlowPeriod(1, 1, 1, 31, 200),  # stated in a 2021-era addendum
+    FlowPeriod(
+        2, 1, 2, 29, 200
+    ),  # "the required February minimum flow requirement (200 cfs)", Addendum 40
+    FlowPeriod(3, 1, 3, 31, 200),  # stated in a 2021-era addendum
+    FlowPeriod(
+        4, 1, 4, 30, 150
+    ),  # "the required minimum flow ... for April is 150 cfs", Addendum 20
+    FlowPeriod(5, 1, 5, 31, 150),  # stated in a 2021-era addendum
+    FlowPeriod(6, 1, 6, 23, 125),  # "125 cfs through June 23", Addendum 30
+    FlowPeriod(6, 24, 6, 30, 90),  # "90 cfs from June 24 through June 30", Addendum 30
+    FlowPeriod(
+        7, 1, 7, 31, 50
+    ),  # "the required July minimum flow requirement (50 cfs)", Addendum 51
+)
+
+#: Shasta, 2021 era. EMPTY: no fetched 2021-era Shasta document states a monthly
+#: minimum in a form that could be read off the page. The Shasta orders recite
+#: that "the Regulation establishes minimum instream flows" without printing the
+#: table, so there is nothing to encode yet and every Shasta date in this era
+#: refuses.
+SHASTA_SCHEDULE_2021: tuple[FlowPeriod, ...] = ()
+
 SCHEDULES_BY_ERA: dict[RegulatoryEra, dict[Basin, tuple[FlowPeriod, ...]]] = {
     RegulatoryEra.ERA_2024: SCHEDULES,
-    RegulatoryEra.ERA_2021: {},
+    RegulatoryEra.ERA_2021: {Basin.SCOTT: SCOTT_SCHEDULE_2021},
 }
 
 
@@ -180,11 +230,11 @@ def minimum_flow(
     if not schedule:
         raise EraNotEncodedError(
             f"{when.isoformat()} falls in the {era.value} era, whose flow table is "
-            f"not encoded. The 2021 emergency cycle used different monthly values "
-            f"and a 135 cfs sustained suspension threshold, so answering from the "
-            f"readopted table would apply the wrong rule and mark the Board wrong "
-            f"for following the one actually in force. Encode the {era.value} "
-            f"schedule from a primary source before evaluating this date."
+            f"not encoded for this basin. That table has {VERIFIED_PHRASE}, so "
+            f"answering from the readopted one risks applying a rule that was not "
+            f"in force and marking the Board wrong for following the one that was. "
+            f"Encode the {era.value} schedule for this basin from a primary source "
+            f"before evaluating this date."
         )
 
     for period in schedule:

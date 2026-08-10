@@ -38,22 +38,106 @@
           "title": "Order Imposing Water Right Curtailment and Reporting Requirements for Adjudicated Groundwater Rights in the Scott River Watershed",
           "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/scott_adjudicated_gw_curtailment_order.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1980-01-30",
+              "2021-08-12",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-03",
+              "2021-09-08",
+              "2021-09-10",
+              "2021-09-11",
+              "2021-09-20",
+              "2021-10-11"
+            ],
+            "cfs_values": [
+              8.0,
+              9.0,
+              13.0,
+              25.0,
+              30.0,
+              33.0
+            ],
+            "text_chars": 26591,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2021-0084-DWR",
           "title": "Order Imposing Water Right Curtailment and Reporting Requirements in the Scott River Watershed For Water Rights Associated With The Parcels Listed In Attachment A And Not Otherwise Curtailed",
           "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/scott_apn_curtailment_info_order.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-08-12",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-03",
+              "2021-09-08",
+              "2021-09-10",
+              "2021-09-11",
+              "2021-09-24"
+            ],
+            "cfs_values": [
+              8.0,
+              9.0,
+              13.0,
+              25.0,
+              30.0,
+              33.0
+            ],
+            "text_chars": 31959,
+            "notes": []
+          }
         },
         {
           "order_number": "UNNUMBERED_ON_INDEX",
           "title": "Order Imposing Water Right Curtailment and Reporting Requirements For Reported Water Rights In The Scott River Watershed",
           "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/surface_water_curtailment_order_scott.pdf",
           "index_verified": true,
-          "document_read": false,
-          "data_quality_note": "The Board's index page links this surface-water order without stating its order number. The number must be read from the PDF before this record is scored."
+          "document_read": true,
+          "data_quality_note": "The Board's index page links this surface-water order without stating its order number. The number must be read from the PDF before this record is scored.",
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-08-12",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-03",
+              "2021-09-08",
+              "2021-09-09",
+              "2021-09-10",
+              "2021-09-20",
+              "2021-10-11"
+            ],
+            "cfs_values": [
+              8.0,
+              9.0,
+              13.0,
+              25.0,
+              30.0,
+              33.0
+            ],
+            "text_chars": 26809,
+            "notes": []
+          }
         }
       ],
       "addenda_count": 51,
@@ -77,296 +161,1186 @@
         {
           "n": 3,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-curtailment-suspension-addendum3.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-curtailment-suspension-addendum3.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2021-11-05",
+              "2021-11-16"
+            ],
+            "cfs_values": [
+              17.0,
+              32.0,
+              60.0,
+              245.0,
+              276.0,
+              305.0,
+              307.0,
+              800.0
+            ],
+            "text_chars": 150716,
+            "notes": []
+          }
         },
         {
           "n": 4,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-curtailment-suspension-addendum4.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-curtailment-suspension-addendum4.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2021-11-05",
+              "2021-11-15",
+              "2021-11-30"
+            ],
+            "cfs_values": [
+              17.0,
+              20.0,
+              32.0,
+              60.0,
+              202.0,
+              262.0,
+              344.0,
+              800.0
+            ],
+            "text_chars": 151263,
+            "notes": []
+          }
         },
         {
           "n": 5,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum5.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum5.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-05",
+              "2022-01-08"
+            ],
+            "cfs_values": [],
+            "text_chars": 147410,
+            "notes": []
+          }
         },
         {
           "n": 6,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum6_final.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum6_final.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-07",
+              "2022-01-09"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 147842,
+            "notes": []
+          }
         },
         {
           "n": 7,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum7.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum7.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-10",
+              "2022-01-14"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 147707,
+            "notes": []
+          }
         },
         {
           "n": 8,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum8.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum8.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-14",
+              "2022-01-21"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 147676,
+            "notes": []
+          }
         },
         {
           "n": 9,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum9.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum9.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-21",
+              "2022-01-28"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 147842,
+            "notes": []
+          }
         },
         {
           "n": 10,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum10.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum10.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-01-28",
+              "2022-02-01",
+              "2022-02-11"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 147852,
+            "notes": []
+          }
         },
         {
           "n": 11,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott_addendum11.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott_addendum11.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-02-11",
+              "2022-02-17",
+              "2022-02-18"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 19552,
+            "notes": []
+          }
         },
         {
           "n": 12,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-12.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-12.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-02-18",
+              "2022-02-23",
+              "2022-02-24",
+              "2022-02-25"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 18763,
+            "notes": []
+          }
         },
         {
           "n": 13,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-13.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-13.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-02-23",
+              "2022-02-24",
+              "2022-02-25"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 19359,
+            "notes": []
+          }
         },
         {
           "n": 14,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Scott_Addendum14.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Scott_Addendum14.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-02-24",
+              "2022-02-25",
+              "2022-03-03",
+              "2022-03-04"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 19444,
+            "notes": []
+          }
         },
         {
           "n": 15,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-15.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-15.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-02-24",
+              "2022-02-25",
+              "2022-03-03",
+              "2022-03-04",
+              "2022-03-11"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 3614,
+            "notes": []
+          }
         },
         {
           "n": 16,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-16.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-addendum-16.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-03-03",
+              "2022-03-04",
+              "2022-03-10",
+              "2022-03-11",
+              "2022-03-18"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 3609,
+            "notes": []
+          }
         },
         {
           "n": 17,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum17.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum17.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-03-10",
+              "2022-03-11",
+              "2022-03-17",
+              "2022-03-18",
+              "2022-03-25"
+            ],
+            "cfs_values": [
+              1.0,
+              200.0
+            ],
+            "text_chars": 3667,
+            "notes": []
+          }
         },
         {
           "n": 18,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum18.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum18.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-03-17",
+              "2022-03-18",
+              "2022-03-24",
+              "2022-03-25",
+              "2022-03-31",
+              "2022-04-01",
+              "2022-04-04"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0,
+              200.0
+            ],
+            "text_chars": 19713,
+            "notes": []
+          }
         },
         {
           "n": 19,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum19.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum19.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-03-31",
+              "2022-04-01",
+              "2022-04-04",
+              "2022-04-07",
+              "2022-04-08"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19236,
+            "notes": []
+          }
         },
         {
           "n": 20,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/addendum-20.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/addendum-20.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-04-07",
+              "2022-04-08",
+              "2022-04-14",
+              "2022-04-15"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19343,
+            "notes": []
+          }
         },
         {
           "n": 21,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-21.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-21.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-04-14",
+              "2022-04-15",
+              "2022-04-21",
+              "2022-04-22"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19555,
+            "notes": []
+          }
         },
         {
           "n": 22,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum22.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum22.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-04-21",
+              "2022-04-22",
+              "2022-04-28",
+              "2022-04-29"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19533,
+            "notes": []
+          }
         },
         {
           "n": 23,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-23.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-23.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 24,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum24.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum24.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-05-05",
+              "2022-05-06",
+              "2022-05-12",
+              "2022-05-13"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 18869,
+            "notes": []
+          }
         },
         {
           "n": 25,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum25.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum25.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-05-12",
+              "2022-05-13",
+              "2022-05-19",
+              "2022-05-20"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19073,
+            "notes": []
+          }
         },
         {
           "n": 26,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum26.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum26.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-05-19",
+              "2022-05-20",
+              "2022-05-26",
+              "2022-05-27"
+            ],
+            "cfs_values": [
+              1.0,
+              150.0
+            ],
+            "text_chars": 19070,
+            "notes": []
+          }
         },
         {
           "n": 27,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott_addendum27.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott_addendum27.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-05-26",
+              "2022-05-27",
+              "2022-06-02",
+              "2022-06-03"
+            ],
+            "cfs_values": [
+              1.0,
+              125.0,
+              150.0
+            ],
+            "text_chars": 19253,
+            "notes": []
+          }
         },
         {
           "n": 28,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum28.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum28.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-06-02",
+              "2022-06-03",
+              "2022-06-09",
+              "2022-06-10"
+            ],
+            "cfs_values": [
+              1.0
+            ],
+            "text_chars": 19071,
+            "notes": []
+          }
         },
         {
           "n": 29,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum29.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum29.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-06-09",
+              "2022-06-10",
+              "2022-06-16",
+              "2022-06-17"
+            ],
+            "cfs_values": [
+              1.0
+            ],
+            "text_chars": 19607,
+            "notes": []
+          }
         },
         {
           "n": 30,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-30.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum-30.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-06-03",
+              "2022-06-16",
+              "2022-06-17",
+              "2022-06-23",
+              "2022-06-24"
+            ],
+            "cfs_values": [
+              1.0,
+              50.0,
+              75.0,
+              90.0,
+              125.0
+            ],
+            "text_chars": 20999,
+            "notes": []
+          }
         },
         {
           "n": 31,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum31.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum31.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-06-03",
+              "2022-06-23",
+              "2022-06-24",
+              "2022-06-30",
+              "2022-07-01"
+            ],
+            "cfs_values": [
+              1.0,
+              50.0,
+              75.0,
+              90.0,
+              125.0
+            ],
+            "text_chars": 21003,
+            "notes": []
+          }
         },
         {
           "n": 32,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum32.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum32.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 33,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum33.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum33.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-07-01",
+              "2022-07-06"
+            ],
+            "cfs_values": [],
+            "text_chars": 4311,
+            "notes": []
+          }
         },
         {
           "n": 34,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum34.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum34.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-07-08"
+            ],
+            "cfs_values": [
+              50.0
+            ],
+            "text_chars": 4215,
+            "notes": []
+          }
         },
         {
           "n": 35,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum35.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum35.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 36,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum36.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum36.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-01-04"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 163196,
+            "notes": []
+          }
         },
         {
           "n": 37,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum37-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum37-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-01-17"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 163581,
+            "notes": []
+          }
         },
         {
           "n": 38,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum38-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum38-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-01-09",
+              "2023-01-26"
+            ],
+            "cfs_values": [
+              200.0
+            ],
+            "text_chars": 162443,
+            "notes": []
+          }
         },
         {
           "n": 39,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum39-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum39-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-02-02"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162923,
+            "notes": []
+          }
         },
         {
           "n": 40,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-40-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-40-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-02-09"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162994,
+            "notes": []
+          }
         },
         {
           "n": 41,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-41-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-41-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-02-17"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162994,
+            "notes": []
+          }
         },
         {
           "n": 42,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-42-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-42-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-02-27"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162994,
+            "notes": []
+          }
         },
         {
           "n": 43,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-43-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-43-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-03-07"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162989,
+            "notes": []
+          }
         },
         {
           "n": 44,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-44-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-44-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-03-14"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162988,
+            "notes": []
+          }
         },
         {
           "n": 45,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-45-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-45-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-03-30"
+            ],
+            "cfs_values": [
+              200.0,
+              500.0
+            ],
+            "text_chars": 162435,
+            "notes": []
+          }
         },
         {
           "n": 46,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-46-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-46-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-04-14"
+            ],
+            "cfs_values": [
+              150.0
+            ],
+            "text_chars": 161863,
+            "notes": []
+          }
         },
         {
           "n": 47,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-47-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-47-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-05-02"
+            ],
+            "cfs_values": [
+              150.0
+            ],
+            "text_chars": 162085,
+            "notes": []
+          }
         },
         {
           "n": 48,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-48-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-48-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-05-31"
+            ],
+            "cfs_values": [
+              150.0
+            ],
+            "text_chars": 162089,
+            "notes": []
+          }
         },
         {
           "n": 49,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-49-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-49-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-06-30"
+            ],
+            "cfs_values": [
+              90.0,
+              125.0,
+              150.0
+            ],
+            "text_chars": 162141,
+            "notes": []
+          }
         },
         {
           "n": 50,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-50-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-50-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2023-07-18"
+            ],
+            "cfs_values": [
+              50.0,
+              90.0
+            ],
+            "text_chars": 161720,
+            "notes": []
+          }
         },
         {
           "n": 51,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-51-list-a1.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/scott-addendum-51-list-a1.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2023-07-17",
+              "2023-07-31"
+            ],
+            "cfs_values": [
+              50.0
+            ],
+            "text_chars": 35466,
+            "notes": []
+          }
         }
       ],
       "index_page": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/scott_addendums.html"
@@ -928,37 +1902,179 @@
           "order_number": "WR 2021-0082-DWR",
           "url": "docs/shasta_curtailment_order.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1932-12-29",
+              "2021-08-12",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-09",
+              "2021-09-10",
+              "2021-09-11",
+              "2021-09-20",
+              "2021-10-11"
+            ],
+            "cfs_values": [
+              30.0,
+              31.0,
+              50.0
+            ],
+            "text_chars": 28376,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2021-0085-DWR",
           "url": "docs/shasta-curtailment-order-2021-0085-dwr.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1932-12-29",
+              "2020-09-10",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-09-20",
+              "2021-10-01",
+              "2021-10-12",
+              "2021-10-22",
+              "2021-11-11"
+            ],
+            "cfs_values": [
+              21.0,
+              104.0,
+              125.0
+            ],
+            "text_chars": 28011,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2022-0142-DWR",
           "url": "docs/2022/shasta-curtailment-order-2022-0142-dwr-signed.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1932-12-29",
+              "2021-08-17",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-29",
+              "2022-02-25",
+              "2022-03-15",
+              "2022-04-08",
+              "2022-04-09",
+              "2022-04-18",
+              "2022-05-08"
+            ],
+            "cfs_values": [],
+            "text_chars": 26069,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2022-0161-DWR",
           "url": "docs/2022/shasta-curtailment-order-wr-2022-0161-dwr-signed.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": false,
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "order_number": "WR 2022-0162-DWR",
           "url": "docs/2022/shasta-curtailment-order-wr-2022-162-dwr-signed.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1885-04-01",
+              "1932-12-29",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-29",
+              "2022-02-25",
+              "2022-03-15",
+              "2022-06-20",
+              "2022-06-21",
+              "2022-07-21",
+              "2022-07-22",
+              "2022-07-25",
+              "2022-07-29",
+              "2022-08-01",
+              "2022-08-02",
+              "2022-08-03",
+              "2022-08-12",
+              "2022-09-01"
+            ],
+            "cfs_values": [
+              34.5,
+              50.0
+            ],
+            "text_chars": 63996,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2022-0167-DWR",
           "url": "docs/2022/shasta-curtailment-order-wr-2022-167-dwr.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "1932-12-29",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-29",
+              "2022-02-25",
+              "2022-03-15",
+              "2022-06-20",
+              "2022-06-21",
+              "2022-07-22",
+              "2022-07-29",
+              "2022-08-02",
+              "2022-09-09",
+              "2022-09-13",
+              "2022-09-14",
+              "2022-09-23",
+              "2022-10-13"
+            ],
+            "cfs_values": [
+              50.0,
+              75.0,
+              105.0
+            ],
+            "text_chars": 135136,
+            "notes": []
+          }
         }
       ],
       "addenda_count": 14,
@@ -975,7 +2091,8 @@
           "n": 1,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order162-addendum01.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order162-addendum01.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 2,
@@ -992,68 +2109,255 @@
         {
           "n": 4,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta-addendum-4_20211217.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta-addendum-4_20211217.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1923-07-30",
+              "2021-01-31",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-10-29",
+              "2021-11-11",
+              "2021-12-17"
+            ],
+            "cfs_values": [
+              125.0,
+              135.0,
+              150.0
+            ],
+            "text_chars": 7897,
+            "notes": []
+          }
         },
         {
           "n": 5,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta_addendum5_final.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta_addendum5_final.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1923-07-30",
+              "1949-11-14",
+              "2021-01-01",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-10-29",
+              "2021-12-17",
+              "2021-12-21",
+              "2021-12-22",
+              "2022-01-31"
+            ],
+            "cfs_values": [
+              4.0,
+              135.0,
+              152.0,
+              160.0
+            ],
+            "text_chars": 15483,
+            "notes": []
+          }
         },
         {
           "n": 6,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta_addendum6_final.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta_addendum6_final.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "1949-11-14",
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-22",
+              "2021-12-29",
+              "2022-01-31"
+            ],
+            "cfs_values": [
+              135.0,
+              157.0,
+              178.0
+            ],
+            "text_chars": 20882,
+            "notes": []
+          }
         },
         {
           "n": 7,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-addendum7.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-addendum7.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 8,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Shasta_Addendum8.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Shasta_Addendum8.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 9,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta_addendum_9.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta_addendum_9.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         },
         {
           "n": 10,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order82-addendum10.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order82-addendum10.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "1925-11-11",
+              "2021-09-10",
+              "2021-12-29",
+              "2022-02-25",
+              "2022-03-15",
+              "2022-08-02",
+              "2022-09-13",
+              "2022-11-08",
+              "2022-11-22",
+              "2022-12-27"
+            ],
+            "cfs_values": [
+              5.0,
+              125.0,
+              237.0
+            ],
+            "text_chars": 51554,
+            "notes": []
+          }
         },
         {
           "n": 11,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum11-aa.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum11-aa.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-03-14",
+              "2023-03-21",
+              "2023-03-22",
+              "2023-04-30"
+            ],
+            "cfs_values": [
+              70.0,
+              105.0,
+              125.0,
+              220.0,
+              240.0
+            ],
+            "text_chars": 50090,
+            "notes": []
+          }
         },
         {
           "n": 12,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum12.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum12.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-03-22",
+              "2023-04-24",
+              "2023-04-26",
+              "2023-04-27",
+              "2023-04-30",
+              "2023-05-31"
+            ],
+            "cfs_values": [
+              50.0,
+              70.0,
+              97.6,
+              105.0,
+              125.0,
+              174.0
+            ],
+            "text_chars": 49335,
+            "notes": []
+          }
         },
         {
           "n": 13,
           "index_verified": true,
-          "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum13.pdf"
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum13.pdf",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-04-27",
+              "2023-05-24",
+              "2023-05-25",
+              "2023-05-31",
+              "2023-06-30"
+            ],
+            "cfs_values": [
+              50.0,
+              61.3,
+              70.0,
+              105.0,
+              125.0,
+              159.0
+            ],
+            "text_chars": 49220,
+            "notes": []
+          }
         },
         {
           "n": 14,
           "index_verified": true,
           "document_read": false,
-          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum14.pdf"
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum14.pdf",
+          "extraction_blocked": "text layer present but action could not be classified"
         }
       ],
       "index_page": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/shasta_addendums.html",
@@ -1357,17 +2661,20 @@
     "RESOLVED 2026-08-10: Scott Addenda 3 and 4 read from rendered pages. All 4 scans in the fetched corpus are now read. Both are limited conditional suspensions scoped to NAMED DIVERTERS rather than to priority groupings, with per-diverter volumetric caps, a basin floor of 33 cfs for September, and an expiry of 2024-09-30. Addendum 4 ties Scott Valley Irrigation District to Schedule D3 of the Scott River Adjudication.",
     "OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.",
     "RESOLVED 2026-08-10: the 2021 addenda ARE individually published, on two index pages the main drought index does not surface: scott_addendums.html (51 Scott) and shasta_addendums.html (14 Shasta). All 65 are now enumerated with URLs where the filename carries a number. The earlier premise that no per-addendum URLs exist was wrong.",
-    "CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents."
+    "CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.",
+    "PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.",
+    "OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",
     "documents_total_declared": 100,
     "records_individually_enumerated": 98,
-    "pdfs_fetched": 24,
-    "read_via_text_layer": 20,
-    "scorable": 24,
+    "pdfs_fetched": 94,
+    "read_via_text_layer": 81,
+    "scorable": 85,
     "refused_no_text_layer": 0,
     "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
-    "read_via_vision": 4
+    "read_via_vision": 4,
+    "unscorable_with_reason": 9
   }
 }

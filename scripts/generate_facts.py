@@ -130,13 +130,18 @@ def build() -> str:
     add("")
     add(
         'Never state a figure of the form "N of '
-        f'{status["documents_total_declared"]}". The 2021 series carry addenda counts'
+        f'{status["documents_total_declared"]}". The denominator of any claim is'
     )
-    add("without per-document entries because those index pages publish no")
-    add("per-addendum URLs, so those documents are excluded from the denominator")
-    add("rather than counted as failures.")
+    add("the SCORABLE count, because that is what has actually been read. The gap")
+    add("between declared and scorable is reported here rather than folded away.")
     add("")
-    add("**Measured:** 4 of the 25 unique documents fetched carry no text layer at")
+    add("The 2021 series is now individually enumerated. The Board does publish")
+    add("per-addendum links for it, on two index pages the main drought index does")
+    add("not surface: `scott_addendums.html` (51 Scott) and `shasta_addendums.html`")
+    add("(14 Shasta). An earlier premise that no such links existed was wrong, and")
+    add("the Shasta count was corrected from 16 to 14 against that page.")
+    add("")
+    add("**Measured:** 4 of the 25 documents in the 2024 series carry no text layer")
     add("all, roughly 16 percent. `pdftotext` returns three or four bytes. That is")
     add("what makes a vision model load-bearing on this project rather than")
     add("decorative: it is the only way to read those documents, and one of them is")

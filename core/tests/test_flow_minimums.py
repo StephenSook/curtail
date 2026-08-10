@@ -214,8 +214,8 @@ class TestProperties:
 
 
 class TestTheEraGuardMakesTheWrongTableUnreachable:
-    """The 2021 emergency cycle ran a different table and a 135 cfs sustained
-    suspension threshold, and its orders were amended into 2023.
+    """The 2021 emergency cycle is a separate adoption whose table has not been
+    verified in full against a primary source, and its orders ran into 2023.
 
     Answering a 2021 question from the readopted table would apply the wrong rule
     and mark the Board wrong for following the one actually in force. That is a
@@ -223,8 +223,18 @@ class TestTheEraGuardMakesTheWrongTableUnreachable:
     every path through it raises.
     """
 
-    def test_a_2021_date_refuses_rather_than_answering(self) -> None:
+    def test_a_2021_shasta_date_refuses(self) -> None:
+        """No fetched 2021-era Shasta document prints a monthly table. The orders
+        recite that "the Regulation establishes minimum instream flows" without
+        reproducing the values, so there is nothing to encode."""
         with pytest.raises(EraNotEncodedError):
+            minimum_flow(Basin.SHASTA, date(2022, 4, 15))
+
+    def test_a_2021_scott_month_with_no_document_evidence_refuses(self) -> None:
+        """September is absent from the 2021 Scott table because no 2021-era
+        document states it. Copying it across from the readopted table would
+        recreate exactly the failure the era split exists to prevent."""
+        with pytest.raises(ScheduleGapError):
             minimum_flow(Basin.SCOTT, date(2021, 9, 15))
 
     def test_a_2023_date_refuses_too(self) -> None:
@@ -235,10 +245,10 @@ class TestTheEraGuardMakesTheWrongTableUnreachable:
 
     def test_the_refusal_explains_which_era_and_why(self) -> None:
         with pytest.raises(EraNotEncodedError) as excinfo:
-            minimum_flow(Basin.SCOTT, date(2021, 9, 15))
+            minimum_flow(Basin.SHASTA, date(2022, 4, 15))
         message = str(excinfo.value)
         assert "2021_emergency" in message
-        assert "135" in message
+        assert "not been verified" in message
 
     def test_the_boundary_is_exact(self) -> None:
         """One day either side, so a drifting boundary is visible."""
@@ -249,11 +259,38 @@ class TestTheEraGuardMakesTheWrongTableUnreachable:
         """Non-vacuity for the guard: it must not refuse everything."""
         assert minimum_flow(Basin.SCOTT, date(2025, 7, 20)) == 50.0
 
-    def test_the_2021_schedule_is_empty_on_purpose(self) -> None:
-        """If this ever becomes populated by copying the readopted table, every
-        refusal above silently turns into a confident wrong answer. The emptiness
-        is the safety property, so it is asserted directly."""
-        assert SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021] == {}
+    def test_the_2021_scott_table_is_partial_on_purpose(self) -> None:
+        """It holds exactly the months a 2021-era document states, and no more.
+
+        If it ever grows to twelve months by copying the readopted table across,
+        every refusal above silently becomes a confident answer nobody read off a
+        page. The partialness IS the safety property, so it is asserted directly.
+        """
+        scott_2021 = SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021][Basin.SCOTT]
+        months = {p.start_month for p in scott_2021}
+        assert months == {1, 2, 3, 4, 5, 6, 7}, (
+            "the 2021 Scott table should cover only the months with document "
+            f"evidence; it now covers {sorted(months)}"
+        )
+        assert Basin.SHASTA not in SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021]
+
+    def test_the_verified_2021_months_match_the_readopted_table(self) -> None:
+        """The empirical finding, locked.
+
+        Every Scott month the 2021-era documents state is IDENTICAL to the
+        readopted table. That is why the era guard's stated reason is "not
+        verified" rather than "known to differ": the evidence so far points the
+        other way.
+        """
+        for when, expected in (
+            (date(2022, 2, 15), 200.0),
+            (date(2022, 4, 15), 150.0),
+            (date(2022, 6, 23), 125.0),
+            (date(2022, 6, 24), 90.0),
+            (date(2023, 7, 15), 50.0),
+        ):
+            assert minimum_flow(Basin.SCOTT, when) == expected
+            assert minimum_flow(Basin.SCOTT, when.replace(year=2026)) == expected
 
     def test_an_unencoded_era_is_still_a_schedule_gap(self) -> None:
         """Subclassing matters: callers that already refuse on ScheduleGapError

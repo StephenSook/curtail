@@ -1,12 +1,1042 @@
 {
-  "scott_2021/order/UNNUMBERED_ON_INDEX": {
+  "scott_2021/addenda/1": {
     "status": "not_fetched"
+  },
+  "scott_2021/addenda/10": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-28",
+      "2022-02-01",
+      "2022-02-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 147852
+  },
+  "scott_2021/addenda/11": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-02-11",
+      "2022-02-17",
+      "2022-02-18"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19552
+  },
+  "scott_2021/addenda/12": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-02-18",
+      "2022-02-23",
+      "2022-02-24",
+      "2022-02-25"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 18763
+  },
+  "scott_2021/addenda/13": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-02-23",
+      "2022-02-24",
+      "2022-02-25"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19359
+  },
+  "scott_2021/addenda/14": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-02-24",
+      "2022-02-25",
+      "2022-03-03",
+      "2022-03-04"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19444
+  },
+  "scott_2021/addenda/15": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-02-24",
+      "2022-02-25",
+      "2022-03-03",
+      "2022-03-04",
+      "2022-03-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 3614
+  },
+  "scott_2021/addenda/16": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-03-03",
+      "2022-03-04",
+      "2022-03-10",
+      "2022-03-11",
+      "2022-03-18"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 3609
+  },
+  "scott_2021/addenda/17": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-03-10",
+      "2022-03-11",
+      "2022-03-17",
+      "2022-03-18",
+      "2022-03-25"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 3667
+  },
+  "scott_2021/addenda/18": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-03-17",
+      "2022-03-18",
+      "2022-03-24",
+      "2022-03-25",
+      "2022-03-31",
+      "2022-04-01",
+      "2022-04-04"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19713
+  },
+  "scott_2021/addenda/19": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-03-31",
+      "2022-04-01",
+      "2022-04-04",
+      "2022-04-07",
+      "2022-04-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19236
+  },
+  "scott_2021/addenda/2": {
+    "status": "not_fetched"
+  },
+  "scott_2021/addenda/20": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-04-07",
+      "2022-04-08",
+      "2022-04-14",
+      "2022-04-15"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19343
+  },
+  "scott_2021/addenda/21": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-04-14",
+      "2022-04-15",
+      "2022-04-21",
+      "2022-04-22"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19555
+  },
+  "scott_2021/addenda/22": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-04-21",
+      "2022-04-22",
+      "2022-04-28",
+      "2022-04-29"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19533
+  },
+  "scott_2021/addenda/23": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'Subject:       6FRWW\\x035LYHU \\x037HPSRUDU\\\\\\x03([WHQVLRQ\\x03RI\\x03&RQGLWLRQDO\\x036XVSHQVLRQ\\x03RI\\x03&XUWDLOPHQWV Date:          )ULGD\\\\\\x0f\\x03$SULO\\x03\\x15'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-04-28",
+      "2022-04-29",
+      "2022-05-05",
+      "2022-05-06"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 19540
+  },
+  "scott_2021/addenda/24": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-05-05",
+      "2022-05-06",
+      "2022-05-12",
+      "2022-05-13"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 18869
+  },
+  "scott_2021/addenda/25": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-05-12",
+      "2022-05-13",
+      "2022-05-19",
+      "2022-05-20"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19073
+  },
+  "scott_2021/addenda/26": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-05-19",
+      "2022-05-20",
+      "2022-05-26",
+      "2022-05-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19070
+  },
+  "scott_2021/addenda/27": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      125.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-05-26",
+      "2022-05-27",
+      "2022-06-02",
+      "2022-06-03"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19253
+  },
+  "scott_2021/addenda/28": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-06-02",
+      "2022-06-03",
+      "2022-06-09",
+      "2022-06-10"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19071
+  },
+  "scott_2021/addenda/29": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-06-09",
+      "2022-06-10",
+      "2022-06-16",
+      "2022-06-17"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 19607
+  },
+  "scott_2021/addenda/3": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      17.0,
+      32.0,
+      60.0,
+      245.0,
+      276.0,
+      305.0,
+      307.0,
+      800.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2021-11-05",
+      "2021-11-16"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 150716
+  },
+  "scott_2021/addenda/30": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      50.0,
+      75.0,
+      90.0,
+      125.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-06-03",
+      "2022-06-16",
+      "2022-06-17",
+      "2022-06-23",
+      "2022-06-24"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 20999
+  },
+  "scott_2021/addenda/31": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      1.0,
+      50.0,
+      75.0,
+      90.0,
+      125.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-06-03",
+      "2022-06-23",
+      "2022-06-24",
+      "2022-06-30",
+      "2022-07-01"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 21003
+  },
+  "scott_2021/addenda/32": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      76.2,
+      80.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'Subject:       Scott River Curtailments in Effect for All Surface Water Diverters (List A2) as of 12:00 pm (noon) on Jul'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-07-01",
+      "2022-07-02"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 34100
+  },
+  "scott_2021/addenda/33": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-07-01",
+      "2022-07-06"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 4311
+  },
+  "scott_2021/addenda/34": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-07-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 4215
+  },
+  "scott_2021/addenda/35": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      35.8
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'Subject:     Scott River Watershed: Curtailments in Effect for All Surface Water and Groundwater Diversions Date:       '. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-09-09",
+      "2022-07-13",
+      "2022-07-14"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 3725
+  },
+  "scott_2021/addenda/36": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-01-04"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 163196
+  },
+  "scott_2021/addenda/37": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-01-17"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 163581
+  },
+  "scott_2021/addenda/38": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-01-09",
+      "2023-01-26"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162443
+  },
+  "scott_2021/addenda/39": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-02-02"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162923
+  },
+  "scott_2021/addenda/4": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      17.0,
+      20.0,
+      32.0,
+      60.0,
+      202.0,
+      262.0,
+      344.0,
+      800.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2021-11-05",
+      "2021-11-15",
+      "2021-11-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 151263
+  },
+  "scott_2021/addenda/40": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-02-09"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162994
+  },
+  "scott_2021/addenda/41": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-02-17"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162994
+  },
+  "scott_2021/addenda/42": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-02-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162994
+  },
+  "scott_2021/addenda/43": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-03-07"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162989
+  },
+  "scott_2021/addenda/44": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-03-14"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162988
+  },
+  "scott_2021/addenda/45": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0,
+      500.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-03-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162435
+  },
+  "scott_2021/addenda/46": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-04-14"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 161863
+  },
+  "scott_2021/addenda/47": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-05-02"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162085
+  },
+  "scott_2021/addenda/48": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-05-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162089
+  },
+  "scott_2021/addenda/49": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      90.0,
+      125.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-06-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 162141
+  },
+  "scott_2021/addenda/5": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-05",
+      "2022-01-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 147410
+  },
+  "scott_2021/addenda/50": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      90.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2023-07-18"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 161720
+  },
+  "scott_2021/addenda/51": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2023-07-17",
+      "2023-07-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 35466
+  },
+  "scott_2021/addenda/6": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-07",
+      "2022-01-09"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 147842
+  },
+  "scott_2021/addenda/7": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-10",
+      "2022-01-14"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 147707
+  },
+  "scott_2021/addenda/8": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-14",
+      "2022-01-21"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 147676
+  },
+  "scott_2021/addenda/9": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2022-01-21",
+      "2022-01-28"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 147842
+  },
+  "scott_2021/order/UNNUMBERED_ON_INDEX": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      8.0,
+      9.0,
+      13.0,
+      25.0,
+      30.0,
+      33.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-12",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-03",
+      "2021-09-08",
+      "2021-09-09",
+      "2021-09-10",
+      "2021-09-20",
+      "2021-10-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 26809
   },
   "scott_2021/order/WR 2021-0083-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      8.0,
+      9.0,
+      13.0,
+      25.0,
+      30.0,
+      33.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1980-01-30",
+      "2021-08-12",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-03",
+      "2021-09-08",
+      "2021-09-10",
+      "2021-09-11",
+      "2021-09-20",
+      "2021-10-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 26591
   },
   "scott_2021/order/WR 2021-0084-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      8.0,
+      9.0,
+      13.0,
+      25.0,
+      30.0,
+      33.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-12",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-03",
+      "2021-09-08",
+      "2021-09-10",
+      "2021-09-11",
+      "2021-09-24"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 31959
   },
   "scott_2024/addenda/1": {
     "action": "suspend",
@@ -408,23 +1438,490 @@
     "qualifier": "not_applicable",
     "text_chars": 36175
   },
-  "shasta_2021/order/WR 2021-0082-DWR": {
+  "shasta_2021/addenda/1": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'State Water Resources Control Board December 27, 2022 ADDENDUM 1 TO ORDER WR 2022-0162-DWR:'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "1885-03-01",
+      "1885-04-01",
+      "1912-04-01",
+      "1932-12-29",
+      "2022-08-02",
+      "2022-11-22",
+      "2022-12-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 61183
+  },
+  "shasta_2021/addenda/10": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      5.0,
+      125.0,
+      237.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "1925-11-11",
+      "2021-09-10",
+      "2021-12-29",
+      "2022-02-25",
+      "2022-03-15",
+      "2022-08-02",
+      "2022-09-13",
+      "2022-11-08",
+      "2022-11-22",
+      "2022-12-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 51554
+  },
+  "shasta_2021/addenda/11": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      70.0,
+      105.0,
+      125.0,
+      220.0,
+      240.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-03-14",
+      "2023-03-21",
+      "2023-03-22",
+      "2023-04-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 50090
+  },
+  "shasta_2021/addenda/12": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      70.0,
+      97.6,
+      105.0,
+      125.0,
+      174.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-03-22",
+      "2023-04-24",
+      "2023-04-26",
+      "2023-04-27",
+      "2023-04-30",
+      "2023-05-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 49335
+  },
+  "shasta_2021/addenda/13": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      61.3,
+      70.0,
+      105.0,
+      125.0,
+      159.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-04-27",
+      "2023-05-24",
+      "2023-05-25",
+      "2023-05-31",
+      "2023-06-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 49220
+  },
+  "shasta_2021/addenda/14": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      47.8,
+      50.0,
+      70.0,
+      105.0,
+      125.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'Subject: Order WR 2021-0082-DWR, Addendum 14: Imposition of Full Curtailment for Junior Water Rights in Shasta River Wat'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "1958-01-01",
+      "2021-09-10",
+      "2022-12-27",
+      "2023-05-25",
+      "2023-06-29",
+      "2023-06-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 40980
+  },
+  "shasta_2021/addenda/2": {
     "status": "not_fetched"
+  },
+  "shasta_2021/addenda/3": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/addenda/4": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      125.0,
+      135.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1923-07-30",
+      "2021-01-31",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-10-29",
+      "2021-11-11",
+      "2021-12-17"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 7897
+  },
+  "shasta_2021/addenda/5": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      4.0,
+      135.0,
+      152.0,
+      160.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1923-07-30",
+      "1949-11-14",
+      "2021-01-01",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-10-29",
+      "2021-12-17",
+      "2021-12-21",
+      "2021-12-22",
+      "2022-01-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 15483
+  },
+  "shasta_2021/addenda/6": {
+    "action": "suspend",
+    "affects_all": true,
+    "cfs_values": [
+      135.0,
+      157.0,
+      178.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1949-11-14",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-22",
+      "2021-12-29",
+      "2022-01-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 20882
+  },
+  "shasta_2021/addenda/7": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      135.0,
+      152.0,
+      179.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'State Water Resources Control Board January 26, 2022 ADDENDUM 7 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-22",
+      "2021-12-29",
+      "2022-01-26",
+      "2022-02-28"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 19843
+  },
+  "shasta_2021/addenda/8": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      135.0,
+      147.0,
+      156.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'State Water Resources Control Board February 25, 2022 ADDENDUM 8 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-22",
+      "2021-12-29",
+      "2022-01-09",
+      "2022-01-26",
+      "2022-02-25",
+      "2022-02-28",
+      "2022-03-15"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 20198
+  },
+  "shasta_2021/addenda/9": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [
+      5.0,
+      6.0,
+      50.0,
+      65.0,
+      70.0,
+      105.0,
+      129.0,
+      135.0
+    ],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'State Water Resources Control Board March 15, 2022 ADDENDUM 9 TO ORDERS WR 2021-0082-DWR and WR 2021-0085-DWR 1:'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-09-10",
+      "2021-10-12",
+      "2022-02-25",
+      "2022-03-14",
+      "2022-03-15",
+      "2022-03-24",
+      "2022-03-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 38764
+  },
+  "shasta_2021/order/WR 2021-0082-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      30.0,
+      31.0,
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1932-12-29",
+      "2021-08-12",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-09",
+      "2021-09-10",
+      "2021-09-11",
+      "2021-09-20",
+      "2021-10-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 28376
   },
   "shasta_2021/order/WR 2021-0085-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      21.0,
+      104.0,
+      125.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1932-12-29",
+      "2020-09-10",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-09-20",
+      "2021-10-01",
+      "2021-10-12",
+      "2021-10-22",
+      "2021-11-11"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 28011
   },
   "shasta_2021/order/WR 2022-0142-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1932-12-29",
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-29",
+      "2022-02-25",
+      "2022-03-15",
+      "2022-04-08",
+      "2022-04-09",
+      "2022-04-18",
+      "2022-05-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 26069
   },
   "shasta_2021/order/WR 2022-0161-DWR": {
-    "status": "not_fetched"
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "text_layer",
+    "notes": [
+      "Action could not be classified from the headline: 'Koua Yang                                                                    July 19, 2022 Due to the drought and extrem'. Recorded as undetermined rather than guessed."
+    ],
+    "priority_dates": [
+      "2021-08-17",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-29",
+      "2022-02-25",
+      "2022-03-15",
+      "2022-06-21",
+      "2022-07-19",
+      "2022-07-20",
+      "2022-07-29",
+      "2022-08-18"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 24131
   },
   "shasta_2021/order/WR 2022-0162-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      34.5,
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1885-04-01",
+      "1932-12-29",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-29",
+      "2022-02-25",
+      "2022-03-15",
+      "2022-06-20",
+      "2022-06-21",
+      "2022-07-21",
+      "2022-07-22",
+      "2022-07-25",
+      "2022-07-29",
+      "2022-08-01",
+      "2022-08-02",
+      "2022-08-03",
+      "2022-08-12",
+      "2022-09-01"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 63996
   },
   "shasta_2021/order/WR 2022-0167-DWR": {
-    "status": "not_fetched"
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      75.0,
+      105.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1850-03-01",
+      "1885-04-01",
+      "1932-12-29",
+      "2021-08-30",
+      "2021-09-10",
+      "2021-12-29",
+      "2022-02-25",
+      "2022-03-15",
+      "2022-06-20",
+      "2022-06-21",
+      "2022-07-22",
+      "2022-07-29",
+      "2022-08-02",
+      "2022-09-09",
+      "2022-09-13",
+      "2022-09-14",
+      "2022-09-23",
+      "2022-10-13"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 135136
   },
   "shasta_2024/addenda/1": {
     "action": "reinstate",

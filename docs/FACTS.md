@@ -49,18 +49,23 @@ official to decline to issue, to narrow the grouping, or to suspend.
 |---|---|
 | Declared across the Board's index pages | 100 |
 | Individually enumerated in the manifest | 98 |
-| PDFs fetched and byte-verified | 24 |
-| Read via text layer | 20 |
+| PDFs fetched and byte-verified | 94 |
+| Read via text layer | 81 |
 | Read from rendered pages | 4 |
 | Refused, no text layer | 0 |
-| **Scorable** | **24** |
+| **Scorable** | **85** |
 
-Never state a figure of the form "N of 100". The 2021 series carry addenda counts
-without per-document entries because those index pages publish no
-per-addendum URLs, so those documents are excluded from the denominator
-rather than counted as failures.
+Never state a figure of the form "N of 100". The denominator of any claim is
+the SCORABLE count, because that is what has actually been read. The gap
+between declared and scorable is reported here rather than folded away.
 
-**Measured:** 4 of the 25 unique documents fetched carry no text layer at
+The 2021 series is now individually enumerated. The Board does publish
+per-addendum links for it, on two index pages the main drought index does
+not surface: `scott_addendums.html` (51 Scott) and `shasta_addendums.html`
+(14 Shasta). An earlier premise that no such links existed was wrong, and
+the Shasta count was corrected from 16 to 14 against that page.
+
+**Measured:** 4 of the 25 documents in the 2024 series carry no text layer
 all, roughly 16 percent. `pdftotext` returns three or four bytes. That is
 what makes a vision model load-bearing on this project rather than
 decorative: it is the only way to read those documents, and one of them is
@@ -171,5 +176,6 @@ matches the encoded 2025-readopted schedule.
 - OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.
 - OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.
 - OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.
+- OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.
 
 _Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._

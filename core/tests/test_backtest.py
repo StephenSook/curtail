@@ -100,15 +100,15 @@ class TestTheHarnessCanReportAMismatch:
 
 class TestTheEraGuardRefusesRatherThanScores:
     def test_a_2021_decision_is_refused(self) -> None:
-        """The 2021 cycle used a different table and a 135 cfs sustained
-        threshold. Scoring it here would mark the Board wrong for correctly
-        applying the rule then in force."""
+        """That era's table has not been verified in full against a primary
+        source, so scoring against the readopted one risks marking the Board
+        wrong for correctly applying the rule then in force."""
         result = score_case(_case(decision_date="2021-08-30"), earliest_scorable=ERA_START)
         assert result.outcome is Outcome.NOT_SCORABLE
 
     def test_a_refusal_says_why(self) -> None:
         result = score_case(_case(decision_date="2021-08-30"), earliest_scorable=ERA_START)
-        assert "135" in result.reasoning
+        assert "not been verified" in result.reasoning
 
     def test_a_refusal_is_in_neither_half_of_the_fraction(self) -> None:
         result = score_case(_case(decision_date="2021-08-30"), earliest_scorable=ERA_START)
@@ -216,13 +216,46 @@ class TestTheEraDefenceIsTwoIndependentLayers:
         result = score_case(_case(decision_date="2021-09-15"), earliest_scorable=ERA_START)
         assert result.outcome is Outcome.NOT_SCORABLE
 
-    def test_the_schedule_still_refuses_with_the_harness_guard_disabled(self) -> None:
+    def test_the_schedule_still_refuses_an_unencoded_era_basin(self) -> None:
         """The load-bearing assertion. Widening the harness window, by accident
         or by a hopeful edit, must not produce a scored 2021 result computed from
-        the wrong table."""
-        result = score_case(_case(decision_date="2021-09-15"), earliest_scorable=date(1900, 1, 1))
+        a table nobody entered.
+
+        Shasta has no encoded 2021 table at all, because no fetched 2021-era
+        Shasta document prints one; those orders recite that the Regulation
+        establishes minimum flows without reproducing the values.
+        """
+        result = score_case(
+            _case(basin="shasta", decision_date="2022-04-15"),
+            earliest_scorable=date(1900, 1, 1),
+        )
         assert result.outcome is Outcome.NOT_SCORABLE
         assert "2021_emergency" in result.reasoning
+
+    def test_the_schedule_still_refuses_a_month_with_no_document_evidence(self) -> None:
+        """The second refusal path, and a different failure.
+
+        Scott's 2021 table holds only the seven months a 2021-era document
+        states. September is absent, so this refuses on a schedule gap rather
+        than on an unencoded era. Both paths must keep the case out of the
+        metric, and they are separate code, so both are asserted.
+        """
+        result = score_case(_case(decision_date="2021-09-15"), earliest_scorable=date(1900, 1, 1))
+        assert result.outcome is Outcome.NOT_SCORABLE
+
+    def test_a_verified_2021_month_is_held_out_by_policy_not_by_absence(self) -> None:
+        """April 2022 IS encoded, read off Scott Addendum 20.
+
+        Only the harness policy keeps it out of the metric. That separates the
+        two layers cleanly: one is a fact about what was read, the other is a
+        choice about what to claim.
+        """
+        result = score_case(
+            _case(decision_date="2022-04-15", reading_cfs=140.0, board_action="reinstate"),
+            earliest_scorable=date(1900, 1, 1),
+        )
+        assert result.outcome is Outcome.MATCH
+        assert result.minimum_cfs == 150.0
 
     def test_a_current_era_case_is_unaffected_by_either_layer(self) -> None:
         """Non-vacuity: the layers must not simply refuse everything."""

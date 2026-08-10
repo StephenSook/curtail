@@ -29,10 +29,21 @@
     ],
     "earliest_scorable_date": "2024-01-01",
     "why_bounded": [
-      "The 2021 cycle used a different table and a 135 cfs sustained suspension",
-      "threshold. Scoring a 2021 decision against this schedule would mark the Board",
-      "wrong for correctly applying the rule that was actually in force. The harness",
-      "refuses rather than scores when a case predates this era."
+      "The 2021 cycle is a separate adoption whose flow table has NOT been verified",
+      "in full against a primary source. Scoring a 2021 decision against the",
+      "readopted schedule risks marking the Board wrong for correctly applying the",
+      "rule then in force.",
+      "",
+      "Measured 2026-08-10 across 60 fetched 2021-era documents: every Scott month",
+      "those documents state MATCHES the readopted table (Jan 200, Feb 200, Mar 200,",
+      "Apr 150, May 150, Jun 125, Jul 50), and Addendum 30 confirms the June 24",
+      "mid-month break existed in 2022. So the refusal is about what has been",
+      "verified, not about a known difference.",
+      "",
+      "An earlier draft asserted the 2021 cycle used a 135 cfs sustained suspension",
+      "threshold. That figure appears in NONE of the 60 documents. It came from a",
+      "research summary, the same path the retired 39.3 cfs reading took, and it is",
+      "no longer asserted anywhere in this repository."
     ]
   },
   "cases": [

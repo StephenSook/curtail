@@ -25,10 +25,14 @@ reading below the minimum is not necessarily an engine error, because 875(b)(3)
 expressly permits the official to decline. Those are reported as DIVERGENT with
 the reasoning shown, never silently counted as failures or as successes.
 
-**The era guard.** The 2021 cycle used a different flow table and a 135 cfs
-sustained suspension threshold. Scoring a 2021 decision against the current
-schedule would mark the Board wrong for correctly applying the rule then in
-force. The harness refuses to score anything before the era boundary.
+**The era guard.** The 2021 cycle is a separate adoption whose table has not
+been verified in full against a primary source. Scoring a 2021 decision against
+the readopted schedule risks marking the Board wrong for correctly applying the
+rule then in force, so the harness refuses anything before the era boundary.
+
+Measured, not assumed: every Scott month the 2021-era documents state matches the
+readopted table. The refusal is about what has been VERIFIED, not about a known
+difference.
 """
 
 from __future__ import annotations
@@ -171,9 +175,9 @@ def score_case(case: dict[str, Any], *, earliest_scorable: date) -> CaseResult:
     if decision_date < earliest_scorable:
         return refuse(
             f"Decision predates the regulatory era this schedule encodes "
-            f"(earliest scorable {earliest_scorable.isoformat()}). The 2021 cycle "
-            "used a different table and a 135 cfs sustained suspension threshold, "
-            "so scoring it here would mark the Board wrong for correctly applying "
+            f"(earliest scorable {earliest_scorable.isoformat()}). That era's flow "
+            "table has not been verified in full against a primary source, so "
+            "scoring it here risks marking the Board wrong for correctly applying "
             "the rule then in force."
         )
 
