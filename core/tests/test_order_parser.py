@@ -4,9 +4,9 @@ Every fixture below is copied character for character out of a document fetched
 from the State Water Board on 2026-08-10. None of it is paraphrased, and none of
 the expected values were written from memory.
 
-That rule exists because of a specific incident. A figure of 39.3 cfs, which
-appears nowhere in Shasta Addendum 6, propagated out of a research haul into the
-build constitution, two test files, the corpus manifest and a public README. It
+That rule exists because of a specific incident. A retired figure of 39.3 cfs,
+which appears nowhere in Shasta Addendum 6, propagated out of a research haul
+into the constitution, two test files, the corpus manifest and a public README. It
 survived a dedicated verification pass and a passing test suite. Only opening the
 PDF caught it: the document says 45.3 and 46.5. A test whose expected value came
 from the same contaminated source as the code proves nothing at all.
@@ -318,9 +318,10 @@ class TestScopeSeparatesOneGroupingFromAllOfThem:
 
 class TestValuesComeFromTheDocument:
     def test_shasta_addendum_6_yields_the_figures_the_document_states(self) -> None:
-        """The 39.3 regression test, run against the document's own words.
+        """The retired 39.3 regression test, run against the document's own words.
 
-        45.3 and 46.5 are printed in the Addendum. 39.3 is not, anywhere.
+        45.3 and 46.5 are printed in the Addendum. The corrected record shows
+        that 39.3 appears nowhere in it.
         """
         cfs = extract(SHASTA_ADDENDUM_6).cfs_values
         assert 45.3 in cfs

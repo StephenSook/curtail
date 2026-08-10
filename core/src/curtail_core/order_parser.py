@@ -143,9 +143,7 @@ _ALL_SCOPE = re.compile(r"\ball\s+(?:surface\s+water\s+rights|curtailments?)\b",
 #: The separator is kept because headline typography varies across a decade of
 #: documents and the cost of a miss is silently dropping a priority grouping.
 _RANGE_SEPARATORS = "-\u2013"  # hyphen-minus, en dash
-_GROUPS_RANGE = re.compile(
-    rf"Groups?\s+(\d)\s*(?:[{_RANGE_SEPARATORS}]|through|to)\s*(\d)", re.I
-)
+_GROUPS_RANGE = re.compile(rf"Groups?\s+(\d)\s*(?:[{_RANGE_SEPARATORS}]|through|to)\s*(\d)", re.I)
 _GROUP_SINGLE = re.compile(r"Group\s+(\d)\b", re.I)
 
 #: A priority cutoff date, e.g. "November 25, 1912" or "January 1, 1958".
