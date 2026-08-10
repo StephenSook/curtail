@@ -26,6 +26,11 @@ dev = [
     "pytest>=9.1.1,<10",
     "pytest-cov>=7.0.0,<8",
     "hypothesis>=6.165.2,<7",
+    # Used by the CI suite-integrity guard to parse pytest's JUnit XML. The file
+    # is self-generated and trusted, but stdlib ElementTree is vulnerable to
+    # entity-expansion attacks and there is no reason for a security gate to
+    # rest on a parser with a known weakness.
+    "defusedxml>=0.7.1,<0.8",
 ]
 
 [tool.ruff]

@@ -61,24 +61,21 @@ jobs:
       # before any `rc=$?` line executes. Every exit code below is captured with
       # `|| rc=$?` so the check reasons about the real status instead of never
       # running at all.
-      - name: Assert no tests were skipped
+      # Parses JUnit XML rather than grepping pytest's human-readable summary.
+      # The first version of this guard grepped for a "N passed" line and went
+      # red because `addopts` already carries -q and the extra -q made it -qq,
+      # which suppresses that line entirely. The guard was right to refuse, but
+      # its premise was fragile. Machine-readable counts cannot be reformatted
+      # out from under it.
+      - name: Assert the suite ran and nothing was skipped
         run: |
           rc=0
-          uv run pytest -q --no-header -rs > /tmp/pytest-report.txt 2>&1 || rc=$?
-          cat /tmp/pytest-report.txt
+          uv run pytest --junitxml=/tmp/junit.xml || rc=$?
           if [ "$rc" -ne 0 ]; then
             echo "::error::pytest failed (exit $rc)"
             exit 1
           fi
-          if grep -qE '[0-9]+ skipped' /tmp/pytest-report.txt; then
-            echo "::error::A test was SKIPPED under CI. A skipped guard is a false green."
-            exit 1
-          fi
-          if ! grep -qE '[0-9]+ passed' /tmp/pytest-report.txt; then
-            echo "::error::No 'passed' line in the report. The suite may not have run at all."
-            exit 1
-          fi
-          echo "confirmed: tests ran, zero skipped"
+          uv run python scripts/check_suite_integrity.py /tmp/junit.xml
 
   hygiene:
     name: Hygiene (AI tone, em-dash)
