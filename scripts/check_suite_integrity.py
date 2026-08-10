@@ -24,7 +24,7 @@ from defusedxml import ElementTree as ET  # noqa: N817
 
 #: The suite must not silently shrink. Raise this as the suite grows.
 #: Never lower it to make a red build pass.
-MINIMUM_EXPECTED_TESTS = 30
+MINIMUM_EXPECTED_TESTS = 98
 
 
 def main(argv: list[str]) -> int:
