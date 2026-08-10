@@ -47,15 +47,15 @@ official to decline to issue, to narrow the grouping, or to suspend.
 
 | Measure | Count |
 |---|---|
-| Declared across the Board's index pages | 102 |
-| Individually enumerated in the manifest | 33 |
+| Declared across the Board's index pages | 100 |
+| Individually enumerated in the manifest | 98 |
 | PDFs fetched and byte-verified | 24 |
 | Read via text layer | 20 |
 | Read from rendered pages | 4 |
 | Refused, no text layer | 0 |
 | **Scorable** | **24** |
 
-Never state a figure of the form "N of 102". The 2021 series carry addenda counts
+Never state a figure of the form "N of 100". The 2021 series carry addenda counts
 without per-document entries because those index pages publish no
 per-addendum URLs, so those documents are excluded from the denominator
 rather than counted as failures.

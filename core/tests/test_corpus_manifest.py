@@ -75,8 +75,73 @@ class TestCorpusScale:
     def test_at_least_fourteen_base_orders(self, manifest: dict[str, Any]) -> None:
         assert manifest["totals"]["base_orders"] >= 14
 
-    def test_at_least_eighty_six_addenda(self, manifest: dict[str, Any]) -> None:
-        assert manifest["totals"]["addenda"] >= 86
+    def test_at_least_eighty_four_addenda(self, manifest: dict[str, Any]) -> None:
+        """84, corrected DOWN from 86 on 2026-08-10, and the direction matters.
+
+        Early research estimated the Shasta 2021 series at 16 addenda. The
+        Board's own shasta_addendums.html links addenda numbered to 14 and no
+        further, confirmed two ways: parsing that page, and a separate archive
+        sweep that found 14 with no gaps. The 16 was never verified against a
+        Board page.
+
+        A count that moves down is the case worth guarding hardest, because the
+        instinct is to treat a smaller denominator as a loss and quietly keep the
+        larger one. The larger one was wrong.
+        """
+        assert manifest["totals"]["addenda"] >= 84
+
+    def test_the_shasta_2021_correction_is_recorded_not_silent(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        shasta = next(s for s in manifest["series"] if s["id"] == "shasta_2021")
+        assert shasta["addenda_count"] == 14
+        assert "count_correction_note" in shasta
+
+    def test_the_declared_total_is_computed_from_the_series(self, manifest: dict[str, Any]) -> None:
+        """The headline document count must follow its own parts.
+
+        A total that stops tracking the series it sums is how a corrected count
+        gets reported as the old one.
+        """
+        totals = manifest["totals"]
+        expected = (
+            totals["base_orders"]
+            + totals["addenda"]
+            + totals["temporary_amendments"]
+            + totals["supporting_determinations"]
+        )
+        assert totals["documents_total"] == expected
+        assert manifest["extraction_status"]["documents_total_declared"] == expected
+
+    def test_the_2021_addenda_are_now_individually_enumerated(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """They were declared by count for weeks, on a premise that was wrong.
+
+        The Board does publish per-addendum links for the 2021 series, on two
+        index pages the main drought index does not surface prominently.
+        """
+        for sid, expected in (("scott_2021", 51), ("shasta_2021", 14)):
+            series = next(s for s in manifest["series"] if s["id"] == sid)
+            assert len(series["addenda"]) == expected, sid
+            assert series.get("index_page"), f"{sid} has no index page recorded"
+
+    def test_most_enumerated_2021_addenda_carry_a_url(self, manifest: dict[str, Any]) -> None:
+        """Not all of them, and the exceptions are honest.
+
+        The earliest addenda in both series use descriptive filenames rather
+        than a number, so the number cannot be mapped from the URL and must be
+        confirmed by reading the document. Those records carry a note instead of
+        a guessed URL.
+        """
+        for sid in ("scott_2021", "shasta_2021"):
+            series = next(s for s in manifest["series"] if s["id"] == sid)
+            with_url = [a for a in series["addenda"] if a.get("url")]
+            assert len(with_url) >= len(series["addenda"]) - 4, sid
+            for record in series["addenda"]:
+                assert record.get("url") or record.get("data_quality_note"), (
+                    f"{sid} addendum {record['n']} has neither a URL nor a reason"
+                )
 
     def test_both_basins_and_both_regulatory_eras_are_represented(
         self, manifest: dict[str, Any]
@@ -170,7 +235,9 @@ class TestKnownConflictsAreRecordedNotResolved:
         assert 39.3 not in add6["gage_readings_cfs"]
 
     def test_sources_are_cited(self, manifest: dict[str, Any]) -> None:
-        assert len(manifest["verified_against"]) == 4
+        """Six now: the four original index pages plus the two 2021 addendum
+        pages found on 2026-08-10, which is where the per-addendum URLs live."""
+        assert len(manifest["verified_against"]) == 6
         assert all(
             u.startswith("https://www.waterboards.ca.gov") for u in manifest["verified_against"]
         )

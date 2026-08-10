@@ -64,7 +64,12 @@ def _verify(body: bytes) -> tuple[bool, str]:
         head = body[:60].decode("utf-8", errors="replace").replace("\n", " ")
         return False, f"not a PDF (starts with {head!r})"
     if len(body) < MIN_PLAUSIBLE_BYTES:
-        return False, f"implausibly small for an order ({len(body)} bytes)"
+        return False, (
+            f"implausibly small for an order ({len(body)} bytes). A body of a few "
+            "hundred bytes is usually the Imperva WAF challenge stub, which is "
+            "served with HTTP 200. Slow down and retry rather than treating it as "
+            "a missing document."
+        )
     return True, "ok"
 
 
@@ -85,7 +90,20 @@ def _targets(manifest: dict, only: str | None) -> list[tuple[str, str]]:
     return out
 
 
-def fetch_all(only: str | None = None, *, delay: float = 0.4) -> list[FetchResult]:
+#: Seconds between requests.
+#:
+#: waterboards.ca.gov sits behind an Imperva WAF that starts returning a
+#: 212-byte HTML challenge stub WITH HTTP 200 after roughly ten to twelve PDF
+#: fetches at speed, and a 403 under sustained load. That is precisely the
+#: false-green this fetcher's magic-byte check exists to catch, and the check
+#: does catch it, but a fetcher that trips the block simply fails to collect the
+#: corpus. Measured working pace is one request per eight to eleven seconds.
+#:
+#: This is also a public government server, not a target.
+POLITE_DELAY_SECONDS = 8.0
+
+
+def fetch_all(only: str | None = None, *, delay: float = POLITE_DELAY_SECONDS) -> list[FetchResult]:
     manifest = json.loads(MANIFEST.read_text())
     CORPUS_DIR.mkdir(parents=True, exist_ok=True)
     results: list[FetchResult] = []
