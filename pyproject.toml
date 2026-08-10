@@ -31,6 +31,7 @@ dev = [
     # entity-expansion attacks and there is no reason for a security gate to
     # rest on a parser with a known weakness.
     "defusedxml>=0.7.1,<0.8",
+    "pytest-asyncio>=1.4.0,<2",
 ]
 
 [tool.ruff]
@@ -70,4 +71,5 @@ explicit_package_bases = true
 testpaths = ["core/tests", "agents/tests"]
 pythonpath = ["core/src", "agents/src"]
 addopts = "-q --strict-markers --strict-config"
+asyncio_mode = "auto"
 filterwarnings = ["error"]
