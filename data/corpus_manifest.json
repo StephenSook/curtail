@@ -1,0 +1,183 @@
+{
+  "$schema_note": [
+    "The backtest corpus. This file is the DENOMINATOR of the headline metric,",
+    "so every count here is verified against the State Water Board's own index",
+    "pages rather than estimated.",
+    "",
+    "Two-tier honesty on every record. `index_verified` means the document's",
+    "existence, number and URL were read off the Board's index page.",
+    "`document_read` means the PDF itself has been parsed and its action verb,",
+    "priority cutoff and gage trigger extracted. A record can be index-verified",
+    "and not document-read, and the backtest must never score a record whose",
+    "expected action came from anywhere but the document itself."
+  ],
+  "verified_on": "2026-08-10",
+  "verified_against": [
+    "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/curtailment_addenda/",
+    "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/shasta_2024addendums.html",
+    "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/shasta_addendums.html",
+    "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/scott_addendums.html"
+  ],
+  "totals": {
+    "base_orders": 14,
+    "addenda": 86,
+    "temporary_amendments": 1,
+    "supporting_determinations": 1,
+    "documents_total": 102
+  },
+  "series": [
+    {
+      "id": "scott_2021",
+      "basin": "scott",
+      "era": "2021-2023 emergency regulation",
+      "base_orders": [
+        {
+          "order_number": "WR 2021-0083-DWR",
+          "title": "Order Imposing Water Right Curtailment and Reporting Requirements for Adjudicated Groundwater Rights in the Scott River Watershed",
+          "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/scott_adjudicated_gw_curtailment_order.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2021-0084-DWR",
+          "title": "Order Imposing Water Right Curtailment and Reporting Requirements in the Scott River Watershed For Water Rights Associated With The Parcels Listed In Attachment A And Not Otherwise Curtailed",
+          "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/scott_apn_curtailment_info_order.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "UNNUMBERED_ON_INDEX",
+          "title": "Order Imposing Water Right Curtailment and Reporting Requirements For Reported Water Rights In The Scott River Watershed",
+          "url": "/waterrights/water_issues/programs/drought/scott_shasta_rivers/docs/surface_water_curtailment_order_scott.pdf",
+          "index_verified": true,
+          "document_read": false,
+          "data_quality_note": "The Board's index page links this surface-water order without stating its order number. The number must be read from the PDF before this record is scored."
+        }
+      ],
+      "addenda_count": 51,
+      "addenda_numbering": "1 through 51, 2021 to 2023",
+      "url_pattern_note": "Addenda 1-16 under docs/, 17-36 under docs/2022/, 37-51 under docs/2023/",
+      "index_verified": true,
+      "documents_read": 0
+    },
+    {
+      "id": "scott_2024",
+      "basin": "scott",
+      "era": "2024 emergency regulation",
+      "base_orders": [
+        {
+          "order_number": "WR 2024-0024-DWR",
+          "title": "Imposes Water Right Curtailment for Surface Water Rights",
+          "url": "docs/2024/order-wr-2024-0024-dwr.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2024-0025-DWR",
+          "title": "Imposes Water Right Curtailment for Adjudicated Groundwater Rights",
+          "url": "docs/2024/order-wr-2024-0025-dwr.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2026-0005-DWR",
+          "title": "Surface Water Curtailment (Amended)",
+          "url": "docs/2026/order-wr-0005-dwr-scott-sws-curtailment.pdf",
+          "index_verified": true,
+          "document_read": false,
+          "significance": "Finding 8 states the Board issued this order to correct its own incomplete curtailment list. This is the strongest single artifact in the project."
+        },
+        {
+          "order_number": "WR 2026-0008-DWR",
+          "title": "Groundwater Curtailment (Amended)",
+          "url": "docs/2026/order-wr-2026-0008-dwr-scott-gw-curtailment.pdf",
+          "index_verified": true,
+          "document_read": false
+        }
+      ],
+      "addenda": [
+        {"n": 1, "date": "2024-08-23", "url": "docs/2024/addendum-1.pdf"},
+        {"n": 2, "date": "2024-09-06", "url": "docs/2024/addendum-2.pdf"},
+        {"n": 3, "date": "2024-09-17", "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf"},
+        {"n": 4, "date": "2024-09-27", "url": "docs/2024/addendum4-scott-farmers-svid.pdf"},
+        {"n": 5, "date": "2024-10-15", "url": "docs/2024/addendum5-scott-farmers-svid.pdf"},
+        {"n": 6, "date": "2024-11-13", "url": "docs/2024/addendum-6-full-suspension.pdf"},
+        {"n": 7, "date": "2025-07-20", "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf"},
+        {"n": 8, "date": "2025-07-22", "url": "docs/2025/addendum8-scottriver-7-22-2025.pdf",
+         "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture."},
+        {"n": 9, "date": "2026-05-21", "url": "docs/2026/scott-addendum-9a.pdf"},
+        {"n": 10, "date": "2026-05-26", "url": "docs/2026/scott-addendum-10-attachmenta.pdf"},
+        {"n": 11, "date": "2026-05-27", "url": "docs/scott-addendum11-attachmenta.pdf"},
+        {"n": 12, "date": "2026-06-09", "url": "docs/2026/scott-addendum12-attachmenta.pdf"}
+      ],
+      "addenda_to_2026_0008": [
+        {"n": 1, "date": "2026-07-02", "url": "docs/2026/scott-addendum-1.pdf"}
+      ],
+      "addenda_count": 13,
+      "index_verified": true,
+      "documents_read": 0
+    },
+    {
+      "id": "shasta_2021",
+      "basin": "shasta",
+      "era": "2021-2023 emergency regulation",
+      "base_orders": [
+        {"order_number": "WR 2021-0082-DWR", "url": "docs/shasta_curtailment_order.pdf", "index_verified": true, "document_read": false},
+        {"order_number": "WR 2021-0085-DWR", "url": "docs/shasta-curtailment-order-2021-0085-dwr.pdf", "index_verified": true, "document_read": false},
+        {"order_number": "WR 2022-0142-DWR", "url": "docs/2022/shasta-curtailment-order-2022-0142-dwr-signed.pdf", "index_verified": true, "document_read": false},
+        {"order_number": "WR 2022-0161-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-0161-dwr-signed.pdf", "index_verified": true, "document_read": false},
+        {"order_number": "WR 2022-0162-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-162-dwr-signed.pdf", "index_verified": true, "document_read": false},
+        {"order_number": "WR 2022-0167-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-167-dwr.pdf", "index_verified": true, "document_read": false}
+      ],
+      "addenda_count": 16,
+      "addenda_breakdown": {
+        "to_WR_2021_0082_DWR": 14,
+        "to_order_0162": 1,
+        "to_order_0167": 1
+      },
+      "index_verified": true,
+      "documents_read": 0,
+      "data_quality_note": "The Board's own index page is internally inconsistent on two order numbers. Its order list names WR 2022-0162-DWR and WR 2022-0167-DWR, while the addendum sections beneath refer to WR 2021-0162-DWR and WR 2021-0167-DWR. Recorded rather than silently normalized. The year must be resolved from the PDFs before either record is scored, because an order number is an identifier in a legal record and guessing at one is exactly the class of error this project exists to prevent."
+    },
+    {
+      "id": "shasta_2024",
+      "basin": "shasta",
+      "era": "2024 emergency regulation",
+      "base_orders": [
+        {
+          "order_number": "WR 2024-0006-DWR",
+          "title": "Order Imposing Water Right Curtailment and Reporting Requirements in the Shasta River Watershed",
+          "url": "docs/2024/shasta-order-WR-2024-0006-DWR.pdf",
+          "index_verified": true,
+          "document_read": false
+        }
+      ],
+      "addenda": [
+        {"n": 1, "date": "2024-07-03", "url": "docs/2024/2024-final-shasta_curtailment-addendum-1.pdf"},
+        {"n": 2, "date": "2024-10-25", "url": "docs/2024/addendum2_shastaRiver_suspension.pdf"},
+        {"n": 3, "date": "2024-10-31", "url": "docs/2024/addendum3-order-wr-2024-006-dwr.pdf"},
+        {"n": 4, "date": "2025-06-27", "url": "docs/2025/2025-shasta_curtailment-addendum-4.pdf"},
+        {"n": 5, "date": "2025-10-15", "url": "docs/2025/addendum5-shasta-river-a.pdf"},
+        {"n": 6, "date": "2026-06-16", "url": "docs/2026/addendum6-shasta-attach-a.pdf",
+         "significance": "About 39.3 cfs against the 50 cfs minimum at Yreka. Reinstated conditional curtailment on rights junior to a November 1912 priority date. The exact day of that date is UNRESOLVED across sources (November 1 versus November 25) and must be read from this PDF."}
+      ],
+      "addenda_count": 6,
+      "temporary_amendments": [
+        {"title": "Temporary Amendment to Addendum 4", "date": "2025-08-20", "url": "docs/2025/final-temp-amend-w-add-4.pdf",
+         "significance": "Implements a CDFW alternative flow schedule under 875(c)(2)(B) through (D). Proof that flow minimums are an overridable schedule and not constants."}
+      ],
+      "supporting_determinations": [
+        {"title": "CDFW Recommendation for Alternative Flow Schedule", "date": "2025-08-04", "url": "docs/2025/CDFW-recommendation-shasta-temp-flows-study-2025.pdf"}
+      ],
+      "index_verified": true,
+      "documents_read": 0
+    }
+  ],
+  "open_items": [
+    "No document has been parsed yet. Every action verb, priority cutoff and cfs trigger is still UNREAD, and the backtest must not score a record until its own PDF supplies the expected value.",
+    "The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.",
+    "The Scott 2021 surface-water order carries no order number on the index page.",
+    "The November 1 versus November 25, 1912 Shasta cutoff conflict must be resolved from Addendum 6 and Order WR 2024-0006-DWR, never from a memory ledger.",
+    "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page."
+  ]
+}
