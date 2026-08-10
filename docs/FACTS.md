@@ -26,7 +26,7 @@ reported alongside rather than folded in.
 | `shasta_2024/addenda/2` | shasta | 2024-10-25 | 126 cfs | 105 cfs | relieve | relieve | **match** |
 | `shasta_2024/addenda/3` | shasta | 2024-10-31 | 140 cfs | 105 cfs | relieve | relieve | **match** |
 | `shasta_2024/addenda/5` | shasta | 2025-10-13 | 145 cfs | 105 cfs | relieve | relieve | **match** |
-| `shasta_2024/addenda/6` | shasta | 2026-06-15 | 45.3 cfs | 50 cfs | restrict | restrict | **match** |
+| `shasta_2024/addenda/6` | shasta | 2026-06-15 | 46.5 cfs | 50 cfs | restrict | restrict | **match** |
 
 Excluded before scoring: 5.
 
