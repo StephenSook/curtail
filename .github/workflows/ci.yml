@@ -82,6 +82,15 @@ jobs:
           fi
           uv run python scripts/check_suite_integrity.py /tmp/junit.xml
 
+      # Every number in the video narration, the README, the landing page and the
+      # Devpost description is required to come from docs/FACTS.md, and that file
+      # is generated rather than written. If it drifts from the code that produces
+      # it, an artifact quoting it may be quoting a figure the repository no
+      # longer supports, and a published video cannot be corrected afterwards.
+      # Runs bare: no pipe on the exit path.
+      - name: FACTS.md matches the code that generates it
+        run: uv run python scripts/generate_facts.py --check
+
   hygiene:
     name: Hygiene (AI tone, em-dash)
     runs-on: ubuntu-latest
