@@ -19,13 +19,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
+from math import isfinite
 
-
-class Basin(StrEnum):
-    """The two watersheds under the emergency regulation."""
-
-    SCOTT = "scott"
-    SHASTA = "shasta"
+from curtail_core.basins import Basin
 
 
 class AdjudicationId(StrEnum):
@@ -172,15 +168,96 @@ class WaterRight:
     #: claims are self-reported Statements, not permits reviewed by the
     #: Division, so a missing date is recorded as missing and never imputed.
     priority_date_missing: bool = False
-    is_surplus_class: bool = False
-    is_post_1914: bool = False
-    #: Shared-source key. Monotonicity is only meaningful within one source.
-    source: str = "main_stem"
+    #: TRI-STATE, and the None matters. These two flags are read BEFORE the
+    #: Schedule D branch, so a bare False means "definitely not surplus" and
+    #: sends the right onward to a more SENIOR grouping. When ingestion could
+    #: not determine the flag, False is a confident wrong answer: a post-1914
+    #: right whose flag was dropped placed three groupings too senior, and a
+    #: dropped surplus flag placed five too senior, which produced a real
+    #: monotonicity violation (senior curtailed, junior untouched). None means
+    #: unknown and forces a PlacementError rather than a guess.
+    is_surplus_class: bool | None = None
+    is_post_1914: bool | None = None
+    #: Shared-source key. Monotonicity is only meaningful within one source, so
+    #: there is deliberately no default: a shared fallback literal would silently
+    #: merge every ingestion-failed right into one giant pseudo-source.
+    source: str = ""
     #: Annual diversion in acre-feet, where known. Feeds the 875.5(c)
     #: discretion over groundwater under two acre-feet per annum.
     annual_acre_feet: float | None = None
     overlying_facts: OverlyingLandFacts | None = None
 
+    def __post_init__(self) -> None:
+        """Reject rights that cannot be placed truthfully.
+
+        Every check here closes a confirmed path where the engine produced a
+        confident wrong answer, or wrote a false statement into a record a
+        state official signs.
+        """
+        if self.adjudication is not None:
+            decree = ADJUDICATIONS[self.adjudication]
+            if decree.basin is not self.basin:
+                raise ValueError(
+                    f"{self.right_id}: the {decree.name} adjudication governs the "
+                    f"{decree.basin.value} basin, but this right is recorded in the "
+                    f"{self.basin.value} basin. Placing it would assert in the signed "
+                    f"record that it is held under a decree that does not govern it."
+                )
+
+        if self.schedule is not None and self.basin is not Basin.SCOTT:
+            raise ValueError(
+                f"{self.right_id}: Schedule {self.schedule.value} is a Scott decree "
+                f"schedule and cannot attach to a {self.basin.value} right."
+            )
+
+        if (
+            self.right_class is RightClass.OVERLYING_GROUNDWATER
+            and self.basin is Basin.SHASTA
+            and self.overlying_facts is None
+        ):
+            raise ValueError(
+                f"{self.right_id}: a Shasta overlying groundwater right requires "
+                "overlying_facts. Without them the 875.5(b)(1)(A) three-prong test "
+                "cannot run, and the right would default into the most senior tier "
+                "carrying a justification identical to one that actually passed the test."
+            )
+
+        if self.priority_date is not None and self.priority_date_missing:
+            raise ValueError(
+                f"{self.right_id}: priority_date_missing is set but a priority date "
+                f"is present ({self.priority_date.isoformat()})."
+            )
+
+        if self.annual_acre_feet is not None:
+            if not isfinite(self.annual_acre_feet):
+                raise ValueError(
+                    f"{self.right_id}: annual_acre_feet must be finite, got "
+                    f"{self.annual_acre_feet!r}. A non-finite value fails every "
+                    "comparison silently, so the 875.5(c) discretion would never be "
+                    "surfaced to the official."
+                )
+            if self.annual_acre_feet < 0:
+                raise ValueError(
+                    f"{self.right_id}: annual_acre_feet cannot be negative, got "
+                    f"{self.annual_acre_feet}."
+                )
+
     @property
     def is_in_decree(self) -> bool:
         return self.adjudication is not None
+
+
+# Basin lives in curtail_core.basins (one enum, one home, after it was
+# accidentally declared twice). Re-exported explicitly so callers can keep
+# importing the domain vocabulary from one place, and so mypy strict accepts it.
+__all__ = [
+    "ADJUDICATIONS",
+    "SCOTT_ADJUDICATIONS",
+    "Adjudication",
+    "AdjudicationId",
+    "Basin",
+    "OverlyingLandFacts",
+    "RightClass",
+    "Schedule",
+    "WaterRight",
+]

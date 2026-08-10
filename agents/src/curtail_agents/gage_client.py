@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from math import isfinite
 from typing import Any, Final, Literal
 
 import httpx
@@ -68,6 +69,41 @@ class Reading:
     qualifier: str | None
     #: True when the value came from a cached snapshot rather than a live call.
     from_cache: bool = False
+
+    def __post_init__(self) -> None:
+        """Reject readings that are not physically meaningful discharge values.
+
+        Two confirmed catastrophic paths, in opposite directions.
+
+        A NaN fails every comparison, so `is_below_minimum` and
+        `is_near_threshold` both return False and the engine reports the river
+        is above its minimum and not even worth field-verifying, on a reading
+        that does not exist. Python's json module parses bare NaN literals, so
+        this arrives straight off the wire.
+
+        And -999999 is the standard NWIS no-data sentinel. Passed through, it
+        curtails the entire watershed at maximum confidence off a dead sensor,
+        and sits far outside the near-threshold band so it is not even flagged
+        for field verification.
+        """
+        if not isfinite(self.cfs):
+            raise GageError(
+                f"{self.monitoring_location_id}: discharge is not finite ({self.cfs!r}). "
+                "A non-finite reading fails every comparison silently and would be "
+                "reported as a river above its minimum."
+            )
+        if self.cfs < 0:
+            raise GageError(
+                f"{self.monitoring_location_id}: discharge cannot be negative "
+                f"({self.cfs}). -999999 is the NWIS no-data sentinel; passing it "
+                "through would curtail the watershed off a dead sensor."
+            )
+        if self.unit != "ft^3/s":
+            raise GageError(
+                f"{self.monitoring_location_id}: expected discharge in ft^3/s, got "
+                f"{self.unit!r}. The regulation's minimums are in cubic feet per second, "
+                "and a value in other units would be compared as though it were cfs."
+            )
 
     @property
     def is_provisional(self) -> bool:
@@ -149,10 +185,18 @@ class GageClient:
         if response.status_code != 200:
             raise GageError(f"{collection} returned HTTP {response.status_code}")
 
-        payload: dict[str, Any] = response.json()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            # A 200 carrying a captive-portal or proxy interstitial is not JSON.
+            raise GageError(f"{collection} returned a non-JSON body: {exc}") from exc
+
+        if not isinstance(payload, dict):
+            raise GageError(f"{collection} returned {type(payload).__name__}, expected an object")
         if "features" not in payload:
             raise GageError(f"{collection} response has no features key")
-        return payload
+        result: dict[str, Any] = payload
+        return result
 
     async def latest_discharge(self, monitoring_location_id: str) -> Reading:
         """Return the most recent discharge reading for a gage.
@@ -176,7 +220,7 @@ class GageClient:
                 "An absent reading is not a reading of zero."
             )
 
-        props = features[0].get("properties", {})
+        props = features[0].get("properties") or {}
         observed_at = _parse_time(props.get("time"))
         raw_value = props.get("value")
         if observed_at is None or raw_value is None:
@@ -204,7 +248,7 @@ class GageClient:
         )
         out: list[Revision] = []
         for feature in payload["features"]:
-            props = feature.get("properties", {})
+            props = feature.get("properties") or {}
             out.append(
                 Revision(
                     monitoring_location_id=monitoring_location_id,
@@ -228,4 +272,4 @@ class GageClient:
             monitoring_location_id=monitoring_location_id,
             limit=min(limit, MAX_LIMIT),
         )
-        return [f.get("properties", {}) for f in payload["features"]]
+        return [f.get("properties") or {} for f in payload["features"]]

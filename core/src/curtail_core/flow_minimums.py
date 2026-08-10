@@ -23,23 +23,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from enum import StrEnum
 
-
-class Basin(StrEnum):
-    """The two watersheds under the Scott and Shasta emergency regulation."""
-
-    SCOTT = "scott"
-    SHASTA = "shasta"
-
-
-#: Compliance gage per basin. These are the baseline compliance points named in
-#: the regulation, not the only legally possible ones: sections 875(c)(1)(B) and
-#: 875(f)(3) permit alternative flow points and additional approved gages.
-COMPLIANCE_GAGE: dict[Basin, str] = {
-    Basin.SCOTT: "USGS-11519500",  # Scott River near Fort Jones
-    Basin.SHASTA: "USGS-11517500",  # Shasta River near Yreka
-}
+from curtail_core.basins import COMPLIANCE_GAGE, Basin
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,3 +155,16 @@ def is_near_threshold(
     """True when a reading sits within the near threshold band of the minimum."""
     minimum = minimum_flow(basin, when, override=override)
     return abs(observed_cfs - minimum) <= NEAR_THRESHOLD_BAND_CFS
+
+
+__all__ = [
+    "COMPLIANCE_GAGE",
+    "NEAR_THRESHOLD_BAND_CFS",
+    "SCHEDULES",
+    "Basin",
+    "FlowPeriod",
+    "ScheduleGapError",
+    "is_below_minimum",
+    "is_near_threshold",
+    "minimum_flow",
+]

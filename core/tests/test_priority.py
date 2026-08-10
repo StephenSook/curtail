@@ -7,6 +7,7 @@ disagree, the regulation wins and the test is the bug.
 from __future__ import annotations
 
 from datetime import date
+from typing import ClassVar
 
 import pytest
 from hypothesis import given
@@ -35,10 +36,16 @@ from curtail_core.priority import (
 
 
 def scott(**kw: object) -> WaterRight:
+    # The two ladder flags are tri-state in production and default to None
+    # (unknown), which raises. Tests that are not about the unknown case supply
+    # a definite False so they exercise the branch they are actually about.
     base: dict[str, object] = {
         "right_id": "TEST",
         "basin": Basin.SCOTT,
         "right_class": RightClass.APPROPRIATIVE,
+        "is_surplus_class": False,
+        "is_post_1914": False,
+        "source": "scott_main",
     }
     base.update(kw)
     return WaterRight(**base)  # type: ignore[arg-type]
@@ -49,6 +56,9 @@ def shasta(**kw: object) -> WaterRight:
         "right_id": "TEST",
         "basin": Basin.SHASTA,
         "right_class": RightClass.APPROPRIATIVE,
+        "is_surplus_class": False,
+        "is_post_1914": False,
+        "source": "shasta_main",
     }
     base.update(kw)
     return WaterRight(**base)  # type: ignore[arg-type]
@@ -229,7 +239,23 @@ class TestDiscretionIsNeverAutoApplied:
     def test_missing_priority_date_is_surfaced_never_imputed(self) -> None:
         r = shasta(adjudication=AdjudicationId.SHASTA, priority_date_missing=True)
         p = place(r)
-        assert any("recorded as missing" in j for j in p.judgment_inputs)
+        assert any("recorded as missing" in f for f in p.data_quality_flags)
+
+    def test_a_data_quality_flag_does_not_flip_the_disposition(self) -> None:
+        """A missing date is a completeness note, not a discretionary provision.
+
+        When both lived in one tuple, `needs_official_review` could not tell
+        them apart, so a Group 1 right with a missing priority date came back
+        DISCRETIONARY_REVIEW instead of CURTAILED even with curtailment
+        extending across the entire ladder. A data note silently changed a
+        curtailment outcome.
+        """
+        r = scott(adjudication=None, priority_date_missing=True)
+        p = place(r)
+        assert p.data_quality_flags, "the note must still be surfaced"
+        assert not p.judgment_inputs, "but it is not a discretionary provision"
+        assert not p.needs_official_review
+        assert curtailment_extends_to(r, through_rank=9) is Disposition.CURTAILED
 
     def test_discretionary_review_is_its_own_disposition(self) -> None:
         r = shasta(
@@ -268,22 +294,137 @@ class TestPriorityMonotonicity:
     is left alone.
     """
 
+    #: Real Scott rights spanning the whole ladder, each built through the same
+    #: constructor production uses. The previous version of the property below
+    #: generated three bare integers, never constructed a WaterRight, never
+    #: called place(), and asserted only that max <= n implies min <= n, which
+    #: is true for all integers. It passed against a FULLY INVERTED ladder,
+    #: proven by mutation. The invariant this class is named for had no
+    #: coverage at all.
+    LADDER_SAMPLES: ClassVar[list[tuple[str, dict[str, object]]]] = [
+        (
+            "post-adjudication",
+            {"adjudication": None, "is_surplus_class": False, "is_post_1914": False},
+        ),
+        (
+            "surplus",
+            {"adjudication": AdjudicationId.SCOTT, "is_surplus_class": True, "is_post_1914": False},
+        ),
+        (
+            "post-1914",
+            {"adjudication": AdjudicationId.SCOTT, "is_surplus_class": False, "is_post_1914": True},
+        ),
+        (
+            "D4",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.D4,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+        (
+            "D3",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.D3,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+        (
+            "D2",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.D2,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+        (
+            "D1",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.D1,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+        (
+            "scheduleB",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.B,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+        (
+            "scheduleC",
+            {
+                "adjudication": AdjudicationId.SCOTT,
+                "schedule": Schedule.C,
+                "is_surplus_class": False,
+                "is_post_1914": False,
+            },
+        ),
+    ]
+
     @given(
         extent=st.integers(min_value=1, max_value=9),
-        junior_rank=st.integers(min_value=1, max_value=9),
-        senior_rank=st.integers(min_value=1, max_value=9),
+        i=st.integers(min_value=0, max_value=8),
+        j=st.integers(min_value=0, max_value=8),
     )
-    def test_senior_is_never_reached_before_junior(
-        self, extent: int, junior_rank: int, senior_rank: int
+    def test_senior_is_never_curtailed_while_junior_diverts(
+        self, extent: int, i: int, j: int
     ) -> None:
-        junior, senior = min(junior_rank, senior_rank), max(junior_rank, senior_rank)
-        senior_reached = senior <= extent
-        junior_reached = junior <= extent
-        if senior_reached:
-            assert junior_reached, (
-                f"senior rank {senior} reached at extent {extent} "
-                f"while junior rank {junior} was not"
+        """The invariant the whole doctrine rests on, exercised through place().
+
+        Builds two real rights on the same source, places them through the
+        production code path, and asserts that if the more senior one is
+        reached by a given extent then the more junior one must be too.
+        """
+        name_a, kw_a = self.LADDER_SAMPLES[i]
+        name_b, kw_b = self.LADDER_SAMPLES[j]
+
+        a = place(scott(right_id=name_a, source="scott_main", **kw_a))
+        b = place(scott(right_id=name_b, source="scott_main", **kw_b))
+        junior, senior = (a, b) if a.rank <= b.rank else (b, a)
+
+        junior_reached = curtailment_extends_to(
+            scott(
+                right_id=junior.right_id,
+                source="scott_main",
+                **dict(self.LADDER_SAMPLES[i if junior is a else j][1]),
+            ),
+            through_rank=extent,
+        )
+        senior_reached = curtailment_extends_to(
+            scott(
+                right_id=senior.right_id,
+                source="scott_main",
+                **dict(self.LADDER_SAMPLES[j if senior is b else i][1]),
+            ),
+            through_rank=extent,
+        )
+
+        if senior_reached is not Disposition.NOT_REACHED:
+            assert junior_reached is not Disposition.NOT_REACHED, (
+                f"{senior.right_id} (rank {senior.rank}) was reached at extent "
+                f"{extent} while {junior.right_id} (rank {junior.rank}), which is "
+                f"more junior on the same source, was not"
             )
+
+    def test_the_ladder_is_ordered_junior_to_senior(self) -> None:
+        """Pins the actual sequence, so an inverted ladder cannot pass.
+
+        This is the assertion the old tautology should have been.
+        """
+        ranks = [
+            place(scott(right_id=name, source="scott_main", **kw)).rank
+            for name, kw in self.LADDER_SAMPLES
+        ]
+        assert ranks == [1, 2, 3, 4, 5, 6, 7, 8, 9], ranks
 
     @given(schedule=st.sampled_from([Schedule.D1, Schedule.D2, Schedule.D3, Schedule.D4]))
     def test_placement_is_deterministic(self, schedule: Schedule) -> None:

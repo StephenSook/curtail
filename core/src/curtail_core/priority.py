@@ -103,11 +103,18 @@ class Placement:
     grouping_label: str
     citation: str
     reason: str
-    #: Discretionary provisions that apply. Non-empty means a human must look.
+    #: Discretionary provisions that apply. Non-empty means a human must
+    #: exercise or decline a "may" in the regulation.
     judgment_inputs: tuple[str, ...] = field(default_factory=tuple)
+    #: Data-completeness notes. Deliberately a SEPARATE channel: a missing
+    #: priority date is not a discretionary provision, and when both lived in
+    #: one tuple a data note silently flipped a right's disposition from
+    #: CURTAILED to DISCRETIONARY_REVIEW.
+    data_quality_flags: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def needs_official_review(self) -> bool:
+        """True only for genuine discretionary provisions."""
         return bool(self.judgment_inputs)
 
 
@@ -142,6 +149,26 @@ def _scott_group(right: WaterRight) -> tuple[ScottGroup, str, str]:
             ScottGroup.SCHEDULE_C_AND_OVERLYING_GROUNDWATER,
             "23 CCR 875.5(a)(1)(A)(ix)",
             "riparian right, correlative and senior to appropriative rights",
+        )
+
+    # Unknown flags must not fall through. Both branches below are tested
+    # BEFORE Schedule D, so a False reads as a confident "no" and pushes the
+    # right to a MORE SENIOR grouping. Unknown is not False.
+    if right.is_surplus_class is None or right.is_post_1914 is None:
+        unknown = [
+            name
+            for name, value in (
+                ("is_surplus_class", right.is_surplus_class),
+                ("is_post_1914", right.is_post_1914),
+            )
+            if value is None
+        ]
+        raise PlacementError(
+            f"{right.right_id}: cannot place on the Scott ladder because "
+            f"{' and '.join(unknown)} is unknown. These are read before the "
+            "Schedule D branch, so treating unknown as False would place this "
+            "right too senior and could curtail a senior right while leaving a "
+            "junior one on the same source diverting. This right must reach a human."
         )
 
     # (ii) Surplus Class in all schedules
@@ -223,11 +250,22 @@ def _shasta_tier(right: WaterRight) -> tuple[ShastaTier, str, str]:
             "right held under the priorities set forth in the Shasta Adjudication",
         )
 
-    # (A) appropriative initiated after the Shasta Adjudication
-    return (
-        ShastaTier.POST_ADJUDICATION_APPROPRIATIVE,
-        "23 CCR 875.5(b)(1)(A)",
-        "appropriative diversion initiated after the Shasta Adjudication",
+    # (A) appropriative initiated after the Shasta Adjudication.
+    # Positive evidence only. Previously this was an unconditional fallthrough,
+    # so a right whose decree linkage was merely MISSING was asserted to be
+    # post-adjudication and placed in the first grouping curtailed, with a
+    # statutory citation that made the guess look authoritative.
+    if right.right_class is RightClass.APPROPRIATIVE:
+        return (
+            ShastaTier.POST_ADJUDICATION_APPROPRIATIVE,
+            "23 CCR 875.5(b)(1)(A)",
+            "appropriative diversion initiated after the Shasta Adjudication",
+        )
+
+    raise PlacementError(
+        f"{right.right_id}: cannot place on the Shasta ladder. "
+        f"class={right.right_class}, adjudication={right.adjudication}. "
+        "This right must reach a human."
     )
 
 
@@ -257,14 +295,24 @@ def _judgment_inputs(right: WaterRight, rank: int) -> tuple[str, ...]:
             "on surface flows."
         )
 
+    return tuple(inputs)
+
+
+def _data_quality_flags(right: WaterRight) -> tuple[str, ...]:
+    """Completeness notes. Surfaced to the official, but never a disposition."""
+    flags: list[str] = []
     if right.priority_date_missing:
-        inputs.append(
+        flags.append(
             "Priority date is missing and is recorded as missing. Riparian and pre-1914 "
             "claims are self-reported Statements of Water Diversion and Use, not permits "
             "reviewed by the Division, so no date is imputed."
         )
-
-    return tuple(inputs)
+    if right.annual_acre_feet is None and right.right_class is RightClass.OVERLYING_GROUNDWATER:
+        flags.append(
+            "Annual diversion volume is unknown, so the 875.5(c) discretion over "
+            "groundwater under two acre-feet per annum cannot be evaluated."
+        )
+    return tuple(flags)
 
 
 def place(right: WaterRight) -> Placement:
@@ -289,6 +337,7 @@ def place(right: WaterRight) -> Placement:
         citation=citation,
         reason=reason,
         judgment_inputs=_judgment_inputs(right, rank),
+        data_quality_flags=_data_quality_flags(right),
     )
 
 
