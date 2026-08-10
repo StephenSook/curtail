@@ -174,3 +174,95 @@ class TestKnownConflictsAreRecordedNotResolved:
         assert all(
             u.startswith("https://www.waterboards.ca.gov") for u in manifest["verified_against"]
         )
+
+
+class TestTheMetricDenominatorCannotBeInflated:
+    """The headline claim is "Curtail reproduces N of M historical actions".
+
+    M is the scorable count, not the declared total. 102 documents are known to
+    exist; far fewer have been read. Every guard here exists to stop the gap
+    between those two numbers from quietly closing in the flattering direction.
+    """
+
+    def test_extraction_status_is_recorded(self, manifest: dict[str, Any]) -> None:
+        assert "extraction_status" in manifest
+
+    def test_scorable_never_exceeds_documents_actually_read(self, manifest: dict[str, Any]) -> None:
+        status = manifest["extraction_status"]
+        assert status["scorable"] <= status["read_via_text_layer"]
+
+    def test_read_never_exceeds_pdfs_fetched(self, manifest: dict[str, Any]) -> None:
+        status = manifest["extraction_status"]
+        assert status["read_via_text_layer"] <= status["pdfs_fetched"]
+
+    def test_fetched_never_exceeds_enumerated_records(self, manifest: dict[str, Any]) -> None:
+        status = manifest["extraction_status"]
+        assert status["pdfs_fetched"] <= status["records_individually_enumerated"]
+
+    def test_enumerated_records_never_exceed_the_declared_total(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        status = manifest["extraction_status"]
+        assert status["records_individually_enumerated"] <= status["documents_total_declared"]
+
+    def test_the_scorable_count_matches_the_records_flagged_read(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """The summary and the records must agree.
+
+        A summary that drifted above its own records is precisely how a metric
+        starts describing documents nothing opened.
+        """
+        counted = 0
+        for series in manifest["series"]:
+            counted += sum(1 for o in series["base_orders"] if o.get("document_read"))
+            for group in ("addenda", "addenda_to_2026_0008"):
+                counted += sum(1 for a in series.get(group, []) if a.get("document_read"))
+        assert counted == manifest["extraction_status"]["scorable"], (
+            f"extraction_status claims {manifest['extraction_status']['scorable']} scorable "
+            f"but {counted} records carry document_read"
+        )
+
+    def test_every_record_flagged_read_carries_what_it_read(self, manifest: dict[str, Any]) -> None:
+        """`document_read: true` without extracted values is an empty claim."""
+        for series in manifest["series"]:
+            groups: list[dict[str, Any]] = list(series["base_orders"])
+            for group in ("addenda", "addenda_to_2026_0008"):
+                groups.extend(series.get(group, []))
+            for node in groups:
+                if not node.get("document_read"):
+                    continue
+                assert "extracted" in node, f"{node} claims to be read but recorded nothing"
+                assert node["extracted"]["method"] == "text_layer"
+                assert node["extracted"]["action"] != "undetermined"
+
+    def test_documents_with_no_text_layer_are_never_marked_read(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """Four fetched documents are pure scans, one of them the July 2025 fixture.
+
+        A scan marked read would be a document scored against an action nothing
+        extracted, which is the failure this two-tier scheme exists to prevent.
+        """
+        blocked = 0
+        for series in manifest["series"]:
+            nodes: list[dict[str, Any]] = list(series["base_orders"])
+            for group in ("addenda", "addenda_to_2026_0008"):
+                nodes.extend(series.get(group, []))
+            for node in nodes:
+                if "extraction_blocked" not in node:
+                    continue
+                blocked += 1
+                assert node["document_read"] is False
+        assert blocked >= manifest["extraction_status"]["refused_no_text_layer"]
+
+    def test_the_unenumerated_2021_addenda_are_recorded_as_open(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """67 addenda exist as a count and not as records.
+
+        They are excluded from the denominator rather than counted as failures,
+        and that exclusion has to be stated somewhere a reader will find it.
+        """
+        joined = " ".join(manifest["open_items"])
+        assert "not individually enumerated" in joined

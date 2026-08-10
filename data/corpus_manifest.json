@@ -70,99 +70,464 @@
           "title": "Imposes Water Right Curtailment for Surface Water Rights",
           "url": "docs/2024/order-wr-2024-0024-dwr.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2023-07-31",
+              "2023-12-19",
+              "2024-02-01",
+              "2024-05-17",
+              "2024-06-07",
+              "2024-07-03",
+              "2024-07-07",
+              "2024-07-15",
+              "2024-07-21",
+              "2024-07-22",
+              "2024-07-23",
+              "2024-07-24",
+              "2024-08-08"
+            ],
+            "cfs_values": [
+              46.1,
+              50.0
+            ],
+            "text_chars": 28924,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2024-0025-DWR",
           "title": "Imposes Water Right Curtailment for Adjudicated Groundwater Rights",
           "url": "docs/2024/order-wr-2024-0025-dwr.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2023-07-31",
+              "2023-12-19",
+              "2024-02-01",
+              "2024-04-15",
+              "2024-05-17",
+              "2024-06-07",
+              "2024-07-03",
+              "2024-07-07",
+              "2024-07-15",
+              "2024-07-21",
+              "2024-07-24",
+              "2024-07-25",
+              "2024-08-09"
+            ],
+            "cfs_values": [
+              46.1,
+              50.0
+            ],
+            "text_chars": 35409,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2026-0005-DWR",
           "title": "Surface Water Curtailment (Amended)",
           "url": "docs/2026/order-wr-0005-dwr-scott-sws-curtailment.pdf",
           "index_verified": true,
-          "document_read": false,
-          "significance": "Finding 8 states the Board issued this order to correct its own incomplete curtailment list. This is the strongest single artifact in the project."
+          "document_read": true,
+          "significance": "Finding 8 states the Board issued this order to correct its own incomplete curtailment list. This is the strongest single artifact in the project.",
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-08-30",
+              "2023-08-01",
+              "2024-01-31",
+              "2024-02-01",
+              "2024-07-23",
+              "2025-01-27",
+              "2025-09-26",
+              "2026-05-13",
+              "2026-05-20",
+              "2026-05-21",
+              "2026-05-23",
+              "2026-05-25",
+              "2026-05-27",
+              "2026-05-29",
+              "2026-06-03",
+              "2026-06-05",
+              "2026-07-06",
+              "2031-01-01"
+            ],
+            "cfs_values": [
+              124.0,
+              125.0,
+              150.0,
+              175.0,
+              200.0
+            ],
+            "text_chars": 37301,
+            "notes": []
+          }
         },
         {
           "order_number": "WR 2026-0008-DWR",
           "title": "Groundwater Curtailment (Amended)",
           "url": "docs/2026/order-wr-2026-0008-dwr-scott-gw-curtailment.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-08-30",
+              "2023-08-01",
+              "2024-01-31",
+              "2024-02-01",
+              "2025-09-26",
+              "2026-04-15",
+              "2026-04-22",
+              "2026-05-13",
+              "2026-05-21",
+              "2026-05-23",
+              "2026-05-25",
+              "2026-05-27",
+              "2026-05-29",
+              "2026-06-03",
+              "2026-06-05",
+              "2026-06-08",
+              "2026-06-09",
+              "2026-06-10",
+              "2026-06-11",
+              "2026-07-10",
+              "2031-01-01"
+            ],
+            "cfs_values": [
+              124.0,
+              125.0,
+              130.0
+            ],
+            "text_chars": 36175,
+            "notes": []
+          }
         }
       ],
       "addenda": [
         {
           "n": 1,
           "date": "2024-08-23",
-          "url": "docs/2024/addendum-1.pdf"
+          "url": "docs/2024/addendum-1.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary_conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2024-08-06",
+              "2024-08-30"
+            ],
+            "cfs_values": [
+              30.0,
+              33.0,
+              35.0
+            ],
+            "text_chars": 5242,
+            "notes": []
+          }
         },
         {
           "n": 2,
           "date": "2024-09-06",
-          "url": "docs/2024/addendum-2.pdf"
+          "url": "docs/2024/addendum-2.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2024-09-03",
+              "2024-09-09"
+            ],
+            "cfs_values": [
+              0.5,
+              33.0
+            ],
+            "text_chars": 6163,
+            "notes": []
+          }
         },
         {
           "n": 3,
           "date": "2024-09-17",
-          "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf"
+          "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf",
+          "document_read": false,
+          "extraction_blocked": "no text layer, requires OCR"
         },
         {
           "n": 4,
           "date": "2024-09-27",
-          "url": "docs/2024/addendum4-scott-farmers-svid.pdf"
+          "url": "docs/2024/addendum4-scott-farmers-svid.pdf",
+          "document_read": false,
+          "extraction_blocked": "no text layer, requires OCR"
         },
         {
           "n": 5,
           "date": "2024-10-15",
-          "url": "docs/2024/addendum5-scott-farmers-svid.pdf"
+          "url": "docs/2024/addendum5-scott-farmers-svid.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "amend",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2024-09-06",
+              "2024-09-17",
+              "2024-10-07",
+              "2024-10-11",
+              "2024-10-15",
+              "2024-10-31"
+            ],
+            "cfs_values": [
+              0.5,
+              7.0,
+              7.5,
+              14.5,
+              40.0,
+              44.8
+            ],
+            "text_chars": 8697,
+            "notes": []
+          }
         },
         {
           "n": 6,
           "date": "2024-11-13",
-          "url": "docs/2024/addendum-6-full-suspension.pdf"
+          "url": "docs/2024/addendum-6-full-suspension.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "full",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2024-11-08",
+              "2024-11-13"
+            ],
+            "cfs_values": [
+              60.0
+            ],
+            "text_chars": 4279,
+            "notes": []
+          }
         },
         {
           "n": 7,
           "date": "2025-07-20",
-          "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf"
+          "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf",
+          "document_read": false,
+          "extraction_blocked": "no text layer, requires OCR"
         },
         {
           "n": 8,
           "date": "2025-07-22",
           "url": "docs/2025/addendum8-scottriver-7-22-2025.pdf",
-          "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture."
+          "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture.",
+          "document_read": false,
+          "extraction_blocked": "no text layer, requires OCR"
         },
         {
           "n": 9,
           "date": "2026-05-21",
-          "url": "docs/2026/scott-addendum-9a.pdf"
+          "url": "docs/2026/scott-addendum-9a.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "affects_all": true,
+            "priority_dates": [
+              "2021-08-30",
+              "2024-07-23",
+              "2026-05-14",
+              "2026-05-20",
+              "2026-05-21"
+            ],
+            "cfs_values": [
+              145.0,
+              150.0
+            ],
+            "text_chars": 55005,
+            "notes": []
+          }
         },
         {
           "n": 10,
           "date": "2026-05-26",
-          "url": "docs/2026/scott-addendum-10-attachmenta.pdf"
+          "url": "docs/2026/scott-addendum-10-attachmenta.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "limited_conditional",
+            "priority_groups": [
+              8
+            ],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-08-30",
+              "2024-07-23",
+              "2026-05-14",
+              "2026-05-20",
+              "2026-05-21",
+              "2026-05-22",
+              "2026-05-23",
+              "2026-05-24",
+              "2026-05-25"
+            ],
+            "cfs_values": [
+              137.0,
+              150.0,
+              162.0,
+              167.0
+            ],
+            "text_chars": 87429,
+            "notes": []
+          }
         },
         {
           "n": 11,
           "date": "2026-05-27",
-          "url": "docs/scott-addendum11-attachmenta.pdf"
+          "url": "docs/scott-addendum11-attachmenta.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "2021-08-30",
+              "2024-07-23",
+              "2026-05-14",
+              "2026-05-20",
+              "2026-05-21",
+              "2026-05-22",
+              "2026-05-23",
+              "2026-05-25",
+              "2026-05-27"
+            ],
+            "cfs_values": [
+              125.0,
+              137.0,
+              150.0,
+              167.0,
+              175.0,
+              200.0
+            ],
+            "text_chars": 117119,
+            "notes": []
+          }
         },
         {
           "n": 12,
           "date": "2026-06-09",
-          "url": "docs/2026/scott-addendum12-attachmenta.pdf"
+          "url": "docs/2026/scott-addendum12-attachmenta.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "affects_all": true,
+            "priority_dates": [
+              "2021-08-30",
+              "2024-07-23",
+              "2026-05-21",
+              "2026-05-22",
+              "2026-05-25",
+              "2026-05-27",
+              "2026-06-05",
+              "2026-06-08",
+              "2026-06-09"
+            ],
+            "cfs_values": [
+              119.0,
+              125.0,
+              137.0
+            ],
+            "text_chars": 59534,
+            "notes": []
+          }
         }
       ],
       "addenda_to_2026_0008": [
         {
           "n": 1,
           "date": "2026-07-02",
-          "url": "docs/2026/scott-addendum-1.pdf"
+          "url": "docs/2026/scott-addendum-1.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "conditional",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2026-06-10",
+              "2026-06-27",
+              "2026-07-01",
+              "2026-07-02"
+            ],
+            "cfs_values": [
+              30.0,
+              33.0,
+              50.0,
+              53.4,
+              55.3,
+              59.0,
+              90.0
+            ],
+            "text_chars": 47945,
+            "notes": []
+          }
         }
       ],
       "addenda_count": 13,
@@ -231,34 +596,210 @@
           "title": "Order Imposing Water Right Curtailment and Reporting Requirements in the Shasta River Watershed",
           "url": "docs/2024/shasta-order-WR-2024-0006-DWR.pdf",
           "index_verified": true,
-          "document_read": false
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-25",
+              "1932-12-29",
+              "1958-01-01",
+              "2023-07-31",
+              "2023-12-19",
+              "2024-02-01",
+              "2024-05-05",
+              "2024-05-31",
+              "2024-06-06",
+              "2024-06-07",
+              "2024-06-08",
+              "2024-06-17"
+            ],
+            "cfs_values": [
+              5.0,
+              20.0,
+              21.4,
+              30.0,
+              41.0,
+              42.0,
+              43.0,
+              50.0,
+              70.0,
+              71.4
+            ],
+            "text_chars": 79453,
+            "notes": []
+          }
         }
       ],
       "addenda": [
         {
           "n": 1,
           "date": "2024-07-03",
-          "url": "docs/2024/2024-final-shasta_curtailment-addendum-1.pdf"
+          "url": "docs/2024/2024-final-shasta_curtailment-addendum-1.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-01",
+              "1957-12-31",
+              "1958-01-01",
+              "2024-06-07",
+              "2024-06-21",
+              "2024-06-22",
+              "2024-06-28",
+              "2024-07-03"
+            ],
+            "cfs_values": [
+              40.7,
+              50.0,
+              55.0,
+              57.7,
+              93.0
+            ],
+            "text_chars": 53095,
+            "notes": []
+          }
         },
         {
           "n": 2,
           "date": "2024-10-25",
-          "url": "docs/2024/addendum2_shastaRiver_suspension.pdf"
+          "url": "docs/2024/addendum2_shastaRiver_suspension.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "1912-11-25",
+              "1958-01-01",
+              "2024-06-07",
+              "2024-06-21",
+              "2024-07-03",
+              "2024-09-01",
+              "2024-09-10",
+              "2024-10-24",
+              "2024-10-25",
+              "2024-10-31",
+              "2024-11-01",
+              "2025-01-31"
+            ],
+            "cfs_values": [
+              105.0,
+              126.0,
+              220.0
+            ],
+            "text_chars": 35797,
+            "notes": []
+          }
         },
         {
           "n": 3,
           "date": "2024-10-31",
-          "url": "docs/2024/addendum3-order-wr-2024-006-dwr.pdf"
+          "url": "docs/2024/addendum3-order-wr-2024-006-dwr.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "1912-11-25",
+              "1958-01-01",
+              "2024-06-07",
+              "2024-06-21",
+              "2024-07-03",
+              "2024-09-01",
+              "2024-09-10",
+              "2024-10-24",
+              "2024-10-31",
+              "2024-11-01",
+              "2025-01-31"
+            ],
+            "cfs_values": [
+              105.0,
+              125.0,
+              140.0,
+              220.0
+            ],
+            "text_chars": 36079,
+            "notes": []
+          }
         },
         {
           "n": 4,
           "date": "2025-06-27",
-          "url": "docs/2025/2025-shasta_curtailment-addendum-4.pdf"
+          "url": "docs/2025/2025-shasta_curtailment-addendum-4.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-25",
+              "1957-12-31",
+              "1958-01-01",
+              "2024-06-07",
+              "2024-06-21",
+              "2024-06-26",
+              "2024-07-03",
+              "2024-10-25",
+              "2024-10-31",
+              "2025-01-01",
+              "2025-02-04",
+              "2025-06-22",
+              "2025-06-27"
+            ],
+            "cfs_values": [
+              50.0,
+              53.1,
+              55.0,
+              56.8,
+              210.0
+            ],
+            "text_chars": 54821,
+            "notes": []
+          }
         },
         {
           "n": 5,
           "date": "2025-10-15",
-          "url": "docs/2025/addendum5-shasta-river-a.pdf"
+          "url": "docs/2025/addendum5-shasta-river-a.pdf",
+          "document_read": true,
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "unqualified",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-25",
+              "1958-01-01",
+              "2024-06-07",
+              "2025-06-27",
+              "2025-10-13",
+              "2025-10-15"
+            ],
+            "cfs_values": [
+              2.0,
+              105.0,
+              125.0,
+              145.0
+            ],
+            "text_chars": 41170,
+            "notes": []
+          }
         },
         {
           "n": 6,
@@ -272,7 +813,42 @@
           ],
           "operative_minimum_cfs": 50,
           "priority_cutoff": "1912-11-25",
-          "significance": "READ FROM THE DOCUMENT 2026-08-10. The Yreka USGS gage is recorded at 45.3 cfs at noon on June 13, 2026 and 46.5 cfs at 11:45 am on June 15, 2026, against the 50 cfs requirement running May 1 to September 15. Conditional curtailment reinstated on priority dates between and including November 25, 1912 and December 31, 1957, with additional conditions for dates of or junior to January 1, 1958. RESOLVES the November 1 versus November 25 conflict: the document states November 25, 1912 twice, in bold. CORRECTS a 39.3 cfs figure that propagated from research into four artifacts and appears nowhere in the document."
+          "significance": "READ FROM THE DOCUMENT 2026-08-10. The Yreka USGS gage is recorded at 45.3 cfs at noon on June 13, 2026 and 46.5 cfs at 11:45 am on June 15, 2026, against the 50 cfs requirement running May 1 to September 15. Conditional curtailment reinstated on priority dates between and including November 25, 1912 and December 31, 1957, with additional conditions for dates of or junior to January 1, 1958. RESOLVES the November 1 versus November 25 conflict: the document states November 25, 1912 twice, in bold. CORRECTS a 39.3 cfs figure that propagated from research into four artifacts and appears nowhere in the document.",
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-25",
+              "1957-12-31",
+              "1958-01-01",
+              "2024-06-07",
+              "2026-04-01",
+              "2026-05-30",
+              "2026-06-11",
+              "2026-06-13",
+              "2026-06-14",
+              "2026-06-15",
+              "2026-06-16"
+            ],
+            "cfs_values": [
+              45.3,
+              46.5,
+              50.0,
+              55.0,
+              75.0,
+              95.0,
+              100.0,
+              105.0,
+              172.0,
+              200.0,
+              215.0
+            ],
+            "text_chars": 59647,
+            "notes": []
+          }
         }
       ],
       "addenda_count": 6,
@@ -300,6 +876,18 @@
     "The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.",
     "The Scott 2021 surface-water order carries no order number on the index page.",
     "RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.",
-    "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page."
-  ]
+    "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.",
+    "OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.",
+    "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them."
+  ],
+  "extraction_status": {
+    "as_of": "2026-08-10",
+    "documents_total_declared": 102,
+    "records_individually_enumerated": 33,
+    "pdfs_fetched": 24,
+    "read_via_text_layer": 20,
+    "scorable": 20,
+    "refused_no_text_layer": 4,
+    "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M."
+  }
 }

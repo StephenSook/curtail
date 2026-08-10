@@ -1,0 +1,635 @@
+{
+  "scott_2021/order/UNNUMBERED_ON_INDEX": {
+    "status": "not_fetched"
+  },
+  "scott_2021/order/WR 2021-0083-DWR": {
+    "status": "not_fetched"
+  },
+  "scott_2021/order/WR 2021-0084-DWR": {
+    "status": "not_fetched"
+  },
+  "scott_2024/addenda/1": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      30.0,
+      33.0,
+      35.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2024-08-06",
+      "2024-08-30"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary_conditional",
+    "text_chars": 5242
+  },
+  "scott_2024/addenda/10": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      137.0,
+      150.0,
+      162.0,
+      167.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2024-07-23",
+      "2026-05-14",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-23",
+      "2026-05-24",
+      "2026-05-25"
+    ],
+    "priority_groups": [
+      8
+    ],
+    "qualifier": "limited_conditional",
+    "text_chars": 87429
+  },
+  "scott_2024/addenda/11": {
+    "action": "suspend",
+    "affects_all": true,
+    "cfs_values": [
+      125.0,
+      137.0,
+      150.0,
+      167.0,
+      175.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2024-07-23",
+      "2026-05-14",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-23",
+      "2026-05-25",
+      "2026-05-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 117119
+  },
+  "scott_2024/addenda/12": {
+    "action": "reinstate",
+    "affects_all": true,
+    "cfs_values": [
+      119.0,
+      125.0,
+      137.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2024-07-23",
+      "2026-05-21",
+      "2026-05-22",
+      "2026-05-25",
+      "2026-05-27",
+      "2026-06-05",
+      "2026-06-08",
+      "2026-06-09"
+    ],
+    "priority_groups": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "qualifier": "not_applicable",
+    "text_chars": 59534
+  },
+  "scott_2024/addenda/2": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      0.5,
+      33.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2024-09-03",
+      "2024-09-09"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 6163
+  },
+  "scott_2024/addenda/3": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "requires_ocr",
+    "notes": [
+      "No usable text layer (5 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
+    ],
+    "priority_dates": [],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 5
+  },
+  "scott_2024/addenda/4": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "requires_ocr",
+    "notes": [
+      "No usable text layer (4 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
+    ],
+    "priority_dates": [],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 4
+  },
+  "scott_2024/addenda/5": {
+    "action": "amend",
+    "affects_all": false,
+    "cfs_values": [
+      0.5,
+      7.0,
+      7.5,
+      14.5,
+      40.0,
+      44.8
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2024-09-06",
+      "2024-09-17",
+      "2024-10-07",
+      "2024-10-11",
+      "2024-10-15",
+      "2024-10-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 8697
+  },
+  "scott_2024/addenda/6": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      60.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2024-11-08",
+      "2024-11-13"
+    ],
+    "priority_groups": [],
+    "qualifier": "full",
+    "text_chars": 4279
+  },
+  "scott_2024/addenda/7": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "requires_ocr",
+    "notes": [
+      "No usable text layer (3 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
+    ],
+    "priority_dates": [],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 3
+  },
+  "scott_2024/addenda/8": {
+    "action": "undetermined",
+    "affects_all": false,
+    "cfs_values": [],
+    "method": "requires_ocr",
+    "notes": [
+      "No usable text layer (3 characters). This is a scanned document. It must be read by a vision model or transcribed, and it must NOT be scored until something actually reads it."
+    ],
+    "priority_dates": [],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 3
+  },
+  "scott_2024/addenda/9": {
+    "action": "reinstate",
+    "affects_all": true,
+    "cfs_values": [
+      145.0,
+      150.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2024-07-23",
+      "2026-05-14",
+      "2026-05-20",
+      "2026-05-21"
+    ],
+    "priority_groups": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "qualifier": "not_applicable",
+    "text_chars": 55005
+  },
+  "scott_2024/addenda_to_2026_0008/1": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      30.0,
+      33.0,
+      50.0,
+      53.4,
+      55.3,
+      59.0,
+      90.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2026-06-10",
+      "2026-06-27",
+      "2026-07-01",
+      "2026-07-02"
+    ],
+    "priority_groups": [],
+    "qualifier": "conditional",
+    "text_chars": 47945
+  },
+  "scott_2024/order/WR 2024-0024-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      46.1,
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2023-07-31",
+      "2023-12-19",
+      "2024-02-01",
+      "2024-05-17",
+      "2024-06-07",
+      "2024-07-03",
+      "2024-07-07",
+      "2024-07-15",
+      "2024-07-21",
+      "2024-07-22",
+      "2024-07-23",
+      "2024-07-24",
+      "2024-08-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 28924
+  },
+  "scott_2024/order/WR 2024-0025-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      46.1,
+      50.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2023-07-31",
+      "2023-12-19",
+      "2024-02-01",
+      "2024-04-15",
+      "2024-05-17",
+      "2024-06-07",
+      "2024-07-03",
+      "2024-07-07",
+      "2024-07-15",
+      "2024-07-21",
+      "2024-07-24",
+      "2024-07-25",
+      "2024-08-09"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 35409
+  },
+  "scott_2024/order/WR 2026-0005-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      124.0,
+      125.0,
+      150.0,
+      175.0,
+      200.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2023-08-01",
+      "2024-01-31",
+      "2024-02-01",
+      "2024-07-23",
+      "2025-01-27",
+      "2025-09-26",
+      "2026-05-13",
+      "2026-05-20",
+      "2026-05-21",
+      "2026-05-23",
+      "2026-05-25",
+      "2026-05-27",
+      "2026-05-29",
+      "2026-06-03",
+      "2026-06-05",
+      "2026-07-06",
+      "2031-01-01"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 37301
+  },
+  "scott_2024/order/WR 2026-0008-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      124.0,
+      125.0,
+      130.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-08-30",
+      "2023-08-01",
+      "2024-01-31",
+      "2024-02-01",
+      "2025-09-26",
+      "2026-04-15",
+      "2026-04-22",
+      "2026-05-13",
+      "2026-05-21",
+      "2026-05-23",
+      "2026-05-25",
+      "2026-05-27",
+      "2026-05-29",
+      "2026-06-03",
+      "2026-06-05",
+      "2026-06-08",
+      "2026-06-09",
+      "2026-06-10",
+      "2026-06-11",
+      "2026-07-10",
+      "2031-01-01"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 36175
+  },
+  "shasta_2021/order/WR 2021-0082-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/order/WR 2021-0085-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/order/WR 2022-0142-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/order/WR 2022-0161-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/order/WR 2022-0162-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2021/order/WR 2022-0167-DWR": {
+    "status": "not_fetched"
+  },
+  "shasta_2024/addenda/1": {
+    "action": "reinstate",
+    "affects_all": false,
+    "cfs_values": [
+      40.7,
+      50.0,
+      55.0,
+      57.7,
+      93.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-01",
+      "1957-12-31",
+      "1958-01-01",
+      "2024-06-07",
+      "2024-06-21",
+      "2024-06-22",
+      "2024-06-28",
+      "2024-07-03"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 53095
+  },
+  "shasta_2024/addenda/2": {
+    "action": "suspend",
+    "affects_all": true,
+    "cfs_values": [
+      105.0,
+      126.0,
+      220.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1958-01-01",
+      "2024-06-07",
+      "2024-06-21",
+      "2024-07-03",
+      "2024-09-01",
+      "2024-09-10",
+      "2024-10-24",
+      "2024-10-25",
+      "2024-10-31",
+      "2024-11-01",
+      "2025-01-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 35797
+  },
+  "shasta_2024/addenda/3": {
+    "action": "suspend",
+    "affects_all": true,
+    "cfs_values": [
+      105.0,
+      125.0,
+      140.0,
+      220.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1958-01-01",
+      "2024-06-07",
+      "2024-06-21",
+      "2024-07-03",
+      "2024-09-01",
+      "2024-09-10",
+      "2024-10-24",
+      "2024-10-31",
+      "2024-11-01",
+      "2025-01-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 36079
+  },
+  "shasta_2024/addenda/4": {
+    "action": "reinstate",
+    "affects_all": false,
+    "cfs_values": [
+      50.0,
+      53.1,
+      55.0,
+      56.8,
+      210.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1957-12-31",
+      "1958-01-01",
+      "2024-06-07",
+      "2024-06-21",
+      "2024-06-26",
+      "2024-07-03",
+      "2024-10-25",
+      "2024-10-31",
+      "2025-01-01",
+      "2025-02-04",
+      "2025-06-22",
+      "2025-06-27"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 54821
+  },
+  "shasta_2024/addenda/5": {
+    "action": "suspend",
+    "affects_all": false,
+    "cfs_values": [
+      2.0,
+      105.0,
+      125.0,
+      145.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1958-01-01",
+      "2024-06-07",
+      "2025-06-27",
+      "2025-10-13",
+      "2025-10-15"
+    ],
+    "priority_groups": [],
+    "qualifier": "unqualified",
+    "text_chars": 41170
+  },
+  "shasta_2024/addenda/6": {
+    "action": "reinstate",
+    "affects_all": false,
+    "cfs_values": [
+      45.3,
+      46.5,
+      50.0,
+      55.0,
+      75.0,
+      95.0,
+      100.0,
+      105.0,
+      172.0,
+      200.0,
+      215.0
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1957-12-31",
+      "1958-01-01",
+      "2024-06-07",
+      "2026-04-01",
+      "2026-05-30",
+      "2026-06-11",
+      "2026-06-13",
+      "2026-06-14",
+      "2026-06-15",
+      "2026-06-16"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 59647
+  },
+  "shasta_2024/order/WR 2024-0006-DWR": {
+    "action": "impose",
+    "affects_all": false,
+    "cfs_values": [
+      5.0,
+      20.0,
+      21.4,
+      30.0,
+      41.0,
+      42.0,
+      43.0,
+      50.0,
+      70.0,
+      71.4
+    ],
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1932-12-29",
+      "1958-01-01",
+      "2023-07-31",
+      "2023-12-19",
+      "2024-02-01",
+      "2024-05-05",
+      "2024-05-31",
+      "2024-06-06",
+      "2024-06-07",
+      "2024-06-08",
+      "2024-06-17"
+    ],
+    "priority_groups": [],
+    "qualifier": "not_applicable",
+    "text_chars": 79453
+  }
+}
