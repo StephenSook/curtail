@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Per-SHA concurrency with cancel-in-progress FALSE. Every atomic commit gets
+# its own run and shows its own status. Cancelling in-progress runs would leave
+# intermediate commits with no verdict, which defeats the point of small commits.
+concurrency:
+  group: ci-${{ github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Read by guards that must FAIL rather than SKIP when they cannot run.
+  # A conditionally-skipped test is a false green: the run is honest and the
+  # assertion simply never executed.
+  CI: "true"
+
+jobs:
+  python:
+    name: Python (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Pin Python from .python-version
+        run: uv python install
+
+      - name: Sync workspace (frozen lockfile)
+        run: uv sync --all-packages --frozen
+
+      # Each gate runs BARE. No pipe on the exit path, because a pipeline
+      # reports its LAST command's status and `cmd | tail` swallows the failure.
+      - name: ruff check
+        run: uv run ruff check .
+
+      - name: ruff format check
+        run: uv run ruff format --check .
+
+      - name: mypy strict
+        run: uv run mypy core/src agents/src core/tests
+
+      - name: pytest
+        run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
+
+      # Read the log for PASSED, not just the green check. A green job proves a
+      # suite RAN; it does not prove any assertion executed.
+      # GitHub runs `run:` under `bash -e`, so a failing command aborts the step
+      # before any `rc=$?` line executes. Every exit code below is captured with
+      # `|| rc=$?` so the check reasons about the real status instead of never
+      # running at all.
+      - name: Assert no tests were skipped
+        run: |
+          rc=0
+          uv run pytest -q --no-header -rs > /tmp/pytest-report.txt 2>&1 || rc=$?
+          cat /tmp/pytest-report.txt
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::pytest failed (exit $rc)"
+            exit 1
+          fi
+          if grep -qE '[0-9]+ skipped' /tmp/pytest-report.txt; then
+            echo "::error::A test was SKIPPED under CI. A skipped guard is a false green."
+            exit 1
+          fi
+          if ! grep -qE '[0-9]+ passed' /tmp/pytest-report.txt; then
+            echo "::error::No 'passed' line in the report. The suite may not have run at all."
+            exit 1
+          fi
+          echo "confirmed: tests ran, zero skipped"
+
+  hygiene:
+    name: Hygiene (AI tone, em-dash)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: AI-tone gate
+        run: bash scripts/check-ai-tone.sh
+
+      # Independent of the script above, and deliberately duplicated. This
+      # matches the raw UTF-8 bytes so this workflow file stays em-dash free
+      # itself rather than containing the character it bans.
+      - name: Em-dash gate (raw bytes, whole tree)
+        run: |
+          # Capture git grep's OWN exit code. Wrapping this in `if` would make
+          # `$?` report the if-statement, so an errored grep (rc>=2) would fall
+          # through and read as clean, which is the exact defect this gate
+          # exists to catch.
+          rc=0
+          out=$(git grep -n -I "$(printf '\xe2\x80\x94')" -- .) || rc=$?
+          if [ "$rc" -ge 2 ]; then
+            echo "::error::git grep errored (rc=$rc). Counting as failure, not a pass."
+            exit 1
+          fi
+          if [ "$rc" -eq 0 ]; then
+            echo "$out"
+            echo "::error::Em-dash (U+2014) found. The constitution bans it everywhere."
+            exit 1
+          fi
+          echo "clean: no em-dash in tracked files"
+
+      - name: Prove the em-dash gate is not vacuous
+        run: |
+          # Mutation check: the gate must FAIL on a file that contains the
+          # character. Without this, a broken pattern would pass forever while
+          # protecting nothing.
+          printf 'probe \xe2\x80\x94 probe\n' > /tmp/probe.md
+          if grep -q "$(printf '\xe2\x80\x94')" /tmp/probe.md; then
+            echo "confirmed: the pattern matches a known-bad sample"
+          else
+            echo "::error::The em-dash pattern does not match a known em-dash. Gate is broken."
+            exit 1
+          fi
+
+  secrets:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history. A secret committed and then deleted still lives in
+          # history, and a working-tree-only scan reports clean.
+          fetch-depth: 0
+
+      # The docker form on purpose. gitleaks-action crashes on initial-push
+      # events; the container does not. Run BARE so a docker failure cannot be
+      # swallowed and silently skip the scan.
+      - name: gitleaks (all refs)
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest \
+            detect --source /repo --redact --no-banner --exit-code 1
