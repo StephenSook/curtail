@@ -96,22 +96,74 @@
         }
       ],
       "addenda": [
-        {"n": 1, "date": "2024-08-23", "url": "docs/2024/addendum-1.pdf"},
-        {"n": 2, "date": "2024-09-06", "url": "docs/2024/addendum-2.pdf"},
-        {"n": 3, "date": "2024-09-17", "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf"},
-        {"n": 4, "date": "2024-09-27", "url": "docs/2024/addendum4-scott-farmers-svid.pdf"},
-        {"n": 5, "date": "2024-10-15", "url": "docs/2024/addendum5-scott-farmers-svid.pdf"},
-        {"n": 6, "date": "2024-11-13", "url": "docs/2024/addendum-6-full-suspension.pdf"},
-        {"n": 7, "date": "2025-07-20", "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf"},
-        {"n": 8, "date": "2025-07-22", "url": "docs/2025/addendum8-scottriver-7-22-2025.pdf",
-         "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture."},
-        {"n": 9, "date": "2026-05-21", "url": "docs/2026/scott-addendum-9a.pdf"},
-        {"n": 10, "date": "2026-05-26", "url": "docs/2026/scott-addendum-10-attachmenta.pdf"},
-        {"n": 11, "date": "2026-05-27", "url": "docs/scott-addendum11-attachmenta.pdf"},
-        {"n": 12, "date": "2026-06-09", "url": "docs/2026/scott-addendum12-attachmenta.pdf"}
+        {
+          "n": 1,
+          "date": "2024-08-23",
+          "url": "docs/2024/addendum-1.pdf"
+        },
+        {
+          "n": 2,
+          "date": "2024-09-06",
+          "url": "docs/2024/addendum-2.pdf"
+        },
+        {
+          "n": 3,
+          "date": "2024-09-17",
+          "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf"
+        },
+        {
+          "n": 4,
+          "date": "2024-09-27",
+          "url": "docs/2024/addendum4-scott-farmers-svid.pdf"
+        },
+        {
+          "n": 5,
+          "date": "2024-10-15",
+          "url": "docs/2024/addendum5-scott-farmers-svid.pdf"
+        },
+        {
+          "n": 6,
+          "date": "2024-11-13",
+          "url": "docs/2024/addendum-6-full-suspension.pdf"
+        },
+        {
+          "n": 7,
+          "date": "2025-07-20",
+          "url": "docs/2025/addendum7-scottriver-7-20-2025.pdf"
+        },
+        {
+          "n": 8,
+          "date": "2025-07-22",
+          "url": "docs/2025/addendum8-scottriver-7-22-2025.pdf",
+          "significance": "The July 22 2025 suspension. Watermaster District field flows moved the USGS rating curve, flows read above 75 cfs, and curtailment was lifted. This is the canonical human-overrules-the-machine fixture."
+        },
+        {
+          "n": 9,
+          "date": "2026-05-21",
+          "url": "docs/2026/scott-addendum-9a.pdf"
+        },
+        {
+          "n": 10,
+          "date": "2026-05-26",
+          "url": "docs/2026/scott-addendum-10-attachmenta.pdf"
+        },
+        {
+          "n": 11,
+          "date": "2026-05-27",
+          "url": "docs/scott-addendum11-attachmenta.pdf"
+        },
+        {
+          "n": 12,
+          "date": "2026-06-09",
+          "url": "docs/2026/scott-addendum12-attachmenta.pdf"
+        }
       ],
       "addenda_to_2026_0008": [
-        {"n": 1, "date": "2026-07-02", "url": "docs/2026/scott-addendum-1.pdf"}
+        {
+          "n": 1,
+          "date": "2026-07-02",
+          "url": "docs/2026/scott-addendum-1.pdf"
+        }
       ],
       "addenda_count": 13,
       "index_verified": true,
@@ -122,12 +174,42 @@
       "basin": "shasta",
       "era": "2021-2023 emergency regulation",
       "base_orders": [
-        {"order_number": "WR 2021-0082-DWR", "url": "docs/shasta_curtailment_order.pdf", "index_verified": true, "document_read": false},
-        {"order_number": "WR 2021-0085-DWR", "url": "docs/shasta-curtailment-order-2021-0085-dwr.pdf", "index_verified": true, "document_read": false},
-        {"order_number": "WR 2022-0142-DWR", "url": "docs/2022/shasta-curtailment-order-2022-0142-dwr-signed.pdf", "index_verified": true, "document_read": false},
-        {"order_number": "WR 2022-0161-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-0161-dwr-signed.pdf", "index_verified": true, "document_read": false},
-        {"order_number": "WR 2022-0162-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-162-dwr-signed.pdf", "index_verified": true, "document_read": false},
-        {"order_number": "WR 2022-0167-DWR", "url": "docs/2022/shasta-curtailment-order-wr-2022-167-dwr.pdf", "index_verified": true, "document_read": false}
+        {
+          "order_number": "WR 2021-0082-DWR",
+          "url": "docs/shasta_curtailment_order.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2021-0085-DWR",
+          "url": "docs/shasta-curtailment-order-2021-0085-dwr.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2022-0142-DWR",
+          "url": "docs/2022/shasta-curtailment-order-2022-0142-dwr-signed.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2022-0161-DWR",
+          "url": "docs/2022/shasta-curtailment-order-wr-2022-0161-dwr-signed.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2022-0162-DWR",
+          "url": "docs/2022/shasta-curtailment-order-wr-2022-162-dwr-signed.pdf",
+          "index_verified": true,
+          "document_read": false
+        },
+        {
+          "order_number": "WR 2022-0167-DWR",
+          "url": "docs/2022/shasta-curtailment-order-wr-2022-167-dwr.pdf",
+          "index_verified": true,
+          "document_read": false
+        }
       ],
       "addenda_count": 16,
       "addenda_breakdown": {
@@ -153,31 +235,71 @@
         }
       ],
       "addenda": [
-        {"n": 1, "date": "2024-07-03", "url": "docs/2024/2024-final-shasta_curtailment-addendum-1.pdf"},
-        {"n": 2, "date": "2024-10-25", "url": "docs/2024/addendum2_shastaRiver_suspension.pdf"},
-        {"n": 3, "date": "2024-10-31", "url": "docs/2024/addendum3-order-wr-2024-006-dwr.pdf"},
-        {"n": 4, "date": "2025-06-27", "url": "docs/2025/2025-shasta_curtailment-addendum-4.pdf"},
-        {"n": 5, "date": "2025-10-15", "url": "docs/2025/addendum5-shasta-river-a.pdf"},
-        {"n": 6, "date": "2026-06-16", "url": "docs/2026/addendum6-shasta-attach-a.pdf",
-         "significance": "About 39.3 cfs against the 50 cfs minimum at Yreka. Reinstated conditional curtailment on rights junior to a November 1912 priority date. The exact day of that date is UNRESOLVED across sources (November 1 versus November 25) and must be read from this PDF."}
+        {
+          "n": 1,
+          "date": "2024-07-03",
+          "url": "docs/2024/2024-final-shasta_curtailment-addendum-1.pdf"
+        },
+        {
+          "n": 2,
+          "date": "2024-10-25",
+          "url": "docs/2024/addendum2_shastaRiver_suspension.pdf"
+        },
+        {
+          "n": 3,
+          "date": "2024-10-31",
+          "url": "docs/2024/addendum3-order-wr-2024-006-dwr.pdf"
+        },
+        {
+          "n": 4,
+          "date": "2025-06-27",
+          "url": "docs/2025/2025-shasta_curtailment-addendum-4.pdf"
+        },
+        {
+          "n": 5,
+          "date": "2025-10-15",
+          "url": "docs/2025/addendum5-shasta-river-a.pdf"
+        },
+        {
+          "n": 6,
+          "date": "2026-06-16",
+          "url": "docs/2026/addendum6-shasta-attach-a.pdf",
+          "index_verified": true,
+          "document_read": true,
+          "gage_readings_cfs": [
+            45.3,
+            46.5
+          ],
+          "operative_minimum_cfs": 50,
+          "priority_cutoff": "1912-11-25",
+          "significance": "READ FROM THE DOCUMENT 2026-08-10. The Yreka USGS gage is recorded at 45.3 cfs at noon on June 13, 2026 and 46.5 cfs at 11:45 am on June 15, 2026, against the 50 cfs requirement running May 1 to September 15. Conditional curtailment reinstated on priority dates between and including November 25, 1912 and December 31, 1957, with additional conditions for dates of or junior to January 1, 1958. RESOLVES the November 1 versus November 25 conflict: the document states November 25, 1912 twice, in bold. CORRECTS a 39.3 cfs figure that propagated from research into four artifacts and appears nowhere in the document."
+        }
       ],
       "addenda_count": 6,
       "temporary_amendments": [
-        {"title": "Temporary Amendment to Addendum 4", "date": "2025-08-20", "url": "docs/2025/final-temp-amend-w-add-4.pdf",
-         "significance": "Implements a CDFW alternative flow schedule under 875(c)(2)(B) through (D). Proof that flow minimums are an overridable schedule and not constants."}
+        {
+          "title": "Temporary Amendment to Addendum 4",
+          "date": "2025-08-20",
+          "url": "docs/2025/final-temp-amend-w-add-4.pdf",
+          "significance": "Implements a CDFW alternative flow schedule under 875(c)(2)(B) through (D). Proof that flow minimums are an overridable schedule and not constants."
+        }
       ],
       "supporting_determinations": [
-        {"title": "CDFW Recommendation for Alternative Flow Schedule", "date": "2025-08-04", "url": "docs/2025/CDFW-recommendation-shasta-temp-flows-study-2025.pdf"}
+        {
+          "title": "CDFW Recommendation for Alternative Flow Schedule",
+          "date": "2025-08-04",
+          "url": "docs/2025/CDFW-recommendation-shasta-temp-flows-study-2025.pdf"
+        }
       ],
       "index_verified": true,
-      "documents_read": 0
+      "documents_read": 1
     }
   ],
   "open_items": [
     "No document has been parsed yet. Every action verb, priority cutoff and cfs trigger is still UNREAD, and the backtest must not score a record until its own PDF supplies the expected value.",
     "The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.",
     "The Scott 2021 surface-water order carries no order number on the index page.",
-    "The November 1 versus November 25, 1912 Shasta cutoff conflict must be resolved from Addendum 6 and Order WR 2024-0006-DWR, never from a memory ledger.",
+    "RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.",
     "Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page."
   ]
 }

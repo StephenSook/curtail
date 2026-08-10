@@ -1,8 +1,9 @@
 """Golden tests for the Allocation Core.
 
-The headline case is Shasta Addendum 6: June 16, 2026, roughly 39.3 cfs against
-the 50 cfs minimum at Yreka. The Board reinstated conditional curtailment on
-rights junior to November 1, 1912.
+The headline case is Shasta Addendum 6, June 16, 2026. Figures are read from
+the document: the Yreka USGS gage at 46.5 cfs on June 15 against the 50 cfs
+requirement, and conditional curtailment reinstated on priority dates between
+and including November 25, 1912 and December 31, 1957.
 """
 
 from __future__ import annotations
@@ -43,21 +44,49 @@ LADDER = [
 
 
 class TestShastaAddendum6:
-    """June 16, 2026. About 39.3 cfs against the 50 cfs minimum at Yreka."""
+    """June 16, 2026. 46.5 cfs against the 50 cfs minimum at Yreka.
+
+    Read from Addendum 6 itself. The 39.3 figure an earlier version used appears
+    nowhere in the document.
+    """
 
     def test_the_shortfall_is_computed_from_the_operative_minimum(self) -> None:
         rec = recommend(
             basin=Basin.SHASTA,
             when=date(2026, 6, 16),
-            observed_cfs=39.3,
+            observed_cfs=46.5,
             rights=[],
         )
         assert rec.operative_minimum_cfs == Decimal("50")
-        assert rec.shortfall_cfs == Decimal("10.7")
-        assert rec.action is RecommendedAction.CONSIDER_CURTAILMENT
+        assert rec.shortfall_cfs == Decimal("3.5")
+
+    def test_the_engine_and_the_board_diverge_here_and_that_is_correct(self) -> None:
+        """The clearest illustration of why this engine recommends and does not decide.
+
+        On the single reading the Addendum records, 46.5 cfs against 50, the
+        engine returns FIELD_VERIFICATION_FIRST: the reading is 3.5 cfs under,
+        well inside the 10 cfs band where gage accuracy alone decides the
+        outcome.
+
+        The Board reinstated curtailment. Its stated basis was not that one
+        reading. The Addendum cites flows "repeatedly falling below the minimum
+        requirement of 50 cfs for June-September 15", no significant snowpack
+        remaining, a negligible 10-day precipitation forecast, and
+        warmer-than-average temperatures.
+
+        Those are precisely the "hydrologic, weather, and other conditions"
+        section 875(b)(1) directs the official to weigh, and the engine does not
+        have them. A version of this engine that reached the Board's conclusion
+        from the reading alone would be pretending to a judgment it cannot make.
+        The divergence is the design working.
+        """
+        rec = recommend(basin=Basin.SHASTA, when=date(2026, 6, 16), observed_cfs=46.5, rights=[])
+        assert rec.near_threshold
+        assert rec.action is RecommendedAction.FIELD_VERIFICATION_FIRST
+        assert rec.needs_official_review
 
     def test_it_recommends_and_never_determines(self) -> None:
-        rec = recommend(basin=Basin.SHASTA, when=date(2026, 6, 16), observed_cfs=39.3, rights=[])
+        rec = recommend(basin=Basin.SHASTA, when=date(2026, 6, 16), observed_cfs=46.5, rights=[])
         assert rec.needs_official_review
         assert rec.determination_belongs_to is SignatoryRole.DEPUTY_DIRECTOR
 

@@ -173,3 +173,73 @@ class TestTheGuardIsNotVacuous:
             assert any(h[1] == entry["pattern"] for h in hits), (
                 f"blacklist entry {entry['pattern']!r} does not match its own text"
             )
+
+
+class TestNoRetiredFigureShips:
+    """A figure that propagated from research and appears in no source document.
+
+    On 2026-08-10 a reading of 39.3 cfs was traced through the research hauls
+    into the constitution, two test files, the corpus manifest and the public
+    README. Reading Addendum 6 showed the string appears NOWHERE in it; the
+    document records 45.3 and 46.5 cfs.
+
+    This guard exists because the failure was not a typo. The number had a
+    plausible provenance, survived a verification haul, and was asserted by a
+    passing test. Only the primary document caught it.
+
+    The rule is deliberately narrower than "this string must not appear". Code
+    and docs SHOULD be able to explain what was corrected and why, or the
+    correction becomes invisible to the next reader. So the figure may appear
+    only on a line that also marks it as retired. Re-asserting it as a fact is
+    what fails. Excluding whole files instead would have gutted the guard, which
+    is the same trap the citation scanner's exclusions create.
+    """
+
+    RETIRED = "39.3"
+    RETIREMENT_MARKERS = (
+        "appears nowhere",
+        "appears NOWHERE",
+        "not in",
+        "not_in",
+        "RETIRED",
+        "retired",
+        "corrected",
+        "CORRECTS",
+        "earlier version",
+        "propagated",
+    )
+
+    def _offending_lines(self, text: str) -> list[str]:
+        out = []
+        for line in text.splitlines():
+            if self.RETIRED not in line:
+                continue
+            if any(m in line for m in self.RETIREMENT_MARKERS):
+                continue
+            out.append(line.strip())
+        return out
+
+    def test_the_retired_reading_is_never_asserted_as_fact(self) -> None:
+        offenders: list[tuple[str, str]] = []
+        for path in _scannable():
+            if path.name == "test_citation_guard.py":
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for line in self._offending_lines(text):
+                offenders.append((_display(path), line))
+        assert not offenders, "the retired 39.3 cfs figure is asserted as fact in:\n" + "\n".join(
+            f"  {p}: {ln}" for p, ln in offenders
+        )
+
+    def test_a_bare_assertion_of_the_retired_figure_is_caught(self) -> None:
+        """Non-vacuity. The guard must fail on a naked re-assertion."""
+        bad = "The Shasta ran at 39.3 cfs against a 50 cfs minimum.\n"
+        assert self._offending_lines(bad), "guard failed to catch a bare re-assertion"
+
+    def test_documenting_the_correction_is_allowed(self) -> None:
+        """A guard that forbade explaining the fix would erase the lesson."""
+        ok = "An earlier version asserted 39.3 cfs, which appears nowhere in the document.\n"
+        assert not self._offending_lines(ok)

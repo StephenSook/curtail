@@ -55,14 +55,22 @@ class TestHistoricalOrders:
     """Real curtailment events, reproduced from the public record."""
 
     def test_shasta_addendum_6(self) -> None:
-        """June 16, 2026. Roughly 39.3 cfs against the 50 cfs minimum at Yreka.
+        """Addendum 6 to Order WR 2024-0006-DWR, June 16, 2026.
 
-        Addendum 6 to Order WR 2024-0006-DWR reinstated conditional curtailment
-        on rights junior to November 1, 1912.
+        Figures read from the document itself, not from a research ledger. The
+        Addendum records the Yreka USGS gage at 45.3 cfs at noon on June 13 and
+        46.5 cfs at 11:45 am on June 15, against the 50 cfs requirement that runs
+        May 1 to September 15.
+
+        An earlier version of this test asserted 39.3 cfs, a figure that appears
+        NOWHERE in the document. It came from a research haul and propagated into
+        four artifacts including a public README. HARD RULE 56: code-audit every
+        figure against the primary source; a memory ledger is not a source.
         """
         when = date(2026, 6, 16)
         assert minimum_flow(Basin.SHASTA, when) == 50
-        assert is_below_minimum(Basin.SHASTA, when, 39.3)
+        assert is_below_minimum(Basin.SHASTA, when, 46.5)
+        assert is_below_minimum(Basin.SHASTA, when, 45.3)
 
     def test_scott_addendum_9(self) -> None:
         """May 21, 2026. 145 cfs at Fort Jones against the 150 cfs May minimum.

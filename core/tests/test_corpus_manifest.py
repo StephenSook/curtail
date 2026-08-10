@@ -141,8 +141,33 @@ class TestKnownConflictsAreRecordedNotResolved:
         assert len(unnumbered) == 1
         assert "data_quality_note" in unnumbered[0]
 
-    def test_the_1912_cutoff_conflict_is_carried_as_open(self, manifest: dict[str, Any]) -> None:
-        assert any("November 1 versus November 25" in item for item in manifest["open_items"])
+    def test_the_1912_cutoff_conflict_is_resolved_from_the_document(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """Resolved 2026-08-10 by reading Addendum 6, which states it twice in bold.
+
+        The cutoff is November 25, 1912. Several research hauls carried November 1.
+        A resolution note stays in open_items so the provenance of the answer is
+        visible rather than the conflict simply vanishing.
+        """
+        assert any(
+            "November 25, 1912" in item and "RESOLVED" in item for item in manifest["open_items"]
+        )
+
+    def test_addendum_6_figures_came_from_the_document(self, manifest: dict[str, Any]) -> None:
+        """The one record marked document_read must carry its read values.
+
+        A 39.3 cfs figure propagated from research into four artifacts including
+        a public README and appears NOWHERE in the Addendum. The document records
+        45.3 and 46.5 cfs.
+        """
+        shasta = next(s for s in manifest["series"] if s["id"] == "shasta_2024")
+        add6 = next(a for a in shasta["addenda"] if a["n"] == 6)
+        assert add6["document_read"] is True
+        assert add6["priority_cutoff"] == "1912-11-25"
+        assert 46.5 in add6["gage_readings_cfs"]
+        assert 45.3 in add6["gage_readings_cfs"]
+        assert 39.3 not in add6["gage_readings_cfs"]
 
     def test_sources_are_cited(self, manifest: dict[str, Any]) -> None:
         assert len(manifest["verified_against"]) == 4
