@@ -276,15 +276,57 @@
           "n": 3,
           "date": "2024-09-17",
           "url": "docs/2024/Addendum3_Scott_SWSuspension.pdf",
-          "document_read": false,
-          "extraction_blocked": "no text layer, requires OCR"
+          "document_read": true,
+          "read_method": "vision",
+          "title": "Addendum 3: Update to Scott River Surface Water Curtailments for Farmer's Ditch Company",
+          "action": "suspend",
+          "qualifier": "limited_conditional",
+          "scope_class": "named_diverters",
+          "named_diverters": [
+            "Farmer's Ditch Company"
+          ],
+          "affects_all": false,
+          "effective_date": "2024-09-17",
+          "expires_on": "2024-09-30",
+          "minimum_flow_cfs_stated": {
+            "september": 33
+          },
+          "per_diverter_cap_cfs": {
+            "Farmer's Ditch Company": 7
+          },
+          "transcription_note": "No text layer; pdftotext returns 5 bytes. Read from the rendered pages. Verbatim: 'this Addendum 3 provides for the limited, conditional suspension of curtailment for Farmer's Ditch Company, under the conditions noted below.' Conditions: 'Limit diversions to the lesser of: (1) 7 cfs (the amount identified in its request); or (2) excess water in the Scott River watershed, which is defined as the instantaneous flow at the USGS Fort Jones gage that exceeds the minimum flow requirement of 33 cfs for September.' Expiry: 'This addendum expires at 11:59 pm on September 30, 2024, unless amended or superseded prior to that date.'"
         },
         {
           "n": 4,
           "date": "2024-09-27",
           "url": "docs/2024/addendum4-scott-farmers-svid.pdf",
-          "document_read": false,
-          "extraction_blocked": "no text layer, requires OCR"
+          "document_read": true,
+          "read_method": "vision",
+          "title": "Addendum 4: Update to Scott River Surface Water Curtailments for Farmer's Ditch Company and Scott Valley Irrigation District",
+          "action": "suspend",
+          "qualifier": "limited_conditional",
+          "scope_class": "named_diverters",
+          "named_diverters": [
+            "Farmer's Ditch Company",
+            "Scott Valley Irrigation District"
+          ],
+          "affects_all": false,
+          "expires_on": "2024-09-30",
+          "minimum_flow_cfs_stated": {
+            "september": 33
+          },
+          "per_diverter_cap_cfs": {
+            "Farmer's Ditch Company": 7,
+            "Scott Valley Irrigation District": 7.5
+          },
+          "schedule_linkage": {
+            "Scott Valley Irrigation District": "Schedule D3, Scott River Adjudication"
+          },
+          "gage_readings_cfs": [
+            44,
+            46
+          ],
+          "transcription_note": "No text layer; pdftotext returns 4 bytes. Read from the rendered pages. Verbatim: 'Based on consideration of the current flow and generally stable flows of between 44 to 46 cubic feet per second (cfs) during the last week at the ... Fort Jones gage ... this Addendum provides for the limited, conditional suspension of curtailment for Farmer's Ditch Company and Scott Valley Irrigation District.' Caps: 'For Farmers Ditch Company: 7 cfs ... and for Scott Valley Irrigation District: 7.5 cfs under its right described in Schedule D3 in the Scott River Adjudication.' Expiry: 'This addendum expires at 11:59 pm on Monday, September 30, 2024, unless amended or superseded prior to that date.'"
         },
         {
           "n": 5,
@@ -315,7 +357,13 @@
             ],
             "text_chars": 8697,
             "notes": []
-          }
+          },
+          "data_quality_note": "TITLE UNDERSTATES THE ACT. The parser classifies this as 'amend' from its title, 'Update to Scott River Surface Water Curtailments for Farmer's Ditch Company and Scott Valley Irrigation District'. The body authorises diversion under conditions, which is functionally a limited conditional suspension scoped to named diverters, and it sets DIFFERENT dispositions for the two: Farmer's Ditch may divert immediately, Scott Valley Irrigation District only 'after additional written approval from the State Water Board'. The body never says of itself that it is a suspension, so the title/body conflict detector correctly does not fire. Recorded here rather than auto-resolved. October minimum stated as 40 cfs. Expires 2024-10-31.",
+          "scope_class": "named_diverters",
+          "named_diverters": [
+            "Farmer's Ditch Company",
+            "Scott Valley Irrigation District"
+          ]
         },
         {
           "n": 6,
@@ -906,7 +954,9 @@
     "OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.",
     "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.",
     "RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.",
-    "OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified."
+    "OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.",
+    "RESOLVED 2026-08-10: Scott Addenda 3 and 4 read from rendered pages. All 4 scans in the fetched corpus are now read. Both are limited conditional suspensions scoped to NAMED DIVERTERS rather than to priority groupings, with per-diverter volumetric caps, a basin floor of 33 cfs for September, and an expiry of 2024-09-30. Addendum 4 ties Scott Valley Irrigation District to Schedule D3 of the Scott River Adjudication.",
+    "OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",
@@ -914,9 +964,9 @@
     "records_individually_enumerated": 33,
     "pdfs_fetched": 24,
     "read_via_text_layer": 20,
-    "scorable": 22,
-    "refused_no_text_layer": 2,
+    "scorable": 24,
+    "refused_no_text_layer": 0,
     "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
-    "read_via_vision": 2
+    "read_via_vision": 4
   }
 }

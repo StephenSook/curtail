@@ -134,10 +134,23 @@ def main() -> int:
         if result.is_readable:
             read += 1
 
+        # A vision read is authoritative and this script must not touch it.
+        #
+        # The docstring above promises that hand-verified values are merged and
+        # never clobbered, and an earlier version broke that promise: the branch
+        # below unconditionally set document_read to False for anything the
+        # parser could not read, which silently reverted all four scans that a
+        # person had already read from the rendered pages. The manifest's own
+        # denominator guard caught it. A stated contract that the code does not
+        # enforce is worth nothing, so the check is now in the code.
+        if rec.node.get("read_method") == "vision":
+            if result.scorable:
+                scored += 1
+            continue
+
         if result.scorable:
             scored += 1
             if args.write:
-                # Merge. A hand-verified value outranks an automatic one.
                 rec.node["document_read"] = True
                 rec.node["extracted"] = _as_json(result)
         elif args.write:
@@ -147,6 +160,14 @@ def main() -> int:
                 if result.method is ExtractionMethod.REQUIRES_OCR
                 else "text layer present but action could not be classified"
             )
+
+    # Vision reads are counted here rather than in the loop, since the parser
+    # cannot see them at all and they must still appear in the totals.
+    vision = sum(
+        1 for r in records if r.node.get("read_method") == "vision" and r.node.get("document_read")
+    )
+    scored += vision
+    ocr -= vision
 
     total = len(records)
     print(f"manifest records           {total}")
