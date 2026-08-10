@@ -1,0 +1,69 @@
+{
+  "$comment": [
+    "Authorities that must NEVER appear in any shipped artifact.",
+    "",
+    "Six external models reviewed this concept and produced these. Each was",
+    "checked against primary sources and found false, fabricated, or",
+    "misattributed. Two of the case citations exist in no legal database at all.",
+    "",
+    "This file is the fixture behind a CI gate. Citing invented authority in a",
+    "legal-domain product, in front of judges, is the single most damaging",
+    "honesty failure available to this project, so the prohibition is mechanical",
+    "rather than a habit.",
+    "",
+    "The scanner deliberately excludes this file and its test from its own sweep.",
+    "A non-vacuity test plants a blacklisted string in a temporary tracked file",
+    "and asserts detection, so the exclusion cannot render the guard inert."
+  ],
+  "verified_on": "2026-08-10",
+  "blacklist": [
+    {
+      "pattern": "Schattinger v. Schattinger",
+      "kind": "fabricated_case",
+      "finding": "Not found in any Idaho or United States legal database. Appears wholly fabricated."
+    },
+    {
+      "pattern": "Fall River Irrigation Co. v. Swendsen",
+      "kind": "fabricated_case",
+      "finding": "Not found. Cited for a priority-date correction from 1889 to 1885. Appears wholly fabricated."
+    },
+    {
+      "pattern": "625 P.2d 977",
+      "kind": "misapplied_case",
+      "finding": "Southeastern Colorado Water Conservancy District v. Rich. A change-of-water-right and injury-burden case, overruled in part by Santa Fe Trail Ranches v. Simpson, 990 P.2d 46 (Colo. 1999). It does not hold that curtailment is an individualized administrative judgment. Anchor on 23 CCR 875(b), Stanford Vina Ranch (2020) and California Water Curtailment Cases (2022) instead."
+    },
+    {
+      "pattern": "National Laboratory of the Rockies",
+      "kind": "nonexistent_institution",
+      "finding": "No such institution. Likely a confusion with NREL."
+    },
+    {
+      "pattern": "Loamio",
+      "kind": "nonexistent_product",
+      "finding": "No such drought-curtailment reporting product could be located."
+    },
+    {
+      "pattern": "NexGenLegal",
+      "kind": "unverifiable_product",
+      "finding": "Could not be verified as a deployed product with government customers."
+    },
+    {
+      "pattern": "3.37 cfs to 8.94",
+      "kind": "unverified_figure",
+      "finding": "August 2022 Fort Jones recalibration figures. Unverified across three research passes. Do not use."
+    },
+    {
+      "pattern": "6,800 acre-feet",
+      "kind": "unverified_figure",
+      "finding": "Idaho July 2024 revised shortfall. Unverified across three passes. Label as unverified or omit."
+    }
+  ],
+  "misstatements": [
+    {
+      "pattern": "1123",
+      "context_required": "90-day",
+      "kind": "wrong_section",
+      "finding": "The 90-day Board response deadline is in Water Code 1122, not 1123. Section 1123 governs the manner of reconsideration."
+    }
+  ]
+}

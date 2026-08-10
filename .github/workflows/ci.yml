@@ -67,6 +67,11 @@ jobs:
       # which suppresses that line entirely. The guard was right to refuse, but
       # its premise was fragile. Machine-readable counts cannot be reformatted
       # out from under it.
+      # Named separately so a judge or reviewer can see the honesty gate as its
+      # own line in the checks list, rather than buried inside the suite.
+      - name: Citation guard (no fabricated authority ships)
+        run: uv run pytest core/tests/test_citation_guard.py -q
+
       - name: Assert the suite ran and nothing was skipped
         run: |
           rc=0
