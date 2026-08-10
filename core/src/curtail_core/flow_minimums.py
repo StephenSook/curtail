@@ -178,7 +178,15 @@ SHASTA_SCHEDULE_2021: tuple[FlowPeriod, ...] = ()
 
 SCHEDULES_BY_ERA: dict[RegulatoryEra, dict[Basin, tuple[FlowPeriod, ...]]] = {
     RegulatoryEra.ERA_2024: SCHEDULES,
-    RegulatoryEra.ERA_2021: {Basin.SCOTT: SCOTT_SCHEDULE_2021},
+    # Shasta is present and EMPTY, not absent. The behaviour is identical, but a
+    # review pointed out the previous version left SHASTA_SCHEDULE_2021 unwired,
+    # so the refusal actually came from a missing dict key while the comment
+    # credited the empty tuple. A maintainer wiring the constant in would have
+    # changed nothing while believing they had.
+    RegulatoryEra.ERA_2021: {
+        Basin.SCOTT: SCOTT_SCHEDULE_2021,
+        Basin.SHASTA: SHASTA_SCHEDULE_2021,
+    },
 }
 
 

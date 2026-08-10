@@ -241,5 +241,10 @@ def run(path: Path | None = None) -> BacktestReport:
     return BacktestReport(
         results=results,
         era_id=era["id"],
-        excluded=tuple(data.get("excluded_with_reason", ())),
+        # No .get default. This field carries the documents deliberately
+        # withheld from scoring and is rendered straight into the published
+        # claim. A dropped key would print "0 excluded before scoring",
+        # which reads as a STRONGER result than the truth. The only
+        # optional field must not be the one whose loss overstates us.
+        excluded=tuple(data["excluded_with_reason"]),
     )

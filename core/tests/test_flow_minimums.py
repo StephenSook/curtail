@@ -272,7 +272,10 @@ class TestTheEraGuardMakesTheWrongTableUnreachable:
             "the 2021 Scott table should cover only the months with document "
             f"evidence; it now covers {sorted(months)}"
         )
-        assert Basin.SHASTA not in SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021]
+        # Present and EMPTY, not absent. Identical behaviour, but the emptiness
+        # is now the thing that causes the refusal rather than a missing key,
+        # so the constant and the comment describing it are both load-bearing.
+        assert SCHEDULES_BY_ERA[RegulatoryEra.ERA_2021][Basin.SHASTA] == ()
 
     def test_the_verified_2021_months_match_the_readopted_table(self) -> None:
         """The empirical finding, locked.

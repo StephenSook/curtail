@@ -66,7 +66,8 @@ not surface: `scott_addendums.html` (51 Scott) and `shasta_addendums.html`
 the Shasta count was corrected from 16 to 14 against that page.
 
 **Measured:** 4 of the 25 documents in the 2024 series carry no text layer
-all, roughly 16 percent. `pdftotext` returns three or four bytes. That is
+at all, roughly 16 percent. `pdftotext` returns three or four bytes. That
+is
 what makes a vision model load-bearing on this project rather than
 decorative: it is the only way to read those documents, and one of them is
 the July 2025 fixture the entry is built around.
@@ -91,8 +92,11 @@ upward based on measurements taken by the Scott Valley and Shasta Valley
 Watermaster District (Watermaster)."
 
 At 48.7 cfs the engine recommends curtailment and raises a near-threshold
-flag, because the reading sits inside the 10 cfs band
-below the minimum. Field verification is what changed the answer.
+flag, because the reading sits within the 10 cfs band
+AROUND the minimum. The band is symmetric in the code: a reading just
+above the line is flagged too, since a decision to release is as worth
+checking as a decision to curtail. An earlier version of this sentence
+described it as one-sided, which the implementation never was.
 
 **Do not use "above 75 cfs"** in any artifact. That figure comes from the
 August 5 2025 Executive Director's Report paraphrasing the event. The
@@ -172,10 +176,37 @@ matches the encoded 2025-readopted schedule.
 
 ## 7. Open, and stated as open
 
+Every item is rendered, routed by status. Nothing is filtered out.
+
+An adversarial review found the previous version published only items
+whose text began with the literal string OPEN, which silently dropped
+three genuinely unresolved items written without the prefix, plus one
+stale item that should have been retired rather than hidden. In a
+project whose thesis is that undisclosed gaps are the failure mode, a
+section headed "stated as open" that omitted open items because of a
+formatting convention was the worst defect in this file.
+
+### Still open (8)
+
+- OPEN (undated, carried from an earlier haul): The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.
+- OPEN (undated, carried from an earlier haul): The Scott 2021 surface-water order carries no order number on the index page.
+- OPEN (undated, carried from an earlier haul): Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.
 - OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.
 - OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.
 - OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.
 - OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.
 - OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.
+
+### Closed, kept for provenance (7)
+
+- RESOLVED 2026-08-10: superseded. This item read 'No document has been parsed yet'. 85 of 98 documents are now read and scorable. Retired rather than deleted so the record shows it was answered, not lost.
+- RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.
+- RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.
+- RESOLVED 2026-08-10: Scott Addenda 3 and 4 read from rendered pages. All 4 scans in the fetched corpus are now read. Both are limited conditional suspensions scoped to NAMED DIVERTERS rather than to priority groupings, with per-diverter volumetric caps, a basin floor of 33 cfs for September, and an expiry of 2024-09-30. Addendum 4 ties Scott Valley Irrigation District to Schedule D3 of the Scott River Adjudication.
+- RESOLVED 2026-08-10: the 2021 addenda ARE individually published, on two index pages the main drought index does not surface: scott_addendums.html (51 Scott) and shasta_addendums.html (14 Shasta). All 65 are now enumerated with URLs where the filename carries a number. The earlier premise that no per-addendum URLs exist was wrong.
+- CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.
+- PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.
+
+_All 15 items accounted for: 8 open, 7 closed._
 
 _Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._

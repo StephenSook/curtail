@@ -124,7 +124,10 @@ def build() -> str:
     )
     add(f"| PDFs fetched and byte-verified | {status['pdfs_fetched']} |")
     add(f"| Read via text layer | {status['read_via_text_layer']} |")
-    add(f"| Read from rendered pages | {status.get('read_via_vision', 0)} |")
+    # No .get default. Every sibling row uses [], and a silent 0 here would
+    # publish a table that does not add up, because the Scorable row still
+    # counts these documents.
+    add(f"| Read from rendered pages | {status['read_via_vision']} |")
     add(f"| Refused, no text layer | {status['refused_no_text_layer']} |")
     add(f"| **Scorable** | **{status['scorable']}** |")
     add("")
@@ -142,7 +145,8 @@ def build() -> str:
     add("the Shasta count was corrected from 16 to 14 against that page.")
     add("")
     add("**Measured:** 4 of the 25 documents in the 2024 series carry no text layer")
-    add("all, roughly 16 percent. `pdftotext` returns three or four bytes. That is")
+    add("at all, roughly 16 percent. `pdftotext` returns three or four bytes. That")
+    add("is")
     add("what makes a vision model load-bearing on this project rather than")
     add("decorative: it is the only way to read those documents, and one of them is")
     add("the July 2025 fixture the entry is built around.")
@@ -169,8 +173,11 @@ def build() -> str:
     add('Watermaster District (Watermaster)."')
     add("")
     add("At 48.7 cfs the engine recommends curtailment and raises a near-threshold")
-    add(f"flag, because the reading sits inside the {NEAR_THRESHOLD_BAND_CFS:g} cfs band")
-    add("below the minimum. Field verification is what changed the answer.")
+    add(f"flag, because the reading sits within the {NEAR_THRESHOLD_BAND_CFS:g} cfs band")
+    add("AROUND the minimum. The band is symmetric in the code: a reading just")
+    add("above the line is flagged too, since a decision to release is as worth")
+    add("checking as a decision to curtail. An earlier version of this sentence")
+    add("described it as one-sided, which the implementation never was.")
     add("")
     add('**Do not use "above 75 cfs"** in any artifact. That figure comes from the')
     add("August 5 2025 Executive Director's Report paraphrasing the event. The")
@@ -224,9 +231,42 @@ def build() -> str:
 
     add("## 7. Open, and stated as open")
     add("")
-    for item in json.loads(MANIFEST.read_text())["open_items"]:
-        if item.startswith("OPEN"):
-            add(f"- {item}")
+    add("Every item is rendered, routed by status. Nothing is filtered out.")
+    add("")
+    add("An adversarial review found the previous version published only items")
+    add("whose text began with the literal string OPEN, which silently dropped")
+    add("three genuinely unresolved items written without the prefix, plus one")
+    add("stale item that should have been retired rather than hidden. In a")
+    add("project whose thesis is that undisclosed gaps are the failure mode, a")
+    add('section headed "stated as open" that omitted open items because of a')
+    add("formatting convention was the worst defect in this file.")
+    add("")
+
+    items = json.loads(MANIFEST.read_text())["open_items"]
+    known = ("OPEN", "RESOLVED", "CORRECTED", "PROGRESS")
+    unclassifiable = [i for i in items if not i.startswith(known)]
+    if unclassifiable:
+        # Loud, not silent. An item nobody can classify is exactly the item that
+        # would otherwise vanish from the published gap list.
+        raise ValueError(
+            f"{len(unclassifiable)} manifest open_items carry no recognised "
+            f"status prefix and would not be routed: {unclassifiable[:3]}"
+        )
+
+    still_open = [i for i in items if i.startswith("OPEN")]
+    closed = [i for i in items if i.startswith(("RESOLVED", "CORRECTED", "PROGRESS"))]
+
+    add(f"### Still open ({len(still_open)})")
+    add("")
+    for item in still_open:
+        add(f"- {item}")
+    add("")
+    add(f"### Closed, kept for provenance ({len(closed)})")
+    add("")
+    for item in closed:
+        add(f"- {item}")
+    add("")
+    add(f"_All {len(items)} items accounted for: {len(still_open)} open, {len(closed)} closed._")
     add("")
     add(
         "_Provenance: run `git log -- docs/FACTS.md` for when this was last "
