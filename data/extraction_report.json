@@ -1,6 +1,29 @@
 {
   "scott_2021/addenda/1": {
-    "status": "not_fetched"
+    "action": "suspend",
+    "affects_all": false,
+    "body_action": "undetermined",
+    "cfs_values": [
+      8.0,
+      14.0,
+      32.0,
+      40.0,
+      60.0,
+      635.0,
+      675.0
+    ],
+    "expires_on": null,
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2021-10-25"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 148789,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/10": {
     "action": "suspend",
@@ -238,7 +261,31 @@
     "title_body_conflict": false
   },
   "scott_2021/addenda/2": {
-    "status": "not_fetched"
+    "action": "suspend",
+    "affects_all": false,
+    "body_action": "suspend",
+    "cfs_values": [
+      17.0,
+      32.0,
+      60.0,
+      175.0,
+      235.0,
+      300.0,
+      800.0
+    ],
+    "expires_on": null,
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "2021-09-09",
+      "2021-09-10",
+      "2021-10-29",
+      "2021-11-08"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 150550,
+    "title_body_conflict": false
   },
   "scott_2021/addenda/20": {
     "action": "suspend",
@@ -1772,10 +1819,57 @@
     "title_body_conflict": false
   },
   "shasta_2021/addenda/2": {
-    "status": "not_fetched"
+    "action": "suspend",
+    "affects_all": false,
+    "body_action": "undetermined",
+    "cfs_values": [
+      6.0,
+      50.0,
+      97.0,
+      119.0,
+      122.0,
+      125.0,
+      150.0
+    ],
+    "expires_on": null,
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1912-11-25",
+      "1923-07-23",
+      "2021-09-10",
+      "2021-10-21"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 11972,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/3": {
-    "status": "not_fetched"
+    "action": "suspend",
+    "affects_all": false,
+    "body_action": "undetermined",
+    "cfs_values": [
+      8.0,
+      27.0,
+      125.0,
+      133.0,
+      150.0
+    ],
+    "expires_on": null,
+    "method": "text_layer",
+    "notes": [],
+    "priority_dates": [
+      "1923-07-23",
+      "1923-07-30",
+      "2021-09-10",
+      "2021-10-29",
+      "2021-12-31"
+    ],
+    "priority_groups": [],
+    "qualifier": "temporary",
+    "text_chars": 14857,
+    "title_body_conflict": false
   },
   "shasta_2021/addenda/4": {
     "action": "suspend",

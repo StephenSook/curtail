@@ -158,14 +158,71 @@
         {
           "n": 1,
           "index_verified": true,
-          "document_read": false,
-          "data_quality_note": "Listed on the Board's index page but its file is not named 'addendum', so the number could not be mapped from the URL. The early addenda in both series use descriptive filenames. The number must be confirmed by reading the document before this record is scored."
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-curtailment-suspension.pdf",
+          "title_from_document": "Addendum 1 - Conditional Temporary Suspension to Scott River Curtailment Orders Issued in September 2021",
+          "number_confirmed_from": "document text, not filename or page order",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2021-10-25"
+            ],
+            "cfs_values": [
+              8.0,
+              14.0,
+              32.0,
+              40.0,
+              60.0,
+              635.0,
+              675.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 148789,
+            "notes": []
+          }
         },
         {
           "n": 2,
           "index_verified": true,
-          "document_read": false,
-          "data_quality_note": "Listed on the Board's index page but its file is not named 'addendum', so the number could not be mapped from the URL. The early addenda in both series use descriptive filenames. The number must be confirmed by reading the document before this record is scored."
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/scott-more-suspensions.pdf",
+          "title_from_document": "Addendum 2 - Extension of Conditional Temporary Suspension of Scott River Curtailment Orders Issued in September 2021",
+          "number_confirmed_from": "document text, not filename or page order",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2021-09-10",
+              "2021-10-29",
+              "2021-11-08"
+            ],
+            "cfs_values": [
+              17.0,
+              32.0,
+              60.0,
+              175.0,
+              235.0,
+              300.0,
+              800.0
+            ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 150550,
+            "notes": []
+          }
         },
         {
           "n": 3,
@@ -2342,14 +2399,71 @@
         {
           "n": 2,
           "index_verified": true,
-          "document_read": false,
-          "data_quality_note": "Listed on the Board's index page but its file is not named 'addendum', so the number could not be mapped from the URL. The early addenda in both series use descriptive filenames. The number must be confirmed by reading the document before this record is scored."
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/addendum-two-to-order-wr-2021-0082-dwr-with-list.pdf",
+          "title_from_document": "Order WR 2021-0082-DWR, Addendum 2: Conditional Temporary Suspension of Curtailments for the Remainder of October in Shasta River Watershed to Priority Date of July 1923",
+          "number_confirmed_from": "document text, not filename or page order",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1912-11-25",
+              "1923-07-23",
+              "2021-09-10",
+              "2021-10-21"
+            ],
+            "cfs_values": [
+              6.0,
+              50.0,
+              97.0,
+              119.0,
+              122.0,
+              125.0,
+              150.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 11972,
+            "notes": []
+          }
         },
         {
           "n": 3,
           "index_verified": true,
-          "document_read": false,
-          "data_quality_note": "Listed on the Board's index page but its file is not named 'addendum', so the number could not be mapped from the URL. The early addenda in both series use descriptive filenames. The number must be confirmed by reading the document before this record is scored."
+          "document_read": true,
+          "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/shasta-more-suspensions.pdf",
+          "title_from_document": "Order WR 2021-0082-DWR, Addendum 3: Conditional Temporary Suspension of Curtailment to Priority Date of July 30, 1923",
+          "number_confirmed_from": "document text, not filename or page order",
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1923-07-23",
+              "1923-07-30",
+              "2021-09-10",
+              "2021-10-29",
+              "2021-12-31"
+            ],
+            "cfs_values": [
+              8.0,
+              27.0,
+              125.0,
+              133.0,
+              150.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 14857,
+            "notes": []
+          }
         },
         {
           "n": 4,
@@ -3060,18 +3174,22 @@
     "CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.",
     "PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.",
     "OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.",
-    "OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment."
+    "OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment.",
+    "RESOLVED 2026-08-10: the four records that carried a note instead of a URL are resolved. Their filenames carry no number (scott-curtailment-suspension, scott-more-suspensions, addendum-two-to-order-... spelling the number out, shasta-more-suspensions), which is exactly what the plan predicted would defeat a filename-based mapping. Each number was then CONFIRMED FROM THE DOCUMENT'S OWN TEXT rather than from its position on the index page, because page order is an inference and the title is evidence."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",
     "documents_total_declared": 100,
     "records_individually_enumerated": 98,
-    "pdfs_fetched": 94,
-    "read_via_text_layer": 87,
-    "scorable": 91,
+    "pdfs_fetched": 98,
+    "read_via_text_layer": 91,
+    "scorable": 95,
     "refused_no_text_layer": 0,
     "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
     "read_via_vision": 4,
-    "unscorable_with_reason": 9
+    "unscorable_with_reason": 3,
+    "files_on_disk": 101,
+    "files_not_matching_a_record": 3,
+    "stray_file_note": "Files on disk exceed fetched records because three documents were downloaded by hand early on, before the fetcher existed, under names that do not follow the record key scheme: addendum6-shasta-attach-a, addendum8-scottriver-7-22-2025, order-wr-0005-dwr-scott-sws-curtailment. They are duplicates of records already counted, so counting them as fetched would have inflated the numerator. The manifest guard caught this when pdfs_fetched exceeded the enumerated record count."
   }
 }
