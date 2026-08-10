@@ -50,10 +50,10 @@ official to decline to issue, to narrow the grouping, or to suspend.
 | Declared across the Board's index pages | 100 |
 | Individually enumerated in the manifest | 98 |
 | PDFs fetched and byte-verified | 94 |
-| Read via text layer | 81 |
+| Read via text layer | 87 |
 | Read from rendered pages | 4 |
 | Refused, no text layer | 0 |
-| **Scorable** | **85** |
+| **Scorable** | **91** |
 
 Never state a figure of the form "N of 100". The denominator of any claim is
 the SCORABLE count, because that is what has actually been read. The gap
@@ -186,7 +186,7 @@ project whose thesis is that undisclosed gaps are the failure mode, a
 section headed "stated as open" that omitted open items because of a
 formatting convention was the worst defect in this file.
 
-### Still open (8)
+### Still open (9)
 
 - OPEN (undated, carried from an earlier haul): The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.
 - OPEN (undated, carried from an earlier haul): The Scott 2021 surface-water order carries no order number on the index page.
@@ -196,6 +196,7 @@ formatting convention was the worst defect in this file.
 - OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.
 - OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.
 - OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.
+- OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment.
 
 ### Closed, kept for provenance (7)
 
@@ -207,6 +208,6 @@ formatting convention was the worst defect in this file.
 - CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.
 - PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.
 
-_All 15 items accounted for: 8 open, 7 closed._
+_All 16 items accounted for: 9 open, 7 closed._
 
 _Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._

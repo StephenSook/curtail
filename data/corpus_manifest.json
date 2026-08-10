@@ -1000,9 +1000,30 @@
         {
           "n": 32,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum32.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "continue",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-09",
+              "2022-07-01",
+              "2022-07-02"
+            ],
+            "cfs_values": [
+              50.0,
+              76.2,
+              80.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 34100,
+            "notes": []
+          }
         },
         {
           "n": 33,
@@ -1058,7 +1079,7 @@
           "index_verified": true,
           "document_read": false,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/scott-addendum35.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extraction_blocked": "title and body describe different acts; refused rather than resolved, because choosing between them silently would put a guessed legal characterisation into the record"
         },
         {
           "n": 36,
@@ -1630,7 +1651,9 @@
             "method": "text_layer",
             "action": "impose",
             "qualifier": "not_applicable",
-            "priority_groups": [],
+            "priority_groups": [
+              9
+            ],
             "affects_all": false,
             "priority_dates": [
               "2021-08-30",
@@ -2291,9 +2314,30 @@
         {
           "n": 1,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-order162-addendum01.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1885-03-01",
+              "1885-04-01",
+              "1912-04-01",
+              "1932-12-29",
+              "2022-08-02",
+              "2022-11-22",
+              "2022-12-27"
+            ],
+            "cfs_values": [],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 61183,
+            "notes": []
+          }
         },
         {
           "n": 2,
@@ -2409,23 +2453,104 @@
         {
           "n": 7,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta-addendum7.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-22",
+              "2021-12-29",
+              "2022-01-26",
+              "2022-02-28"
+            ],
+            "cfs_values": [
+              135.0,
+              152.0,
+              179.0
+            ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 19843,
+            "notes": []
+          }
         },
         {
           "n": 8,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/Shasta_Addendum8.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "suspend",
+            "qualifier": "temporary",
+            "priority_groups": [],
+            "affects_all": true,
+            "priority_dates": [
+              "2021-08-30",
+              "2021-09-10",
+              "2021-12-22",
+              "2021-12-29",
+              "2022-01-09",
+              "2022-01-26",
+              "2022-02-25",
+              "2022-02-28",
+              "2022-03-15"
+            ],
+            "cfs_values": [
+              135.0,
+              147.0,
+              156.0
+            ],
+            "body_action": "suspend",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 20198,
+            "notes": []
+          }
         },
         {
           "n": 9,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2022/shasta_addendum_9.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "reinstate",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "2021-09-10",
+              "2021-10-12",
+              "2022-02-25",
+              "2022-03-14",
+              "2022-03-15",
+              "2022-03-24",
+              "2022-03-30"
+            ],
+            "cfs_values": [
+              5.0,
+              6.0,
+              50.0,
+              65.0,
+              70.0,
+              105.0,
+              129.0,
+              135.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 38764,
+            "notes": []
+          }
         },
         {
           "n": 10,
@@ -2577,9 +2702,37 @@
         {
           "n": 14,
           "index_verified": true,
-          "document_read": false,
+          "document_read": true,
           "url": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/docs/2023/shasta-082-addendum14.pdf",
-          "extraction_blocked": "text layer present but the action could not be classified"
+          "extracted": {
+            "method": "text_layer",
+            "action": "impose",
+            "qualifier": "not_applicable",
+            "priority_groups": [],
+            "affects_all": false,
+            "priority_dates": [
+              "1850-03-01",
+              "1885-04-01",
+              "1958-01-01",
+              "2021-09-10",
+              "2022-12-27",
+              "2023-05-25",
+              "2023-06-29",
+              "2023-06-30"
+            ],
+            "cfs_values": [
+              47.8,
+              50.0,
+              70.0,
+              105.0,
+              125.0
+            ],
+            "body_action": "undetermined",
+            "title_body_conflict": false,
+            "expires_on": null,
+            "text_chars": 40980,
+            "notes": []
+          }
         }
       ],
       "index_page": "https://www.waterboards.ca.gov/drought/scott_shasta_rivers/shasta_addendums.html",
@@ -2906,15 +3059,16 @@
     "RESOLVED 2026-08-10: the 2021 addenda ARE individually published, on two index pages the main drought index does not surface: scott_addendums.html (51 Scott) and shasta_addendums.html (14 Shasta). All 65 are now enumerated with URLs where the filename carries a number. The earlier premise that no per-addendum URLs exist was wrong.",
     "CORRECTED 2026-08-10: Shasta 2021 addenda count 16 to 14, verified against the Board's own index page. Totals fall from 86 to 84 addenda and from 102 to 100 documents.",
     "PROGRESS 2026-08-10: the 2021 corpus is fetched. 94 PDFs on disk, 85 documents read and scorable, up from 24. The 8 second fetch pacing held with zero WAF blocks across 70 requests.",
-    "OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table."
+    "OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.",
+    "OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment."
   ],
   "extraction_status": {
     "as_of": "2026-08-10",
     "documents_total_declared": 100,
     "records_individually_enumerated": 98,
     "pdfs_fetched": 94,
-    "read_via_text_layer": 81,
-    "scorable": 85,
+    "read_via_text_layer": 87,
+    "scorable": 91,
     "refused_no_text_layer": 0,
     "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
     "read_via_vision": 4,

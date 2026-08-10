@@ -276,6 +276,13 @@ def main() -> int:
             if args.write:
                 rec.node["document_read"] = True
                 rec.node["extracted"] = _as_json(result)
+                # Clear the stale refusal. A record that has become readable
+                # must not keep the reason it was once refused: a node carrying
+                # both document_read: true and extraction_blocked contradicts
+                # itself, and the manifest is the source of truth for the
+                # headline denominator. Caught by the manifest's own guard when
+                # a parser improvement reclassified six documents.
+                rec.node.pop("extraction_blocked", None)
         else:
             outcomes[rec.key] = (
                 ReadOutcome.NO_TEXT_LAYER

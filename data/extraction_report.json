@@ -554,7 +554,7 @@
     "title_body_conflict": false
   },
   "scott_2021/addenda/32": {
-    "action": "undetermined",
+    "action": "continue",
     "affects_all": false,
     "body_action": "undetermined",
     "cfs_values": [
@@ -564,9 +564,7 @@
     ],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'Subject:       Scott River Curtailments in Effect for All Surface Water Diverters (List A2) as of 12:00 pm (noon) on Jul'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "2021-09-09",
       "2022-07-01",
@@ -615,16 +613,16 @@
     "title_body_conflict": false
   },
   "scott_2021/addenda/35": {
-    "action": "undetermined",
+    "action": "continue",
     "affects_all": false,
-    "body_action": "undetermined",
+    "body_action": "reinstate",
     "cfs_values": [
       35.8
     ],
     "expires_on": null,
     "method": "text_layer",
     "notes": [
-      "Action could not be classified from the headline: 'Subject:     Scott River Watershed: Curtailments in Effect for All Surface Water and Groundwater Diversions Date:       '. Recorded as undetermined rather than guessed."
+      "TITLE AND BODY DISAGREE. The title reads as continue; the body says of itself that it is a reinstate. Not scorable until a human resolves which governs. Recording the disagreement is the honest state; picking a side would put a guessed legal characterisation into the record."
     ],
     "priority_dates": [
       "2021-09-09",
@@ -634,7 +632,7 @@
     "priority_groups": [],
     "qualifier": "not_applicable",
     "text_chars": 3725,
-    "title_body_conflict": false
+    "title_body_conflict": true
   },
   "scott_2021/addenda/36": {
     "action": "suspend",
@@ -1592,21 +1590,21 @@
       "2026-07-10",
       "2031-01-01"
     ],
-    "priority_groups": [],
+    "priority_groups": [
+      9
+    ],
     "qualifier": "not_applicable",
     "text_chars": 36175,
     "title_body_conflict": false
   },
   "shasta_2021/addenda/1": {
-    "action": "undetermined",
+    "action": "suspend",
     "affects_all": false,
     "body_action": "undetermined",
     "cfs_values": [],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'State Water Resources Control Board December 27, 2022 ADDENDUM 1 TO ORDER WR 2022-0162-DWR:'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "1885-03-01",
       "1885-04-01",
@@ -1617,7 +1615,7 @@
       "2022-12-27"
     ],
     "priority_groups": [],
-    "qualifier": "not_applicable",
+    "qualifier": "temporary",
     "text_chars": 61183,
     "title_body_conflict": false
   },
@@ -1745,7 +1743,7 @@
     "title_body_conflict": false
   },
   "shasta_2021/addenda/14": {
-    "action": "undetermined",
+    "action": "impose",
     "affects_all": false,
     "body_action": "undetermined",
     "cfs_values": [
@@ -1757,9 +1755,7 @@
     ],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'Subject: Order WR 2021-0082-DWR, Addendum 14: Imposition of Full Curtailment for Junior Water Rights in Shasta River Wat'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "1850-03-01",
       "1885-04-01",
@@ -1863,8 +1859,8 @@
     "title_body_conflict": false
   },
   "shasta_2021/addenda/7": {
-    "action": "undetermined",
-    "affects_all": false,
+    "action": "suspend",
+    "affects_all": true,
     "body_action": "suspend",
     "cfs_values": [
       135.0,
@@ -1873,9 +1869,7 @@
     ],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'State Water Resources Control Board January 26, 2022 ADDENDUM 7 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "2021-08-30",
       "2021-09-10",
@@ -1885,13 +1879,13 @@
       "2022-02-28"
     ],
     "priority_groups": [],
-    "qualifier": "not_applicable",
+    "qualifier": "temporary",
     "text_chars": 19843,
     "title_body_conflict": false
   },
   "shasta_2021/addenda/8": {
-    "action": "undetermined",
-    "affects_all": false,
+    "action": "suspend",
+    "affects_all": true,
     "body_action": "suspend",
     "cfs_values": [
       135.0,
@@ -1900,9 +1894,7 @@
     ],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'State Water Resources Control Board February 25, 2022 ADDENDUM 8 TO ORDER WR 2021-0082-DWR:'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "2021-08-30",
       "2021-09-10",
@@ -1915,12 +1907,12 @@
       "2022-03-15"
     ],
     "priority_groups": [],
-    "qualifier": "not_applicable",
+    "qualifier": "temporary",
     "text_chars": 20198,
     "title_body_conflict": false
   },
   "shasta_2021/addenda/9": {
-    "action": "undetermined",
+    "action": "reinstate",
     "affects_all": false,
     "body_action": "undetermined",
     "cfs_values": [
@@ -1935,9 +1927,7 @@
     ],
     "expires_on": null,
     "method": "text_layer",
-    "notes": [
-      "Action could not be classified from the headline: 'State Water Resources Control Board March 15, 2022 ADDENDUM 9 TO ORDERS WR 2021-0082-DWR and WR 2021-0085-DWR 1:'. Recorded as undetermined rather than guessed."
-    ],
+    "notes": [],
     "priority_dates": [
       "2021-09-10",
       "2021-10-12",

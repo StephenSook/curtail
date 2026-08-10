@@ -643,3 +643,120 @@ class TestDatesInCapitalsAreNotInvisible:
         from datetime import date as _date
 
         assert _date(1912, 11, 25) in extract(SHASTA_ADDENDUM_6).priority_dates
+
+
+#: Shasta 2021 Addendum 7, verbatim. The action is on the CONTINUATION lines.
+SHASTA_2021_TITLE_BLOCK = """State Water Resources Control Board
+January 26, 2022
+              ADDENDUM 7 TO ORDER WR 2021-0082-DWR:
+     EXTENSION OF CONDITIONAL TEMPORARY SUSPENSION OF ALL
+CURTAILMENTS IN SHASTA RIVER WATERSHED THROUGH FEBRUARY 28, 2022
+To:   Scott River Watershed and Shasta River Watershed Water Right Holders
+"""
+
+#: Shasta 2021 Addendum 9, verbatim. Note the lower-case "and" in the header
+#: line and the trailing footnote marker, which the all-caps form rejects.
+SHASTA_2021_MIXED_CASE_HEADER = """State Water Resources Control Board
+March 15, 2022
+      ADDENDUM 9 TO ORDERS WR 2021-0082-DWR and WR 2021-0085-DWR 1:
+    REINSTATEMENT OF CURTAILMENTS AND MODIFICATION OF MARCH FLOW
+                            REQUIREMENTS
+To:    Scott River Watershed and Shasta River Watershed Water Right Holders
+"""
+
+#: Shasta 2021 Addendum 14, verbatim. "Imposition", not "imposing".
+SHASTA_2021_IMPOSITION = """State Water Resources Control Board
+June 29, 2023
+Subject: Order WR 2021-0082-DWR, Addendum 14: Imposition of Full Curtailment for
+         Junior Water Rights in Shasta River Watershed
+To:   Scott River Watershed and Shasta River Watershed Water Right Holders
+"""
+
+#: Scott 2021 Addendum 32, verbatim. A status notice announcing no new decision.
+SCOTT_2021_CONTINUATION_NOTICE = """Subject: Scott River Curtailments in Effect for All Surface Water Diverters
+(List A2) as of 12:00 pm (noon) on July 2, 2022
+Date: Friday, July 1, 2022
+The State Water Board will continue to monitor flow forecasts and watershed
+conditions regularly to determine if further adjustments are appropriate.
+"""
+
+
+class TestTheActionCanLiveOnAContinuationLine:
+    """The Shasta 2021 series names the document, then states the act beneath it.
+
+    "ADDENDUM 7 TO ORDER WR 2021-0082-DWR:" is the document's NAME. Matching only
+    that line finds the name and none of the meaning, which is why five documents
+    in that series were unclassifiable.
+    """
+
+    def test_an_all_caps_continuation_supplies_the_action(self) -> None:
+        assert extract(SHASTA_2021_TITLE_BLOCK).action is OrderAction.SUSPEND
+
+    def test_a_header_with_a_lower_case_connector_is_still_a_header(self) -> None:
+        """ "ADDENDUM 9 TO ORDERS ... and WR 2021-0085-DWR 1:" contains "and".
+
+        The trailing colon is what makes loosening the character class safe: it
+        marks a header whose continuation follows, so the looser match cannot
+        wander into prose.
+        """
+        assert extract(SHASTA_2021_MIXED_CASE_HEADER).action is OrderAction.REINSTATE
+
+    def test_a_base_order_title_still_reads_correctly(self) -> None:
+        """No regression from widening the header match."""
+        assert extract(SCOTT_BASE_ORDER).action is OrderAction.IMPOSE
+        assert extract(SHASTA_BASE_ORDER).action is OrderAction.IMPOSE
+
+    def test_body_prose_is_not_absorbed_as_a_title(self) -> None:
+        """The continuation is bounded and all-caps only, so ordinary sentences
+        beneath a header cannot be pulled into the action window."""
+        text = (
+            "ORDER IMPOSING WATER RIGHT CURTAILMENT:\n"
+            "This order suspends nothing and grants no conditional suspension.\n"
+            + "Body text. "
+            * 40
+        )
+        assert extract(text).action is OrderAction.IMPOSE
+
+
+class TestImpositionIsAnImposition:
+    def test_the_noun_form_is_read(self) -> None:
+        """Shasta 2021 Addendum 14 says "Imposition of Full Curtailment", and a
+        pattern matching only "impose" and "imposing" missed it."""
+        assert extract(SHASTA_2021_IMPOSITION).action is OrderAction.IMPOSE
+
+
+class TestAStatusNoticeIsNotADecision:
+    """Scott 2021 Addenda 32 and 35 restate what is already in force.
+
+    They announce no new decision, so scoring them as though a threshold had just
+    been crossed would inflate the metric with non-events. CONTINUE is a real
+    category, not a parse failure, and it maps to no direction in the backtest.
+    """
+
+    def test_a_continuation_notice_is_its_own_category(self) -> None:
+        assert extract(SCOTT_2021_CONTINUATION_NOTICE).action is OrderAction.CONTINUE
+
+    def test_a_continuation_notice_is_not_read_as_a_fresh_imposition(self) -> None:
+        assert extract(SCOTT_2021_CONTINUATION_NOTICE).action is not OrderAction.IMPOSE
+
+    def test_a_reimposition_in_the_body_reads_as_a_reinstatement(self) -> None:
+        """Scott 2021 Addendum 35: "This addendum reimposes all curtailments
+        identified in the Curtailment Orders above."
+
+        Its title says "Curtailments in Effect", a status. Its body says it
+        reimposes them, a fresh act that starts new clocks. Those are different
+        legal characterisations, so the conflict guard refuses rather than
+        choosing, which is the behaviour we want.
+        """
+        text = (
+            "Subject: Scott River Watershed: Curtailments in Effect for All Surface\n"
+            "Water and Groundwater Diversions\n"
+            "\n"
+            "This addendum reimposes all curtailments identified in the Curtailment\n"
+            "Orders above. " + "Body text. " * 30
+        )
+        result = extract(text)
+        assert result.body_action is OrderAction.REINSTATE
+        assert result.action is OrderAction.CONTINUE
+        assert result.title_body_conflict is True
+        assert result.scorable is False

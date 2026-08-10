@@ -60,6 +60,12 @@ class OrderAction(StrEnum):
     SUSPEND = "suspend"
     RESCIND = "rescind"
     AMEND = "amend"
+    #: A status notice restating what is already in force. Scott 2021 Addenda 32
+    #: and 35 are titled "Curtailments in Effect for All Surface Water
+    #: Diverters ... as of 12:00 pm on July 2, 2022". It announces no new
+    #: decision, so it is a real category rather than a parse failure, and the
+    #: backtest must not score it as though a threshold had just been crossed.
+    CONTINUE = "continue"
     UNDETERMINED = "undetermined"
 
 
@@ -97,8 +103,16 @@ _ACTION_PATTERNS: tuple[tuple[re.Pattern[str], OrderAction], ...] = (
     # "ORDER IMPOSING WATER RIGHT CURTAILMENT" and the Shasta variant, which
     # inserts CONDITIONAL between IMPOSING and WATER.
     (
-        re.compile(r"\bimpos(?:e|ing)\s+(?:conditional\s+)?water\s+right\s+curtailment", re.I),
+        re.compile(
+            r"\bimpos(?:e|ing|ition\s+of)\s+(?:conditional\s+|full\s+)?"
+            r"(?:water\s+right\s+)?curtailment",
+            re.I,
+        ),
         OrderAction.IMPOSE,
+    ),
+    (
+        re.compile(r"\bcurtailments?\s+(?:in\s+effect|remain\s+in\s+effect)\b", re.I),
+        OrderAction.CONTINUE,
     ),
     (re.compile(r"\bsuspend(?:ing)?\b|\bsuspension\b", re.I), OrderAction.SUSPEND),
     # Scott Addendum 5: "Update to Scott River Surface Water Curtailments for
@@ -233,7 +247,28 @@ class Extraction:
 
 
 #: A base order's action lives in an all-caps title line, not a subject line.
-_TITLE_LINE = re.compile(r"^\s*(?:ORDER|NOTICE|ADDENDUM)\b[A-Z0-9 ,'()/-]{8,}$")
+#:
+#: The trailing colon is allowed because the Shasta 2021 series writes
+#: "ADDENDUM 7 TO ORDER WR 2021-0082-DWR:" and then puts the ACTION on the
+#: following lines: "EXTENSION OF CONDITIONAL TEMPORARY SUSPENSION OF ALL /
+#: CURTAILMENTS IN SHASTA RIVER WATERSHED". Matching only the first line finds
+#: the document's name and none of its meaning.
+_TITLE_LINE = re.compile(r"^\s*(?:ORDER|NOTICE|ADDENDUM)\b[A-Z0-9 ,.'():/-]{8,}$")
+
+#: A colon-terminated header line, mixed case allowed.
+#:
+#: Shasta 2021 Addendum 9 is headed "ADDENDUM 9 TO ORDERS WR 2021-0082-DWR and
+#: WR 2021-0085-DWR 1:" with a lower-case "and" and a trailing footnote marker.
+#: The strict all-caps form rejects it, and the ACTION is on the lines beneath:
+#: "REINSTATEMENT OF CURTAILMENTS AND MODIFICATION OF MARCH FLOW REQUIREMENTS".
+#: The trailing colon is what makes this safe to loosen: it marks a header whose
+#: continuation follows, so the looser character class cannot wander into prose.
+_TITLE_HEADER = re.compile(r"^\s*(?:ORDER|NOTICE|ADDENDUM)\b[A-Za-z0-9 ,.'()/-]{8,}:\s*$")
+
+#: An ALL-CAPS continuation of a title block. Digits, commas and periods appear
+#: in dates and order numbers, so they are allowed; lower case is not, which is
+#: what keeps this from swallowing the body.
+_TITLE_CONTINUATION = re.compile(r"^[A-Z0-9 ,.'():/-]{12,}$")
 
 #: Sentences that describe THIS document, not one it recites.
 #:
@@ -294,6 +329,13 @@ _BODY_ACTION_PATTERNS: tuple[tuple[re.Pattern[str], OrderAction, SuspensionQuali
     ),
     (
         re.compile(rf"{_SELF_REFERENTIAL}[^.]{{0,80}}?cease\s+all\s+diversions", re.I),
+        OrderAction.REINSTATE,
+        SuspensionQualifier.NOT_APPLICABLE,
+    ),
+    # Scott 2021 Addendum 35: "This addendum reimposes all curtailments
+    # identified in the Curtailment Orders above."
+    (
+        re.compile(rf"{_SELF_REFERENTIAL}[^.]{{0,60}}?\breimpos\w+\b", re.I),
         OrderAction.REINSTATE,
         SuspensionQualifier.NOT_APPLICABLE,
     ),
@@ -360,7 +402,17 @@ def _headline(text: str) -> str:
             parts.append(" ".join(lines[i : i + 3]))
             break
 
-    parts.extend(line for line in lines[:25] if _TITLE_LINE.match(line))
+    for i, line in enumerate(lines[:25]):
+        if not (_TITLE_LINE.match(line) or _TITLE_HEADER.match(line)):
+            continue
+        parts.append(line)
+        # An all-caps title can wrap. Take continuation lines until the block
+        # ends, bounded so a run of capitalised body text cannot be absorbed.
+        for follow in lines[i + 1 : i + 4]:
+            if not _TITLE_CONTINUATION.match(follow):
+                break
+            parts.append(follow)
+
     parts.extend(lines[:3])
     return " ".join(parts)
 
