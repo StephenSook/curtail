@@ -13,7 +13,12 @@
     "date that reading was taken. Documents that state a bound ('at or above 60",
     "cfs') or a reference table rather than a reading are excluded and listed under",
     "excluded_with_reason, because scoring a bound as though it were a measurement",
-    "would be inventing precision the Board did not publish."
+    "would be inventing precision the Board did not publish.",
+    "",
+    "A quote must be VERBATIM. A composed sentence containing correct numbers is",
+    "still a fabricated quote, and it is the harder version of the same failure",
+    "because the figures check out. scripts/verify_backtest_quotes.py greps every",
+    "quote against the document it names."
   ],
   "generated": "2026-08-10",
   "regulatory_era": {
@@ -101,11 +106,11 @@
       "id": "shasta_2024/addenda/6",
       "basin": "shasta",
       "decision_date": "2026-06-15",
-      "reading_cfs": 45.3,
+      "reading_cfs": 46.5,
       "board_action": "reinstate",
       "read_method": "text_layer",
-      "source_quote": "Flows measured 46.5 cfs on June 14 and 45.3 cfs on June 15, against the minimum of 50 cfs.",
-      "note": "Reinstatement of conditional curtailments for junior water rights, priority cutoff November 25, 1912. The retired 39.3 figure appears nowhere in this document."
+      "source_quote": "As of 11:45 am on June 15, 2026, the flow at the Yreka USGS gage was recorded at 46.5 cfs",
+      "note": "Reinstatement of conditional curtailments for junior water rights, priority cutoff November 25, 1912. CORRECTED 2026-08-10: the earlier entry paired 45.3 cfs with June 15 and quoted a sentence I had composed rather than one the Board wrote. The document says 45.3 cfs as of 12:00 noon on June 13 and 46.5 cfs at 11:45 am on June 15. The dates were swapped and June 14 appears nowhere. Both readings sit below the 50 cfs June minimum so the scored direction is unchanged, but the record was not true. Caught by scripts/verify_backtest_quotes.py on its first run, on the very case created to correct the retired 39.3 figure."
     }
   ],
   "excluded_with_reason": [

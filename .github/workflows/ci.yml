@@ -91,6 +91,14 @@ jobs:
       - name: FACTS.md matches the code that generates it
         run: uv run python scripts/generate_facts.py --check
 
+      # Named separately so the provenance of the headline metric is visible as
+      # its own line in the checks list. The corpus is gitignored, so CI checks
+      # the committed verification record rather than the PDFs; the record is
+      # produced locally by scripts/verify_backtest_quotes.py against real bytes.
+      # Runs bare: no pipe on the exit path.
+      - name: Backtest quotes trace to their documents
+        run: uv run pytest core/tests/test_backtest_quote_provenance.py -q
+
   hygiene:
     name: Hygiene (AI tone, em-dash)
     runs-on: ubuntu-latest
