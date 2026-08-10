@@ -184,6 +184,19 @@ class Extraction:
     affects_all: bool = False
     priority_dates: tuple[date, ...] = field(default_factory=tuple)
     cfs_values: tuple[float, ...] = field(default_factory=tuple)
+    #: What the body says this document does, where it says so about ITSELF.
+    #: UNDETERMINED means the body made no self-referential claim, which is the
+    #: common case and is not a defect.
+    body_action: OrderAction = OrderAction.UNDETERMINED
+    #: True when the title and the body describe different acts. Never resolved
+    #: automatically. Real case: Scott Addenda 3, 4 and 5 are titled "Update to
+    #: Scott River Surface Water Curtailments for ..." while their bodies grant a
+    #: limited, conditional suspension to named diverters.
+    title_body_conflict: bool = False
+    #: A limited suspension that lapses reverts rights to curtailment with no
+    #: further order, so an unmodelled expiry means believing a suspension is
+    #: still running months after it ended.
+    expires_on: date | None = None
     text_chars: int = 0
     notes: tuple[str, ...] = field(default_factory=tuple)
 
@@ -195,16 +208,97 @@ class Extraction:
     def scorable(self) -> bool:
         """Whether the backtest may score this record.
 
-        Requires a real read AND a determined action. A document that was read
-        but whose action could not be classified is not a scoring failure of the
-        engine, it is an extraction gap, and conflating the two would corrupt
-        the metric in the flattering direction.
+        Requires a real read AND a determined action, and refuses when the title
+        and the body disagree. A document that was read but whose action could
+        not be classified is not a scoring failure of the engine, it is an
+        extraction gap, and conflating the two would corrupt the metric in the
+        flattering direction. A document whose own title and body describe
+        different acts is worse: scoring it means picking a side silently.
         """
-        return self.is_readable and self.action is not OrderAction.UNDETERMINED
+        return (
+            self.is_readable
+            and self.action is not OrderAction.UNDETERMINED
+            and not self.title_body_conflict
+        )
 
 
 #: A base order's action lives in an all-caps title line, not a subject line.
 _TITLE_LINE = re.compile(r"^\s*(?:ORDER|NOTICE|ADDENDUM)\b[A-Z0-9 ,'()/-]{8,}$")
+
+#: Sentences that describe THIS document, not one it recites.
+#:
+#: The safe anchor is the phrase "this Addendum" or "this Order". A recital names
+#: the thing it recites ("Addendum 7", "Order WR 2024-0024-DWR"), so a pattern
+#: requiring the self-reference cannot pick up a neighbouring document's act.
+#: Without that anchor, reading the body would be the recital hazard that
+#: headline-scoping exists to avoid.
+_SELF_REFERENTIAL = r"this\s+(?:addendum|order)\b"
+
+#: The verb between the self-reference and the noun carries the legal effect, so
+#: it is matched explicitly rather than skipped over.
+#:
+#: This was a real bug, caught on Scott Addendum 12. A pattern that allowed any
+#: 120 characters between "this Addendum" and "conditional suspension" matched
+#: the sentence "This Addendum to the Orders ENDS the conditional suspension" and
+#: concluded the addendum WAS a conditional suspension. It terminates one. The
+#: word "ends" inverts the entire legal effect, and reading a reinstatement as a
+#: suspension tells diverters they may divert when in fact they must stop.
+#:
+#: Note also that `[^.]` matches newlines, so a permissive gap silently reaches
+#: across paragraph breaks in a way that is invisible when testing with grep.
+#: Every pattern below is anchored on an affirmative or terminating verb.
+_GRANTS = r"(?:provides?\s+for|is|constitutes?|hereby\s+\w+)"
+_ENDS = r"(?:ends?|terminat\w+|rescind\w*|lift\w*|conclud\w*)"
+
+_BODY_ACTION_PATTERNS: tuple[tuple[re.Pattern[str], OrderAction, SuspensionQualifier], ...] = (
+    # Terminating forms FIRST. "ends the conditional suspension" is a
+    # reinstatement, and must never fall through to a suspension pattern.
+    (
+        re.compile(
+            rf"{_SELF_REFERENTIAL}[^.]{{0,60}}?{_ENDS}\s+the\s+[^.]{{0,40}}?suspension", re.I
+        ),
+        OrderAction.REINSTATE,
+        SuspensionQualifier.NOT_APPLICABLE,
+    ),
+    (
+        re.compile(rf"{_SELF_REFERENTIAL}[^.]{{0,80}}?cease\s+all\s+diversions", re.I),
+        OrderAction.REINSTATE,
+        SuspensionQualifier.NOT_APPLICABLE,
+    ),
+    (
+        re.compile(
+            rf"{_SELF_REFERENTIAL}[^.]{{0,40}}?{_GRANTS}\s+the\s+limited,?\s+conditional\s+suspension",
+            re.I,
+        ),
+        OrderAction.SUSPEND,
+        SuspensionQualifier.LIMITED_CONDITIONAL,
+    ),
+    (
+        re.compile(
+            rf"{_SELF_REFERENTIAL}[^.]{{0,40}}?{_GRANTS}\s+the\s+conditional\s+suspension", re.I
+        ),
+        OrderAction.SUSPEND,
+        SuspensionQualifier.CONDITIONAL,
+    ),
+    (
+        re.compile(rf"{_SELF_REFERENTIAL}[^.]{{0,40}}?fully\s+suspends", re.I),
+        OrderAction.SUSPEND,
+        SuspensionQualifier.FULL,
+    ),
+)
+
+#: "This addendum expires at 11:59 pm on Monday, September 30, 2024".
+#:
+#: An expiry is legally load-bearing and nothing else in this module captures it.
+#: A limited suspension that expires reverts the affected rights to curtailment
+#: with no further order, so a model that ignores the expiry believes a
+#: suspension is still running months after it lapsed.
+_EXPIRY = re.compile(
+    rf"{_SELF_REFERENTIAL}\s+expires\s+at[^.]{{0,60}}?"
+    r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+    r"\s+(\d{1,2}),\s*(20\d{2})",
+    re.I,
+)
 
 
 def _headline(text: str) -> str:
@@ -284,6 +378,33 @@ def extract(text: str) -> Extraction:
 
     affects_all = bool(_ALL_SCOPE.search(headline))
 
+    # What the body says about ITSELF. Only self-referential sentences count,
+    # so a recital of a neighbouring order cannot be mistaken for this one's act.
+    body_action = OrderAction.UNDETERMINED
+    body_qualifier = SuspensionQualifier.NOT_APPLICABLE
+    for pattern, candidate, candidate_q in _BODY_ACTION_PATTERNS:
+        if pattern.search(text):
+            body_action, body_qualifier = candidate, candidate_q
+            break
+
+    # A conflict is recorded, never resolved. Picking a side silently is the
+    # failure this project exists to prevent, and the Board's own drafting makes
+    # this a real case rather than a hypothetical one.
+    conflict = (
+        body_action is not OrderAction.UNDETERMINED
+        and action is not OrderAction.UNDETERMINED
+        and body_action is not action
+    )
+
+    expires_on: date | None = None
+    expiry_match = _EXPIRY.search(text)
+    if expiry_match:
+        month_name, day, year = expiry_match.groups()
+        try:
+            expires_on = date(int(year), _MONTHS[month_name.title()], int(day))
+        except (ValueError, KeyError):
+            expires_on = None  # a malformed expiry is absent, never coerced
+
     # Priority dates and cfs come from the whole document, not just the headline.
     dates: list[date] = []
     for month, day, year in _PRIORITY_DATE.findall(text):
@@ -300,6 +421,19 @@ def extract(text: str) -> Extraction:
             f"Action could not be classified from the headline: {headline[:120]!r}. "
             "Recorded as undetermined rather than guessed."
         )
+    if conflict:
+        notes.append(
+            f"TITLE AND BODY DISAGREE. The title reads as {action.value}; the body "
+            f"says of itself that it is a {body_action.value}"
+            + (
+                f" ({body_qualifier.value})"
+                if body_qualifier is not SuspensionQualifier.NOT_APPLICABLE
+                else ""
+            )
+            + ". Not scorable until a human resolves which governs. Recording the "
+            "disagreement is the honest state; picking a side would put a guessed "
+            "legal characterisation into the record."
+        )
 
     return Extraction(
         method=ExtractionMethod.TEXT_LAYER,
@@ -310,6 +444,9 @@ def extract(text: str) -> Extraction:
         affects_all=affects_all,
         priority_dates=tuple(sorted(set(dates))),
         cfs_values=tuple(cfs),
+        body_action=body_action,
+        title_body_conflict=conflict,
+        expires_on=expires_on,
         text_chars=chars,
         notes=tuple(notes),
     )

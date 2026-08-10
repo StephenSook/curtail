@@ -427,3 +427,136 @@ class TestScorability:
         bare = Extraction(method=ExtractionMethod.REQUIRES_OCR)
         assert bare.scorable is False
         assert bare.qualifier is SuspensionQualifier.NOT_APPLICABLE
+
+
+#: Scott Addendum 12, verbatim. The sentence that broke the first body reader.
+ADDENDUM_12_BODY = """Subject: Scott River Watershed: Reinstatement of Curtailments for All Surface
+Water Rights (Groups 1-8) - Addendum 12
+To: Scott River Water Right Holders
+
+This Addendum to the Orders ends the conditional suspension of curtailment
+provided by Addendum 11 and reinstates curtailment for all surface water rights
+in Priority Groups 1-8 in the Scott River watershed. Flows have fallen to 119 cfs
+against the 125 cfs minimum for December.
+"""
+
+#: Scott Addendum 3, verbatim from the rendered page. A grant, not a termination.
+ADDENDUM_3_BODY = """Addendum 3: Update to Scott River Surface Water Curtailments for Farmer's Ditch
+Company
+To: Scott River Water Right Holders
+
+Based on consideration of the generally increasing flow trend above the minimum
+flow requirement at the USGS Fort Jones gage, this Addendum 3 provides for the
+limited, conditional suspension of curtailment for Farmer's Ditch Company, under
+the conditions noted below.
+
+This addendum expires at 11:59 pm on September 30, 2024, unless amended or
+superseded prior to that date.
+"""
+
+
+class TestTheVerbBetweenCarriesTheLegalEffect:
+    """The polarity bug, caught on Scott Addendum 12 and locked here.
+
+    A first version allowed any 120 characters between "this Addendum" and
+    "conditional suspension". It matched "This Addendum to the Orders ENDS the
+    conditional suspension" and concluded the addendum WAS one. It terminates
+    one. Reading a reinstatement as a suspension tells diverters they may divert
+    at the moment the Board ordered them to stop.
+    """
+
+    def test_ending_a_suspension_reads_as_a_reinstatement(self) -> None:
+        assert extract(ADDENDUM_12_BODY).body_action is OrderAction.REINSTATE
+
+    def test_ending_a_suspension_is_never_read_as_a_suspension(self) -> None:
+        """The specific inversion. Stated separately so it cannot be lost in a
+        refactor of the assertion above."""
+        assert extract(ADDENDUM_12_BODY).body_action is not OrderAction.SUSPEND
+
+    def test_the_title_and_body_agree_so_nothing_is_flagged(self) -> None:
+        result = extract(ADDENDUM_12_BODY)
+        assert result.action is OrderAction.REINSTATE
+        assert result.title_body_conflict is False
+        assert result.scorable is True
+
+    def test_granting_a_limited_conditional_suspension_reads_as_a_suspension(self) -> None:
+        result = extract(ADDENDUM_3_BODY)
+        assert result.body_action is OrderAction.SUSPEND
+
+    def test_a_recital_of_another_document_is_not_read_as_this_ones_act(self) -> None:
+        """Body reading is anchored on "this Addendum" for exactly this reason.
+
+        Addenda routinely recite what neighbouring documents did. Without the
+        self-reference, a reinstatement reciting a neighbour's conditional
+        suspension would read as a suspension of its own.
+
+        The recital below is phrased EXACTLY as a matching sentence would be,
+        "provides for the conditional suspension", so the self-reference is the
+        only thing standing between this text and a false match. An earlier
+        version said "provided the conditional suspension", which cannot match
+        the affirmative verb pattern in any case, so it passed whether or not the
+        anchor existed. Mutation testing caught that vacuity; this assertion now
+        fails when the anchor is removed.
+        """
+        text = (
+            "Subject: Reinstatement of Curtailments for All Surface Water Rights\n"
+            "\n"
+            "On November 1, 2024, Addendum 11 provides for the conditional suspension\n"
+            "of curtailment for all surface water rights. " + "Further text. " * 20
+        )
+        assert extract(text).body_action is not OrderAction.SUSPEND
+
+
+class TestATitleBodyDisagreementIsRecordedNotResolved:
+    def test_a_conflict_makes_a_document_unscorable(self) -> None:
+        """Scoring a document whose title and body disagree means picking a side
+        silently, which is the failure this project exists to prevent."""
+        text = (
+            "Subject: Full Suspension of Curtailments in Scott River Watershed\n"
+            "\n"
+            "This Addendum to the Orders ends the conditional suspension of\n"
+            "curtailment provided by the previous addendum. " + "Body text. " * 20
+        )
+        result = extract(text)
+        assert result.action is OrderAction.SUSPEND
+        assert result.body_action is OrderAction.REINSTATE
+        assert result.title_body_conflict is True
+        assert result.scorable is False
+
+    def test_a_conflict_explains_itself_in_the_notes(self) -> None:
+        text = (
+            "Subject: Full Suspension of Curtailments in Scott River Watershed\n"
+            "\n"
+            "This Addendum to the Orders ends the conditional suspension of\n"
+            "curtailment provided by the previous addendum. " + "Body text. " * 20
+        )
+        notes = " ".join(extract(text).notes).lower()
+        assert "title and body disagree" in notes
+
+    def test_a_silent_body_is_not_a_conflict(self) -> None:
+        """Most documents make no self-referential claim, which is normal.
+
+        Treating silence as disagreement would make almost the whole corpus
+        unscorable and destroy the metric.
+        """
+        result = extract(SHASTA_ADDENDUM_6)
+        assert result.body_action is OrderAction.UNDETERMINED
+        assert result.title_body_conflict is False
+        assert result.scorable is True
+
+
+class TestExpiryIsCaptured:
+    """A lapsed suspension reverts rights to curtailment with no further order."""
+
+    def test_an_expiry_is_read_from_the_document(self) -> None:
+        from datetime import date
+
+        assert extract(ADDENDUM_3_BODY).expires_on == date(2024, 9, 30)
+
+    def test_a_document_without_an_expiry_records_none(self) -> None:
+        assert extract(SHASTA_ADDENDUM_6).expires_on is None
+
+    def test_an_expiry_is_never_invented_for_a_base_order(self) -> None:
+        """Base orders run until suspended or rescinded. Inventing an end date
+        would show a live curtailment as lapsed."""
+        assert extract(SCOTT_BASE_ORDER).expires_on is None
