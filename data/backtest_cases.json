@@ -1,0 +1,123 @@
+{
+  "$schema_note": [
+    "Historical curtailment decisions, replayed against the engine.",
+    "",
+    "EVERY case carries the sentence it was read from. That is not decoration.",
+    "A figure of 39.3 cfs, which appears nowhere in Shasta Addendum 6, propagated",
+    "out of a research haul into the build constitution, two test files, the corpus",
+    "manifest and a public README, and survived a dedicated verification pass and a",
+    "passing test suite. Only opening the PDF caught it. A case whose reading came",
+    "from a summary rather than from the document is not evidence of anything.",
+    "",
+    "A case is admitted only when the document states BOTH a point reading and the",
+    "date that reading was taken. Documents that state a bound ('at or above 60",
+    "cfs') or a reference table rather than a reading are excluded and listed under",
+    "excluded_with_reason, because scoring a bound as though it were a measurement",
+    "would be inventing precision the Board did not publish."
+  ],
+  "generated": "2026-08-10",
+  "regulatory_era": {
+    "id": "2024_2026",
+    "description": "23 CCR 875 to 875.9 as readopted effective January 27, 2025 and extended by AB 263.",
+    "empirical_confirmation": [
+      "Every monthly minimum stated in a 2024-era addendum matches the encoded schedule:",
+      "Scott September 33 cfs (Addendum 3), Scott October 40 cfs (Addendum 5),",
+      "Shasta October 105 cfs (Addendum 2), Shasta October 105 and November 125 cfs",
+      "(Addendum 3), Scott July 50 and August 30 cfs (Addendum 7).",
+      "So for every month in evidence the 2024 and 2025 tables agree. This is measured",
+      "from the documents, not assumed."
+    ],
+    "earliest_scorable_date": "2024-01-01",
+    "why_bounded": [
+      "The 2021 cycle used a different table and a 135 cfs sustained suspension",
+      "threshold. Scoring a 2021 decision against this schedule would mark the Board",
+      "wrong for correctly applying the rule that was actually in force. The harness",
+      "refuses rather than scores when a case predates this era."
+    ]
+  },
+  "cases": [
+    {
+      "id": "scott_2024/addenda/7",
+      "basin": "scott",
+      "decision_date": "2025-07-20",
+      "reading_cfs": 48.7,
+      "board_action": "reinstate",
+      "read_method": "vision",
+      "source_quote": "Flows at the USGS Fort Jones gage are 48.7 cfs as of July 20, 2025, at 9:30 pm.",
+      "note": "Curtailment reinstated for all surface water and groundwater diverters."
+    },
+    {
+      "id": "scott_2024/addenda/8",
+      "basin": "scott",
+      "decision_date": "2025-07-22",
+      "reading_cfs": 78.4,
+      "board_action": "suspend",
+      "read_method": "vision",
+      "source_quote": "As of 7:30 am this morning, flows at the Fort Jones USGS gage were measured at 78.4 cfs.",
+      "note": "Same gage, 34 hours later, after USGS revised the rating curve on Watermaster field measurements. Signed by the Chief Deputy Director."
+    },
+    {
+      "id": "shasta_2024/addenda/2",
+      "basin": "shasta",
+      "decision_date": "2024-10-25",
+      "reading_cfs": 126.0,
+      "board_action": "suspend",
+      "read_method": "text_layer",
+      "source_quote": "The flow at the Yreka USGS gage as of 2:00 pm today is 126 cubic feet per second (cfs) and has been greater than the October minimum flow requirement of 105 cfs throughout October.",
+      "note": "Temporary suspension of all curtailments through October 31, 2024."
+    },
+    {
+      "id": "shasta_2024/addenda/3",
+      "basin": "shasta",
+      "decision_date": "2024-10-31",
+      "reading_cfs": 140.0,
+      "board_action": "suspend",
+      "read_method": "text_layer",
+      "source_quote": "The flow at the Yreka USGS gage as of 11:00 AM today is 140 cubic feet per second (cfs), which is greater than the October and November minimum flow requirements of 105 cfs and 125 cfs, respectively.",
+      "note": "Unqualified suspension of all curtailments."
+    },
+    {
+      "id": "shasta_2024/addenda/5",
+      "basin": "shasta",
+      "decision_date": "2025-10-13",
+      "reading_cfs": 145.0,
+      "board_action": "suspend",
+      "read_method": "text_layer",
+      "source_quote": "The flow at the Yreka USGS gage as of 10:00 AM on October 13, 2025, was 145 cfs, which is greater than the October and November minimum flow requirements of 105 cfs and 125 cfs, respectively.",
+      "note": "Suspending water right curtailments in the Shasta River watershed."
+    },
+    {
+      "id": "shasta_2024/addenda/6",
+      "basin": "shasta",
+      "decision_date": "2026-06-15",
+      "reading_cfs": 45.3,
+      "board_action": "reinstate",
+      "read_method": "text_layer",
+      "source_quote": "Flows measured 46.5 cfs on June 14 and 45.3 cfs on June 15, against the minimum of 50 cfs.",
+      "note": "Reinstatement of conditional curtailments for junior water rights, priority cutoff November 25, 1912. The retired 39.3 figure appears nowhere in this document."
+    }
+  ],
+  "excluded_with_reason": [
+    {
+      "id": "scott_2024/addenda/6",
+      "reason": "States a bound, not a reading: flows 'have been at or above the September flow requirement (60 cfs)'. Scoring a bound as a measurement would invent precision the Board did not publish.",
+      "separate_finding": "This document, dated November 13 2024, calls 60 cfs 'the September flow requirement'. Under 23 CCR 875 the Scott September minimum is 33 cfs and 60 cfs is NOVEMBER's figure. Scott Addendum 3 states September as 33 cfs in the same series, so two addenda in one series disagree about September. The number matches the month the addendum was issued in, not the month it names."
+    },
+    {
+      "id": "scott_2024/addenda/9",
+      "reason": "No sentence in the document states a point reading with its date. The constitution carries '145 versus the 150 May minimum', but that figure was not confirmed against this document, and a case sourced from a summary is not evidence."
+    },
+    {
+      "id": "scott_2024/addenda/12",
+      "reason": "Same as Addendum 9. The trigger reading is not yet verified from the document itself."
+    },
+    {
+      "id": "scott_2024/addenda/3",
+      "reason": "Scoped to one named diverter with a volumetric cap rather than to a basin-wide threshold decision. The engine's below-minimum test is not the question this document answers."
+    },
+    {
+      "id": "scott_2024/addenda/4",
+      "reason": "States a range observed over a week, '44 to 46 cfs during the last week', not a point reading on a decision date. Also scoped to named diverters."
+    }
+  ]
+}
