@@ -50,7 +50,10 @@ jobs:
         run: uv run ruff format --check .
 
       - name: mypy strict
-        run: uv run mypy core/src agents/src core/tests
+        # agents/tests included deliberately. A type check whose argument list
+        # omits a directory is structurally incapable of catching anything in
+        # it, and this list has already drifted behind the tree once.
+        run: uv run mypy core/src agents/src core/tests agents/tests
 
       - name: pytest
         run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
