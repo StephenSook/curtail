@@ -57,6 +57,13 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["B011"]
+# The order-parser fixtures are government documents quoted character for
+# character. E501 would force rewrapping a line the Board actually wrapped
+# elsewhere, and RUF001 flags the en-dash in "Addendum 6 - Full Suspension",
+# which is the Board's own typography. Both are correct defaults and both are
+# wrong here: a fixture retyped in tidier punctuation stops being evidence of
+# what the parser meets in production. Scoped to this one file deliberately.
+"core/tests/test_order_parser.py" = ["B011", "E501", "RUF001"]
 
 [tool.mypy]
 python_version = "3.13"
