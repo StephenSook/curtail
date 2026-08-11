@@ -480,3 +480,135 @@ def _console_status_map() -> dict[str, tuple[str, str, str]]:
         block.group(1),
     )
     return {event: (colour, glyph, label) for event, colour, glyph, label in rows}
+
+
+class TestTheRecommendationEndpoint:
+    """The Allocation Core on the Board's own rights table, with its ledger.
+
+    Until Attachment A was parsed the Core had only ever run on rights invented in
+    tests, so this endpoint could not have existed honestly.
+    """
+
+    def test_it_runs_on_the_real_rights_and_returns_a_ledger_line_each(self) -> None:
+        from curtail_core.rights_record import load_rights
+
+        response = TestClient(app).get(
+            "/api/recommendation/shasta?cfs=46.5&at=2026-06-15T12:00:00%2B00:00"
+        )
+        assert response.status_code == 200
+        body = response.json()
+
+        placed = [r for r in load_rights().converted.rights if r.basin.value == "shasta"]
+        assert placed, "no rights loaded, so this test proves nothing"
+        assert len(body["ledger"]) == len(placed), (
+            "the ledger must carry one line per right considered, or an official "
+            "reading it cannot tell whose disposition is missing"
+        )
+
+    def test_it_is_a_recommendation_and_says_who_determines(self) -> None:
+        body = TestClient(app).get("/api/recommendation/shasta?cfs=46.5").json()
+        assert body["recommendation_only"] is True
+        assert body["needs_official_review"] is True
+        assert body["determination_belongs_to"] == "deputy_director"
+        assert "875(b)" in body["disclaimer"]
+
+    def test_deterministic_facts_and_judgment_inputs_stay_apart(self) -> None:
+        """The split is the product. Flattening them into one list would be the whole
+        design failure: 875(b)(3) preserves discretion the engine must not resolve."""
+        body = (
+            TestClient(app)
+            .get("/api/recommendation/shasta?cfs=46.5&at=2026-06-15T12:00:00%2B00:00")
+            .json()
+        )
+        assert set(body["deterministic_facts"]) >= {
+            "observed_cfs",
+            "operative_minimum_cfs",
+            "shortfall_cfs",
+            "recommended_extent_rank",
+        }
+        assert "judgment_inputs" in body
+        assert isinstance(body["judgment_inputs"], list)
+
+    def test_every_ledger_line_carries_its_authority(self) -> None:
+        """A disposition with no citation is an assertion with no basis, which is the
+        thing the ledger exists to prevent."""
+        body = (
+            TestClient(app)
+            .get("/api/recommendation/shasta?cfs=46.5&at=2026-06-15T12:00:00%2B00:00")
+            .json()
+        )
+        for entry in body["ledger"]:
+            assert entry["citation"].startswith("23 CCR 875.5")
+            assert entry["reason"]
+            assert entry["grouping"]
+
+    def test_it_carries_the_provenance_of_the_rights_it_used(self) -> None:
+        body = TestClient(app).get("/api/recommendation/shasta?cfs=46.5").json()
+        provenance = body["provenance"]
+        assert "Addendum 6" in provenance["document"]
+        assert len(provenance["source_sha256"]) == 64
+        assert provenance["not_placed"], (
+            "the rows that could not be placed must travel with the answer, or the "
+            "ledger reads as covering every right in the order"
+        )
+
+    def test_a_basin_with_no_ingested_table_refuses(self) -> None:
+        """An empty rights list is a valid input to the Core and produces a well-formed
+        recommendation that reaches nobody. That reads exactly like a real answer, which
+        makes it the most dangerous output available here."""
+        response = TestClient(app).get("/api/recommendation/scott?cfs=100")
+        assert response.status_code == 422
+        assert "no rights table" in response.json()["detail"]
+
+    def test_an_unknown_basin_is_404_not_an_empty_answer(self) -> None:
+        assert TestClient(app).get("/api/recommendation/nowhere?cfs=10").status_code == 404
+
+    @pytest.mark.parametrize("bad", ["nan", "-5"])
+    def test_a_reading_that_cannot_exist_is_refused(self, bad: str) -> None:
+        response = TestClient(app).get(f"/api/recommendation/shasta?cfs={bad}")
+        assert response.status_code == 422
+
+
+class TestTheRightsRecordSurvivesPackaging:
+    """Third time this project has had to package an asset the service reads.
+
+    A path resolved relative to the repository passes every local test and is absent
+    from every container.
+    """
+
+    def test_the_loaded_copy_is_inside_the_package(self) -> None:
+        from curtail_core.rights_record import record_path
+
+        loaded = record_path()
+        assert loaded.parent.name == "data"
+        assert loaded.parents[1].name == "curtail_core", (
+            f"the rights record loads from {loaded}, which is outside the package"
+        )
+
+    def test_a_built_wheel_carries_it(self) -> None:
+        import subprocess
+        import tempfile
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as out:
+            result = subprocess.run(
+                ["uv", "build", "--package", "curtail-core", "--wheel", "--out-dir", out],
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+            wheels = list(Path(out).glob("*.whl"))
+            assert wheels, "no wheel was produced"
+            names = zipfile.ZipFile(wheels[0]).namelist()
+            assert "curtail_core/data/rights_shasta_addendum6.json" in names, (
+                f"the wheel does not carry the rights record: {sorted(names)[:12]}"
+            )
+
+    def test_a_missing_record_raises_rather_than_answering_with_no_rights(self) -> None:
+        """The failure mode this guards is not a crash, it is a confident answer. An
+        empty rights list produces a recommendation reaching nobody."""
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        with pytest.raises(RightsRecordUnavailableError, match="Refusing to continue"):
+            load_rights(Path("/nonexistent/rights.json"))

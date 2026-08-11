@@ -33,9 +33,11 @@ from fastapi.responses import HTMLResponse
 
 from curtail_agents.events import Provenance
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
+from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.basins import Basin
 from curtail_core.flow_minimums import ScheduleGapError, minimum_flow
+from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
 
 #: Structured JSON, because Cloud Logging parses it and a human reading a terminal
 #: does not have to. Configured once here rather than per call site.
@@ -174,6 +176,125 @@ def classify(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]:
         "disclaimer": (
             "A recommendation. 23 CCR 875(b) vests the determination in a named "
             "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
+@app.get("/api/recommendation/{basin}")
+def recommendation(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]:
+    """The Allocation Core running on the REAL rights table, with its ledger.
+
+    This is the artifact that makes a signed order reviewable. An official reading it
+    can follow, for any single right, why it landed where it did and under which
+    subdivision. Until the Board's own Attachment A was parsed, the Core had only ever
+    run on rights invented in tests and this endpoint could not have existed honestly.
+
+    A RECOMMENDATION, never a determination. 23 CCR 875(b) vests that in a named human
+    official, and 875(b)(3) expressly preserves the discretion to decline to issue, to
+    use a smaller priority grouping, or to suspend orders already issued. The response
+    separates the deterministic facts from the judgment inputs for exactly that reason,
+    and never resolves the second set.
+
+    Refuses for a basin with no ingested rights table rather than answering from an
+    empty one. An empty rights list is a valid input to the Core and produces a
+    perfectly well-formed recommendation that reaches nobody, which reads like a real
+    answer and is the most dangerous output available here.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    _check_reading(cfs)
+    moment = datetime.now(UTC) if at is None else _parse(at)
+
+    try:
+        loaded = load_rights()
+    except RightsRecordUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    in_basin = [r for r in loaded.converted.rights if r.basin is which]
+    if not in_basin:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"no rights table has been ingested for the {which.value} basin. "
+                f"The loaded record is {loaded.document}. Answering from an empty "
+                "rights list would produce a recommendation reaching nobody, which is "
+                "indistinguishable from a real one."
+            ),
+        )
+
+    try:
+        result = recommend(basin=which, when=moment.date(), observed_cfs=cfs, rights=in_basin)
+    except (ScheduleGapError, ValueError) as exc:
+        log.info("recommendation refused", basin=basin, cfs=cfs, reason=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    log.info(
+        "recommended",
+        basin=basin,
+        cfs=cfs,
+        action=result.action.value,
+        rights=len(in_basin),
+        reached=len(result.rights_reached),
+    )
+    return _as_json(result, loaded)
+
+
+def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
+    """Serialise a recommendation with the two categories kept apart.
+
+    The split is the product. Deterministic facts are what the engine computed;
+    judgment inputs are what the regulation leaves to the official and this system
+    surfaces rather than resolves. Flattening them into one list would be the whole
+    design failure.
+    """
+    return {
+        "recommendation_only": True,
+        "determination_belongs_to": result.determination_belongs_to.value,
+        "needs_official_review": result.needs_official_review,
+        "basin": result.basin.value,
+        "evaluated_for": result.evaluated_for.isoformat(),
+        "action": result.action.value,
+        "deterministic_facts": {
+            "observed_cfs": float(result.observed_cfs),
+            "operative_minimum_cfs": float(result.operative_minimum_cfs),
+            "shortfall_cfs": float(result.shortfall_cfs),
+            "near_threshold": result.near_threshold,
+            "recommended_extent_rank": result.recommended_extent_rank,
+            "shortfall_arithmetic_closed": result.shortfall_arithmetic_closed,
+            "rights_considered": len(result.ledger),
+            "rights_reached": len(result.rights_reached),
+        },
+        "judgment_inputs": list(dict.fromkeys(result.judgment_inputs)),
+        "data_quality_flags": list(dict.fromkeys(result.data_quality_flags)),
+        "provenance": {
+            "document": loaded.document,
+            "issued": loaded.issued.isoformat(),
+            "source_sha256": loaded.source_sha256,
+            "summary": loaded.provenance,
+            "not_placed": list(loaded.converted.unplaceable),
+            "open_questions": list(loaded.converted.open_questions),
+        },
+        "ledger": [
+            {
+                "right_id": entry.right_id,
+                "priority_date": (entry.priority_date.isoformat() if entry.priority_date else None),
+                "grouping": entry.placement.grouping_label,
+                "rank": entry.placement.rank,
+                "citation": entry.placement.citation,
+                "reason": entry.placement.reason,
+                "reached_by_extent": entry.reached_by_extent,
+                "would_be_curtailed": entry.would_be_curtailed,
+                "lcs_protected": entry.lcs_protected,
+                "note": entry.note,
+            }
+            for entry in result.ledger
+        ],
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named human "
+            "official, and nothing this system produces self-executes."
         ),
     }
 
