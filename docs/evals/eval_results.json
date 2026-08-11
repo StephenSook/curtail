@@ -1,0 +1,26 @@
+{
+  "eval_set_id": "curtail_sentinel",
+  "cases": 6,
+  "metrics": {
+    "tool_trajectory_avg_score": {
+      "status": "not_applicable",
+      "reason": "Curtail's fleet is an ADK Graph whose stages are NODES, not tools, so an agent that calls no tools scores a vacuous 1.0 against an empty expectation. Reporting that as a result would be quoting a number that measured nothing."
+    },
+    "final_response_match_v2": {
+      "status": "pending_credentials",
+      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+    },
+    "safety_v1": {
+      "status": "pending_credentials",
+      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+    },
+    "hallucinations_v1": {
+      "status": "pending_credentials",
+      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+    }
+  },
+  "what_is_measured_today": {
+    "source": "docs/FACTS.md",
+    "note": "The engine's accuracy against the Board's record is measured by the backtest, which is deterministic and needs no judge model. The ADK metrics above are additional evidence, not the primary claim, and this file does not restate the backtest figure so the two cannot drift apart."
+  }
+}

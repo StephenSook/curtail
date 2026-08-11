@@ -45,6 +45,10 @@ tone: ## AI-tone and em-dash gate
 secrets: ## Full-history secret scan
 	gitleaks detect --source . --redact --no-banner --exit-code 1
 
+.PHONY: evals
+evals: ## Regenerate the committed eval artifacts from the Board's own cases
+	uv run python scripts/export_evals.py
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that

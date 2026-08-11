@@ -1,0 +1,229 @@
+{
+  "eval_set_id": "curtail_sentinel",
+  "name": "Gage Sentinel against the Board's own record",
+  "description": "Every case is a reading the State Water Board acted on, with the action it took. Sourced from data/backtest_cases.json, which is built from the order PDFs themselves.",
+  "eval_cases": [
+    {
+      "eval_id": "scott_2024/addenda/7",
+      "conversation": [
+        {
+          "invocation_id": "scott_2024/addenda/7",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate scott"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "reinstate"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "scott",
+            "observed_cfs": 48.7,
+            "observed_at": "2025-07-20",
+            "provenance": "board_document"
+          },
+          "correlation_id": "scott_2024/addenda/7"
+        }
+      }
+    },
+    {
+      "eval_id": "scott_2024/addenda/8",
+      "conversation": [
+        {
+          "invocation_id": "scott_2024/addenda/8",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate scott"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "suspend"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "scott",
+            "observed_cfs": 78.4,
+            "observed_at": "2025-07-22",
+            "provenance": "board_document"
+          },
+          "correlation_id": "scott_2024/addenda/8"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/2",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "suspend"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 126.0,
+            "observed_at": "2024-10-25",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/2"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/3",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/3",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "suspend"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 140.0,
+            "observed_at": "2024-10-31",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/3"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/5",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/5",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "suspend"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 145.0,
+            "observed_at": "2025-10-13",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/5"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/6",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/6",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "reinstate"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 46.5,
+            "observed_at": "2026-06-15",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/6"
+        }
+      }
+    }
+  ]
+}

@@ -480,15 +480,26 @@ class TestProseBesideDataNeverRestatesIt:
         }
         counts: list[int] = []
         for token in re.split(r"[\s,;:()]+", text):
-            if token.lower().strip(".") in words:
-                counts.append(-1)  # a spelled count, reported without a value
+            if not token:
                 continue
-            if any(ch.isalpha() for ch in token):
-                continue  # an identifier, not a measurement
-            for n in re.findall(r"\d+", token):
-                if len(n) == 4 and 1850 <= int(n) <= 2100:
-                    continue  # a year names an era
-                counts.append(int(n))
+            # An IDENTIFIER mixes letters and digits: `addendum6-shasta-attach-a`,
+            # `order-wr-0005-dwr`. Exempting on "contains a letter" alone was too
+            # coarse and a review caught what it let through: `twenty-four` has
+            # letters, so the whole token was skipped and a spelled count walked
+            # straight past the word list it was supposed to meet. Requiring BOTH
+            # letters and digits narrows the exemption to things that are actually
+            # names, and hyphenated words are then split and inspected part by part.
+            has_alpha = any(ch.isalpha() for ch in token)
+            has_digit = any(ch.isdigit() for ch in token)
+            if has_alpha and has_digit:
+                continue
+            for part in re.split(r"[-/_.]+", token):
+                if part.lower() in words:
+                    counts.append(-1)  # a spelled count, reported without a value
+                elif part.isdigit():
+                    if len(part) == 4 and 1850 <= int(part) <= 2100:
+                        continue  # a year names an era
+                    counts.append(int(part))
         return counts
 
     def test_the_extraction_note_states_no_counts(self, manifest: dict[str, Any]) -> None:
@@ -515,6 +526,14 @@ class TestProseBesideDataNeverRestatesIt:
         assert self._counts_in("it went stale in four separate places") != []
         assert self._counts_in("three documents were downloaded by hand") != []
         assert self._counts_in("the note explains why and the fields carry what") == []
+        # Hyphenated spelled counts, the gap a review found. `twenty-four` has
+        # letters, so a "contains a letter" exemption skipped the whole token.
+        assert self._counts_in("twenty-four PDFs were fetched") != []
+        assert self._counts_in("thirty-three records were enumerated") != []
+        assert self._counts_in("one hundred and two documents") != []
+        # And the exemption still has to hold for real identifiers.
+        assert self._counts_in("order-wr-0005-dwr-scott-sws-curtailment") == []
+        assert self._counts_in("addendum8-scottriver-7-22-2025") == []
         assert self._counts_in("the 2021 series and the 2024 series") == []
 
     def test_the_note_still_says_which_field_is_the_denominator(

@@ -58,6 +58,12 @@ jobs:
       - name: pytest
         run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
 
+      # Committed evidence drifts from its generator silently, so the generator is
+      # the gate. Bare, so a stale artifact fails the job rather than shipping a
+      # judge-facing number the code no longer produces.
+      - name: eval artifacts are current
+        run: uv run python scripts/export_evals.py --check
+
       # The chaos drill, run as the COMMAND, not only as its unit tests.
       #
       # The drill is demonstrated live on camera, so the thing that must not rot is
