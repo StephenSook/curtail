@@ -262,7 +262,21 @@ def deliver_order(
             receipt_reference=result.receipt_reference,
         )
         records.append(record)
-        table.complete(key)
+
+        # COMPLETED ONLY WHEN THE ACT IS FINISHED, which on the legal lane means service
+        # was actually effected.
+        #
+        # This used to complete on acceptance alone, and that quietly closed the door on
+        # remediation: a courier who arrived and got no signature marked the key done, so
+        # serving that party again over the same channel was skipped as a duplicate. The
+        # escalation went to a human who then could not act on it through this system.
+        #
+        # A notification has no receipt to obtain, so leaving the building finishes it.
+        # On the legal lane an unfinished act leaves the claim to lapse with its lease,
+        # which is what makes a second, correct attempt possible.
+        effected = lane is not ServiceLane.LEGAL_SERVICE or record.constitutes_legal_service
+        if effected:
+            table.complete(key)
 
         if lane is ServiceLane.LEGAL_SERVICE and not record.constitutes_legal_service:
             # Accepted by the transport and still not service. This is the case the two

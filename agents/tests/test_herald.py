@@ -23,7 +23,7 @@ from curtail_agents.herald import (
     deliver_order,
     synthetic_transport,
 )
-from curtail_agents.messaging import Channel, DedupTable
+from curtail_agents.messaging import CLAIM_LEASE_SECONDS, Channel, DedupTable
 from curtail_core.clocks import RecipientClass, ServiceLane, ServiceMethod
 
 STAMP = datetime(2026, 6, 16, 12, 0, tzinfo=UTC)
@@ -231,6 +231,66 @@ class TestOneDeliveryPerRecipient:
         assert first.records and first.legally_served == ("holder-1",)
         assert second.records == ()
         assert second.skipped_as_duplicate == ("holder-1",)
+
+    def test_an_unserved_party_can_still_be_served_later(self) -> None:
+        """The escalation has to be actionable through this system, or it is a dead end.
+
+        Completing on ACCEPTANCE closed that door: a courier who arrived and got no
+        signature marked the key done, so serving that party again over the same channel
+        was skipped as a duplicate forever. A human received an escalation they could not
+        act on.
+
+        Now an unfinished act leaves the claim to lapse with its lease. Inside the lease
+        a second actor must not duplicate an in-flight attempt, which is what the lease
+        is for; after it, remediation proceeds.
+        """
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+
+        unsigned = send(
+            "initial_order",
+            [party("holder-1")],
+            transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
+            dedup=table,
+        )
+        assert unsigned.legally_served == ()
+        assert unsigned.escalations
+
+        blocked = send("initial_order", [party("holder-1")], dedup=table)
+        assert blocked.skipped_as_duplicate == ("holder-1",), (
+            "an in-flight claim must still exclude a concurrent second attempt"
+        )
+
+        ticks[0] = CLAIM_LEASE_SECONDS + 1
+        remedied = send("initial_order", [party("holder-1")], dedup=table)
+        assert remedied.legally_served == ("holder-1",), (
+            "the escalation could not be remediated, so it was a dead end"
+        )
+        assert remedied.may_report_as_served is True
+
+    def test_a_completed_service_stays_a_no_op_forever(self) -> None:
+        """The other half. Once service IS effected, no lease expiry may let it happen
+        twice: that would write a second service record for one act."""
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+
+        first = send("initial_order", [party("holder-1")], dedup=table)
+        assert first.legally_served == ("holder-1",)
+
+        ticks[0] = CLAIM_LEASE_SECONDS * 10
+        again = send("initial_order", [party("holder-1")], dedup=table)
+        assert again.records == ()
+        assert again.skipped_as_duplicate == ("holder-1",)
+
+    def test_a_notification_is_finished_when_it_leaves_the_building(self) -> None:
+        """There is no receipt to obtain on this lane, so acceptance completes it."""
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+
+        send("drought_update", [diverter("d-1")], dedup=table)
+        ticks[0] = CLAIM_LEASE_SECONDS * 10
+        repeat = send("drought_update", [diverter("d-1")], dedup=table)
+        assert repeat.skipped_as_duplicate == ("d-1",)
 
     def test_a_failed_delivery_is_not_marked_done(self) -> None:
         """It is not completed, so the claim lapses with its lease and a later run can
