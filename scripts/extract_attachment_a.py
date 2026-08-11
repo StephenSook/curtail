@@ -34,6 +34,10 @@ from curtail_core.attachment_a import parse_attachment, to_water_rights  # noqa:
 REPO = Path(__file__).resolve().parents[1]
 SOURCE = REPO / "data" / "corpus" / "addendum6-shasta-attach-a.pdf"
 RECORD = REPO / "data" / "rights_shasta_addendum6.json"
+#: The packaged copy, which is the one a deployed service reads. Written by the same
+#: run and verified by the same --check, because two copies is two places to drift and
+#: this project has shipped an asset resolved from the repository twice.
+PACKAGED = REPO / "core" / "src" / "curtail_core" / "data" / "rights_shasta_addendum6.json"
 
 #: The table runs from page 6 to the end of the document. The body occupies 1 to 5.
 FIRST_TABLE_PAGE = 6
@@ -134,16 +138,22 @@ def main() -> int:
     fresh = json.dumps(build(), indent=2, sort_keys=True) + "\n"
 
     if args.check:
-        if not RECORD.exists():
-            print(f"::error::{RECORD} is missing")
+        stale = []
+        for target in (RECORD, PACKAGED):
+            if not target.exists():
+                print(f"::error::{target} is missing")
+                stale.append(target)
+            elif target.read_text() != fresh:
+                print(f"::error::{target} is stale. Re-run scripts/extract_attachment_a.py")
+                stale.append(target)
+        if stale:
             return 1
-        if RECORD.read_text() != fresh:
-            print(f"::error::{RECORD} is stale. Re-run scripts/extract_attachment_a.py")
-            return 1
-        print(f"{RECORD.name} matches a fresh parse of {SOURCE.name}")
+        print(f"both copies of {RECORD.name} match a fresh parse of {SOURCE.name}")
         return 0
 
+    PACKAGED.parent.mkdir(parents=True, exist_ok=True)
     RECORD.write_text(fresh)
+    PACKAGED.write_text(fresh)
     record = json.loads(fresh)
     print(f"wrote {RECORD.relative_to(REPO)}")
     print(

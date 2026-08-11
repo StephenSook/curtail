@@ -74,6 +74,20 @@
      statements about the system, not about the river. */
   .s-system { color: var(--fg); }
   .note { color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 66ch; }
+  /* The ledger scrolls inside its own box. The page body never scrolls sideways. */
+  .ledger { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th { position: sticky; top: 0; background: var(--popover); text-align: left;
+       font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px;
+       color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border-strong); }
+  td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-family: var(--mono); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .fact { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .fact dt { color: var(--muted); font-size: 11px; letter-spacing: 0.04em;
+             text-transform: uppercase; margin: 0 0 4px; }
+  .fact dd { margin: 0; font: 600 18px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
   .refusal { color: var(--conditional); font-size: 13px; margin-top: 12px; max-width: 70ch; }
   code { font-family: var(--mono); color: var(--muted); }
   a { color: var(--ring); }
@@ -118,6 +132,13 @@
   </section>
 
   <section class="card">
+    <h2>Allocation Core, on the Board's own rights table</h2>
+    <div id="rec">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Awaiting a reading</span></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>What this is showing</h2>
     <p class="note">
       The default is the reading behind Scott Addendum 7: 48.7 cfs on 20 July 2025,
@@ -131,6 +152,16 @@
     <p class="note">
       The reading you type is labelled <code>unsourced</code>: this console
       classifies a value you supply and never contacts USGS.
+    </p>
+    <p class="note">
+      The ledger is the artifact that makes a signed order reviewable: for any single
+      right an official can follow why it landed where it did and under which
+      subdivision. Deterministic facts and judgment inputs are shown apart on purpose.
+      23 CCR 875(b) vests the determination in a named human official and 875(b)(3)
+      preserves the discretion to decline, to narrow, or to suspend, so the second set
+      is surfaced and never resolved here. The rights come from the Attachment to
+      Addendum 6; the Scott table has not been ingested, so asking for Scott refuses
+      rather than answering from an empty list.
     </p>
   </section>
 </main>
@@ -172,6 +203,15 @@
   //: classification for a reading other than the one in the inputs. The automatic
   //: request on load makes that reachable with a single fast click.
   let generation = 0;
+
+  // Stamped on each card at every TERMINAL render, never on the waiting state. A test
+  // or a human can then tell whether what is on screen belongs to the request just
+  // made or to the one before it. Without it, a check that waits for "a result is
+  // present" is satisfied instantly by the PREVIOUS result, which is the same defect
+  // as waiting for the absence of a transient state.
+  function stamp(element, mine) {
+    element.dataset.render = String(mine);
+  }
 
   function systemState(glyph, label, detail) {
     // NOT one of the five river classifications, and drawn in the bright neutral
@@ -226,6 +266,7 @@
       if (mine !== generation) return;
       systemState("\u26A0", "Unavailable",
         `The engine could not be reached, so nothing here describes the river: ${error}`);
+      stamp(out, mine);
       return;
     }
     if (mine !== generation) return;
@@ -234,6 +275,7 @@
       // A refusal is a RESULT worth reading, not an error to hide. The engine
       // declines rather than guessing, and the reason is the interesting part.
       systemState("\u2298", "Refused", body.detail || "no reason given");
+      stamp(out, mine);
       return;
     }
 
@@ -242,6 +284,7 @@
       systemState("\u26A0", "Unavailable",
         `The engine answered and the answer cannot be trusted, so none of it is ` +
         `shown: ${problem}.`);
+      stamp(out, mine);
       return;
     }
 
@@ -258,8 +301,140 @@
     out.querySelector(".status span:last-child").textContent =
       `${label}, recommends to ${body.direction}`;
     out.querySelector(".note").textContent = body.disclaimer;
+    stamp(out, mine);
   }
 
-  document.getElementById("go").addEventListener("click", classify);
-  classify();
+  const rec = document.getElementById("rec");
+
+  function recSystemState(glyph, label, detail) {
+    rec.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    rec.querySelector(".glyph").textContent = glyph;
+    rec.querySelector(".status span:last-child").textContent = label;
+    rec.querySelector(".refusal").textContent = detail;
+  }
+
+  const ACTION = {
+    consider_curtailment:      ["s-curtailed",  "\u2297", "Consider curtailment"],
+    consider_suspension:       ["s-suspended",  "\u2016", "Consider suspension"],
+    field_verification_first:  ["s-conditional","\u25D0", "Field verification first"],
+    no_action:                 ["s-exempt",     "\u2713", "No action"],
+  };
+
+  const REC_REQUIRED = ["action", "deterministic_facts", "ledger", "provenance"];
+
+  function whyRecUntrustworthy(body) {
+    if (!body || typeof body !== "object") return "the service did not return an object";
+    for (const field of REC_REQUIRED) {
+      if (!(field in body)) return `the answer is missing ${field}`;
+    }
+    if (!ACTION[body.action]) return `this page cannot render the action ${body.action}`;
+    if (!Array.isArray(body.ledger)) return "the ledger is not a list";
+    return null;
+  }
+
+  function text(value) {
+    const cell = document.createElement("td");
+    cell.textContent = value === null || value === undefined ? "not stated" : value;
+    return cell;
+  }
+
+  async function recommendFor() {
+    const mine = ++generation;
+    const basin = document.getElementById("basin").value;
+    const cfs = document.getElementById("cfs").value;
+    const day = document.getElementById("at").value;
+    const at = encodeURIComponent(day + "T12:00:00+00:00");
+    rec.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Asking the engine</span></div>';
+
+    let response;
+    let body;
+    try {
+      response = await fetch(
+        `/api/recommendation/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
+      body = await response.json();
+    } catch (error) {
+      if (mine !== generation) return;
+      recSystemState("\u26A0", "Unavailable",
+        `The engine could not be reached, so nothing here describes the river: ${error}`);
+      stamp(rec, mine);
+      return;
+    }
+    if (mine !== generation) return;
+
+    if (!response.ok) {
+      recSystemState("\u2298", "Refused", body.detail || "no reason given");
+      stamp(rec, mine);
+      return;
+    }
+    const problem = whyRecUntrustworthy(body);
+    if (problem) {
+      recSystemState("\u26A0", "Unavailable",
+        `The engine answered and the answer cannot be trusted, so none of it is ` +
+        `shown: ${problem}.`);
+      stamp(rec, mine);
+      return;
+    }
+
+    const [cls, glyph, label] = ACTION[body.action];
+    const f = body.deterministic_facts;
+    rec.innerHTML =
+      `<div class="status ${cls}"><span class="glyph"></span><span></span></div>` +
+      '<div class="facts" style="margin-top:14px"></div>' +
+      '<div class="ledger" style="margin-top:14px"><table><thead><tr>' +
+      '<th>Right</th><th>Priority</th><th>Grouping</th><th>Authority</th>' +
+      '<th>Disposition</th></tr></thead><tbody></tbody></table></div>' +
+      '<p class="note js-judgment"></p><p class="note js-prov"></p>';
+    rec.querySelector(".glyph").textContent = glyph;
+    rec.querySelector(".status span:last-child").textContent =
+      `${label} . ${f.rights_reached} of ${f.rights_considered} rights reached`;
+
+    const facts = [
+      ["Observed", `${f.observed_cfs} cfs`],
+      ["Operative minimum", `${f.operative_minimum_cfs} cfs`],
+      ["Shortfall", `${f.shortfall_cfs} cfs`],
+      ["Extent", f.recommended_extent_rank === null ? "none" : `rank ${f.recommended_extent_rank}`],
+    ];
+    const box = rec.querySelector(".facts");
+    for (const [term, value] of facts) {
+      const cell = document.createElement("dl");
+      cell.className = "fact";
+      const dt = document.createElement("dt");
+      dt.textContent = term;
+      const dd = document.createElement("dd");
+      dd.textContent = value;
+      cell.append(dt, dd);
+      box.append(cell);
+    }
+
+    const rows = rec.querySelector("tbody");
+    for (const entry of body.ledger) {
+      const tr = document.createElement("tr");
+      tr.append(text(entry.right_id), text(entry.priority_date), text(entry.grouping),
+                text(entry.citation),
+                text(entry.would_be_curtailed ? "would be curtailed" : "not reached"));
+      tr.children[1].className = "num";
+      rows.append(tr);
+    }
+
+    // Judgment inputs are shown, never resolved. An empty list is stated rather than
+    // left as a blank, because a blank reads as "nothing to weigh".
+    const judgment = body.judgment_inputs || [];
+    rec.querySelector(".js-judgment").textContent = judgment.length
+      ? `For the official, not resolved here: ${judgment.join(" ")}`
+      : "No discretionary provision was flagged for this set.";
+    rec.querySelector(".js-prov").textContent =
+      `${body.provenance.summary} ${body.disclaimer}`;
+    stamp(rec, mine);
+  }
+
+  async function run() {
+    await classify();
+    await recommendFor();
+  }
+
+  document.getElementById("go").addEventListener("click", run);
+  run();
 </script>

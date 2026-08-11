@@ -110,6 +110,31 @@ def _classes(page: Page) -> str:
     return page.locator("#out .status").get_attribute("class") or ""
 
 
+def _render_id(page: Page, card: str) -> str:
+    """The generation the card's current content belongs to, or empty before any."""
+    return page.locator(card).get_attribute("data-render") or ""
+
+
+def _settle_after(page: Page, card: str, previous: str) -> None:
+    """Wait for a card to render a generation NEWER than the one already on screen.
+
+    A check that waits for "a result is present" is satisfied instantly by the PREVIOUS
+    result. That is exactly what happened here: the ledger card refuses on page load,
+    because the console opens on the Scott basin and no Scott rights table is ingested,
+    so a later wait for "rows or a refusal" returned against the load-time refusal and
+    asserted against a view that had not moved. Same shape as waiting for the absence
+    of a transient state, one layer up.
+    """
+    page.wait_for_function(
+        "([card, previous]) => {"
+        "  const el = document.querySelector(card);"
+        "  return !!el && !!el.dataset.render && el.dataset.render !== previous;"
+        "}",
+        arg=[card, previous],
+        timeout=20_000,
+    )
+
+
 def _settle(page: Page) -> None:
     """Wait for a TERMINAL state, which is the only thing worth waiting for.
 
@@ -339,3 +364,48 @@ class TestAnUntrustworthyAnswerIsNeverShownAsAResult:
             "screen is not the reading that was asked for"
         )
         assert sorted(seen) == [48.7, 222.2], f"expected both readings to be asked, saw {seen}"
+
+
+class TestTheLedgerCard:
+    """The per-right ledger, rendered. This is the artifact that makes a signed order
+    reviewable, so a judge has to be able to see it rather than curl for it."""
+
+    def test_it_renders_a_row_per_right_with_its_authority(
+        self, page: Page, console_url: str
+    ) -> None:
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+        before = _render_id(page, "#rec")
+        page.select_option("#basin", "shasta")
+        page.fill("#cfs", "46.5")
+        page.fill("#at", "2026-06-15")
+        page.click("#go")
+        _settle_after(page, "#rec", before)
+
+        rows = page.locator("#rec tbody tr")
+        assert rows.count() > 50, f"only {rows.count()} ledger rows rendered"
+        first = rows.first.inner_text()
+        assert "23 CCR 875.5" in first, f"a ledger row carries no authority: {first!r}"
+
+    def test_a_basin_with_no_table_shows_the_refusal_not_an_empty_ledger(
+        self, page: Page, console_url: str
+    ) -> None:
+        """An empty ledger would read as "no right is affected", which is a real answer
+        and the wrong one."""
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert page.locator("#rec tbody tr").count() == 0
+        assert "REFUSED" in page.locator("#rec .status").inner_text().upper()
+        assert "no rights table" in page.locator("#rec .refusal").inner_text()
+
+    def test_an_unreachable_engine_says_unavailable_on_the_ledger_card_too(
+        self, page: Page, console_url: str
+    ) -> None:
+        page.route("**/api/recommendation/**", lambda route: route.abort())
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        status = page.locator("#rec .status")
+        assert "UNAVAILABLE" in status.inner_text().upper()
+        assert "s-pending" not in (status.get_attribute("class") or "")
