@@ -129,6 +129,16 @@ class AttachedRight:
 
 
 @dataclass(frozen=True, slots=True)
+class ConversionResult:
+    """Rights the ladder can place, rights it must not, and why."""
+
+    rights: tuple[WaterRight, ...]
+    #: Named, never defaulted. See to_water_rights for what defaulting these did.
+    unplaceable: tuple[str, ...]
+    open_questions: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AttachmentReport:
     """Rows, plus everything that did NOT become a row and why.
 
@@ -145,6 +155,9 @@ class AttachmentReport:
     #: Rows stating a priority too imprecise to order against neighbours, e.g. a year
     #: range. Named rather than narrowed.
     imprecise: tuple[str, ...] = field(default_factory=tuple)
+    #: Rows where more than one adjacent line offered a priority, so ownership could
+    #: not be proven. Refused rather than resolved by position.
+    ambiguous: tuple[str, ...] = field(default_factory=tuple)
     #: Rows whose priority came from an adjacent line because a wrapped owner name left
     #: the application number alone on its own. Recorded so the provenance of those
     #: dates is visible rather than indistinguishable from a same-line read.
@@ -206,6 +219,7 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
     unparsed: list[str] = []
     blank_source: list[str] = []
     imprecise: list[str] = []
+    ambiguous: list[str] = []
     recovered_from_neighbour: list[str] = []
     seen: set[str] = set()
 
@@ -237,18 +251,27 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
                 # positional grab would capture it into a stored field. This module does
                 # not keep owner names, and the way to guarantee that is not to read
                 # them in the first place.
-                for neighbour in _neighbours(lines, index):
-                    # Assigned ONLY on a hit. Assigning unconditionally overwrote the
-                    # cell with the last neighbour's empty one, which discarded a range
-                    # this row had already stated and sent it to `unparsed` instead of
-                    # `imprecise`. A loop that clobbers its input on every miss reports
-                    # the wrong reason for the failure.
-                    found = _read_cell(neighbour)
-                    if not found.empty:
-                        cell = found
-                        source = ""
-                        recovered_from_neighbour.append(number)
-                        break
+                # EXACTLY ONE candidate, or the row is left unparsed. Excluding
+                # neighbours that carry their own application number is not enough:
+                # a wrapped row's date can sit on a line that carries no ID either, so
+                # a first-hit-wins loop could attach one right's priority to another.
+                # A confident wrong seniority is worse than an auditable parse failure,
+                # and priority seniority is the entire doctrine.
+                candidates = [
+                    found
+                    for found in (_read_cell(n) for n in _neighbours(lines, index))
+                    if not found.empty or found.range_as_printed
+                ]
+                if len(candidates) == 1:
+                    cell = candidates[0]
+                    source = ""
+                    recovered_from_neighbour.append(number)
+                elif len(candidates) > 1:
+                    ambiguous.append(
+                        f"{number} has a readable priority on more than one adjacent "
+                        "line and no way to prove which row owns it"
+                    )
+                    continue
 
             if cell.range_as_printed:
                 # A range is a real statement, just not one that orders a right against
@@ -284,6 +307,7 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
         unparsed=tuple(unparsed),
         blank_source=tuple(blank_source),
         imprecise=tuple(imprecise),
+        ambiguous=tuple(ambiguous),
         recovered_from_neighbour=tuple(recovered_from_neighbour),
     )
 
@@ -353,31 +377,64 @@ def _clean_source(raw: str) -> str:
     return re.sub(r"\s*\d+$", "", raw.strip()).strip()
 
 
-def to_water_rights(report: AttachmentReport) -> tuple[tuple[WaterRight, ...], tuple[str, ...]]:
+def decree_membership(priority: date | None, *, year_only: int | None, decree: date) -> bool | None:
+    """Whether a right predates the decree. None means the record cannot say.
+
+    A right whose priority precedes the Shasta decree cannot have been initiated after
+    it, which is what separates Tier B from Tier A. A YEAR can settle this too, but
+    only when the whole year falls on one side: 1977 does, 1932 does not, because the
+    decree date falls inside it.
+    """
+    if priority is not None:
+        return priority < decree
+    if year_only is not None:
+        first, last = date(year_only, 1, 1), date(year_only, 12, 31)
+        if (first < decree) == (last < decree):
+            return first < decree
+    return None
+
+
+def to_water_rights(report: AttachmentReport) -> ConversionResult:
     """Convert parsed rows into the record the priority ladder consumes.
 
-    Returns the rights AND the open questions, because several fields the ladder can
-    read are simply not stated in this table, and filling them would be the exact
-    failure this codebase is built against.
+    **A row whose decree membership cannot be established is NOT converted**, and that
+    is the whole design of this function. `WaterRight.adjudication = None` is a positive
+    claim, that the right is in none of the four decrees, and the Shasta ladder reads it
+    as positive evidence for Tier A, returning the reason "appropriative diversion
+    initiated after the Shasta Adjudication" under 23 CCR 875.5(b)(1)(A).
+
+    The first version of this function passed None for every row with no date. Fourteen
+    rights the document says nothing about were therefore placed in the FIRST grouping
+    curtailed, carrying a statutory citation that made the guess look authoritative. The
+    ladder itself had already been hardened against exactly this, its comment reading
+    "Positive evidence only", and this converter reintroduced the same defect from the
+    other side by feeding it a confident None. A missing-date flag rides along but it is
+    a data-quality note, not a brake: it does not stop the placement or the sentence.
+
+    So unresolved rows come back named, in `unplaceable`, and nothing asserts anything
+    about them.
 
     What the document DOES state, and is therefore not a guess: Addendum 6's scope
     sentence puts every right in this attachment in the appropriative class, surface or
     groundwater, under 23 CCR 875.5(b)(1)(A) and (b)(1)(B). So `right_class` is read
     from the document rather than inferred from the application prefix.
-
-    What it does NOT state per row is decree membership, and that decides Tier A
-    against Tier B. It is derived here from the one fact that settles it, the Shasta
-    decree date: a right whose priority date precedes the decree cannot have been
-    initiated after it. Rows with no date carry no derivation at all and are returned
-    with `adjudication=None` and their missing-date flag set, so the ladder's own data
-    quality flags surface them rather than this function resolving them quietly.
     """
     decree = ADJUDICATIONS[AdjudicationId.SHASTA].decree_date
     rights: list[WaterRight] = []
+    unplaceable: list[str] = []
     open_questions: list[str] = []
 
     for row in report.rights:
-        in_decree = row.priority_date is not None and row.priority_date < decree
+        in_decree = decree_membership(
+            row.priority_date, year_only=row.priority_year_only, decree=decree
+        )
+        if in_decree is None:
+            unplaceable.append(
+                f"{row.application_number}: the record states no priority precise enough "
+                "to say whether the right predates the Shasta decree, so neither tier "
+                "can be asserted"
+            )
+            continue
         rights.append(
             WaterRight(
                 right_id=row.application_number,
@@ -390,13 +447,21 @@ def to_water_rights(report: AttachmentReport) -> tuple[tuple[WaterRight, ...], t
             )
         )
 
-    undated = sum(1 for r in report.rights if r.priority_date_missing)
+    if unplaceable:
+        open_questions.append(
+            f"{len(unplaceable)} of {len(report.rights)} parsed rows are not placed on "
+            "the ladder at all, because the record states no priority precise enough to "
+            "establish decree membership. They are named rather than defaulted: passing "
+            "adjudication=None would assert they were initiated after the Shasta "
+            "Adjudication and put them in the first grouping curtailed."
+        )
     year_only = sum(1 for r in report.rights if r.priority_year_only is not None)
     if year_only:
         open_questions.append(
             f"{year_only} rows state a year with no month or day. The year is used only "
-            "where it settles the band on its own, and is never widened into a date."
+            "where it settles the question on its own, and is never widened into a date."
         )
+    undated = sum(1 for r in report.rights if r.priority_date_missing)
     if undated:
         open_questions.append(
             f"{undated} of {len(report.rights)} rows state no priority date. The table "
@@ -411,6 +476,11 @@ def to_water_rights(report: AttachmentReport) -> tuple[tuple[WaterRight, ...], t
             "gives no cell boundaries, and a wrong source merges unrelated rights into "
             "one shared-source group where monotonicity is checked."
         )
+    if report.ambiguous:
+        open_questions.append(
+            f"{len(report.ambiguous)} rows had a readable priority on more than one "
+            "adjacent line, with no way to prove which row owns it."
+        )
     if report.unparsed:
         open_questions.append(
             f"{len(report.unparsed)} rows carried an application number with neither a "
@@ -418,4 +488,8 @@ def to_water_rights(report: AttachmentReport) -> tuple[tuple[WaterRight, ...], t
         )
     open_questions.extend(report.unrecoverable)
 
-    return tuple(rights), tuple(open_questions)
+    return ConversionResult(
+        rights=tuple(rights),
+        unplaceable=tuple(unplaceable),
+        open_questions=tuple(open_questions),
+    )

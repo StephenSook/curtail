@@ -6,7 +6,7 @@
     "unparsed": 1
   },
   "ladder_placement_counts": {
-    "Tier A": 79,
+    "Tier A": 65,
     "Tier B": 6
   },
   "not_read": {
@@ -68,7 +68,8 @@
     ]
   },
   "open_questions": [
-    "1 rows state a year with no month or day. The year is used only where it settles the band on its own, and is never widened into a date.",
+    "14 of 85 parsed rows are not placed on the ladder at all, because the record states no priority precise enough to establish decree membership. They are named rather than defaulted: passing adjudication=None would assert they were initiated after the Shasta Adjudication and put them in the first grouping curtailed.",
+    "1 rows state a year with no month or day. The year is used only where it settles the question on its own, and is never widened into a date.",
     "14 of 85 rows state no priority date. The table prints them as '--'. They are carried as missing rather than imputed, because riparian and pre-1914 claims are self-reported Statements whose dates are not verified as a condition of the record existing.",
     "41 rows have a blank Source cell, carried down visually in the printed table. Not filled from the row above: layout text gives no cell boundaries, and a wrong source merges unrelated rights into one shared-source group where monotonicity is checked.",
     "1 rows carried an application number with neither a date nor the '--' marker: SG005440",
@@ -851,5 +852,21 @@
       15
     ],
     "sha256": "e65b1e5dc5474d229040b0776cf247290599d4a275c2be662049555bf0150b7b"
-  }
+  },
+  "unplaceable": [
+    "SG005922: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005923: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005924: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005925: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005926: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005927: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005956: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005957: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005445: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005433: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005434: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005435: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005436: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted",
+    "SG005437: the record states no priority precise enough to say whether the right predates the Shasta decree, so neither tier can be asserted"
+  ]
 }
