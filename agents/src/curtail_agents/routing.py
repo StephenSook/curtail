@@ -99,7 +99,13 @@ _CITATION_SHAPES: tuple[re.Pattern[str], ...] = (
     ),
     # A reporter cite: "50 Cal.App.5th 976" (real), "111 P.9d 222" (synthetic).
     re.compile(
-        r"\b\d{1,4}\s+(?:Cal\.(?:App\.)?(?:\d(?:th|d|st|nd|rd))?|P\.\d?d|F\.\d?d|U\.S\.)\s+\d{1,4}\b"
+        # Spaced AND unspaced reporter forms. "999 Cal. App. 5th 123" is the
+        # California Style Manual form and was invisible to an unspaced pattern,
+        # so a fabricated authority in the state's own standard citation style
+        # passed straight through to a signed order. The allowlist could not
+        # help: text that is never matched as citation-shaped is never checked.
+        r"\b\d{1,4}\s+(?:Cal\.\s*(?:App\.\s*)?(?:\d\s*(?:th|d|st|nd|rd))?"
+        r"|P\.\s*\d?d|F\.\s*\d?d|U\.\s*S\.)\s*\d{1,4}\b"
     ),
     # "Water Code 1846", "23 CCR 875.5", "C.R.S. 37-92-502"
     re.compile(

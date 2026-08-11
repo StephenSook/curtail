@@ -228,3 +228,105 @@ class TestTheLibraryActuallySupportsWhatWeConfigure:
         fields = set(DeadLetterPolicy.meta.fields)
         assert "dead_letter_topic" in fields
         assert "max_delivery_attempts" in fields
+
+
+class TestTheLeaseReconcilesTwoRequirementsThatOtherwiseConflict:
+    """Crash recovery and concurrency pull in opposite directions.
+
+    Crash recovery wants an unfinished claim retryable. Concurrency wants a claim
+    held by a live worker exclusive. Without a lease you must pick one, and both
+    choices are real defects. This was learned the hard way in one sitting: the
+    first repair made in-progress entries immediately re-claimable, which fixed
+    crash recovery and broke concurrency outright, 32 of 32 racing threads won.
+    """
+
+    def test_a_live_lease_is_exclusive(self) -> None:
+        clock = [1000.0]
+        table = DedupTable(lease_seconds=300.0, _clock=lambda: clock[0])
+        assert table.claim("k") is True
+        clock[0] += 10
+        assert table.claim("k") is False, "a claim held by a live worker must be exclusive"
+
+    def test_an_expired_lease_may_be_taken_over(self) -> None:
+        """A worker that claimed an order and then died must not suppress its own
+        retry forever, or the order is never produced while the table reports it
+        handled. That is the quietest possible way to lose a legal document."""
+        clock = [1000.0]
+        table = DedupTable(lease_seconds=300.0, _clock=lambda: clock[0])
+        assert table.claim("k") is True
+        clock[0] += 301
+        assert table.claim("k") is True
+
+    def test_a_completed_claim_is_never_reclaimable(self) -> None:
+        clock = [1000.0]
+        table = DedupTable(lease_seconds=300.0, _clock=lambda: clock[0])
+        table.claim("k")
+        table.complete("k")
+        clock[0] += 10_000
+        assert table.claim("k") is False
+
+    def test_exactly_one_of_many_racing_claims_wins(self) -> None:
+        """The atomicity the docstring used to assert without implementing.
+
+        CPython's GIL makes the check-then-act race hard to observe, which is
+        worse rather than better: the construction was unsafe and no test could
+        see it.
+        """
+        import threading
+
+        table = DedupTable()
+        winners: list[int] = []
+        barrier = threading.Barrier(32)
+
+        def worker() -> None:
+            barrier.wait()
+            if table.claim("same-key"):
+                winners.append(1)
+
+        threads = [threading.Thread(target=worker) for _ in range(32)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert len(winners) == 1
+
+    def test_an_in_progress_entry_does_not_read_as_handled(self) -> None:
+        """`has_seen` gates nothing, but if it reported in-progress as seen a
+        caller would treat an unfinished order as delivered."""
+        table = DedupTable()
+        table.claim("k")
+        assert table.has_seen("k") is False
+        table.complete("k")
+        assert table.has_seen("k") is True
+
+    def test_completing_an_empty_key_is_refused(self) -> None:
+        with pytest.raises(ValueError):
+            DedupTable().complete("")
+
+
+class TestIdentityCannotBeForgedByComponentContent:
+    """Joining on a separator is ambiguous whenever a component can contain it.
+
+    The ids here come from eWRIMS and from migrated records, so we do not control
+    their contents. Length-prefixing removes the class rather than forbidding a
+    character we cannot police.
+    """
+
+    def test_a_separator_inside_a_component_cannot_forge_a_boundary(self) -> None:
+        """These two are distinct notifications. Joined on the unit separator
+        they produced the SAME pre-hash string, so the second was silently
+        deduplicated and would never reach its recipient."""
+        first = notification_idempotency_key("r\x1fo", "x", Channel.EMAIL)
+        second = notification_idempotency_key("r", "o\x1fx", Channel.EMAIL)
+        assert first != second
+
+    def test_the_same_hazard_on_order_keys(self) -> None:
+        assert order_idempotency_key(
+            "A\x1f001", OrderType.IMPOSE, date(2026, 6, 15)
+        ) != order_idempotency_key("A", OrderType.IMPOSE, date(2026, 6, 15))
+
+    def test_ordinary_ids_are_still_stable(self) -> None:
+        """Non-vacuity: the encoding change must not make every call unique."""
+        assert notification_idempotency_key("r1", "o1", Channel.EMAIL) == (
+            notification_idempotency_key("r1", "o1", Channel.EMAIL)
+        )

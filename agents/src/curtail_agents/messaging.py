@@ -29,6 +29,9 @@ the poll that produced it, which is the one thing the chaos drill demonstrates.
 from __future__ import annotations
 
 import hashlib
+import threading
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
@@ -99,15 +102,26 @@ def ordering_key_for_gage(basin: Basin) -> str:
 
 
 def _digest(*parts: str) -> str:
-    """A stable, collision-resistant identity for a logical event.
+    """A stable, unambiguous identity for a logical event.
 
-    Hashed rather than concatenated because these become message attributes and
-    database keys, and a right id is free text that may contain the separator.
+    **Length-prefixed, not separator-joined, and that was a real collision.**
+
+    An earlier version joined on \\x1f and its comment claimed that hashing made
+    free-text ids safe. It did not: joining is ambiguous whenever a component can
+    contain the separator, so `("r\\x1fo", "x")` and `("r", "o\\x1fx")` produced
+    the SAME pre-hash string and therefore the same key. Two distinct
+    notifications, one identity, and the second silently deduplicated away. A
+    notice that never reaches a rancher is recorded as sent.
+
+    Length-prefixing removes the class rather than forbidding the character,
+    because these ids come from eWRIMS and from migrated records and we do not
+    control their contents.
+
     Truncated to 32 hex characters: 128 bits, far past any birthday concern for a
     corpus of thousands, and short enough to read in a log line.
     """
-    joined = "\x1f".join(parts)
-    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:32]
+    canonical = "".join(f"{len(part)}:{part}" for part in parts)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
 
 
 def order_idempotency_key(right_id: str, order_type: OrderType, effective_date: date) -> str:
@@ -136,9 +150,43 @@ def notification_idempotency_key(recipient_id: str, order_id: str, channel: Chan
     return _digest("notify", recipient_id.strip(), order_id.strip(), channel.value)
 
 
+class ClaimState(StrEnum):
+    """Where a claimed event got to.
+
+    Two states, because one is not enough. A table recording only "seen" cannot
+    tell a completed event from one whose worker claimed it and then crashed
+    before doing anything, and it answers "already handled" to both. The order is
+    then never produced while the system records it as processed, which is the
+    quietest possible way to lose a legal document.
+    """
+
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+#: How long a claim is held before another worker may take it over.
+#:
+#: A LEASE, and it is the only thing that reconciles two requirements that
+#: otherwise contradict each other. Crash recovery wants an unfinished claim to
+#: be retryable. Concurrency wants a claim held by a live worker to be exclusive.
+#: Without a lease you must pick one, and picking either is a real defect:
+#: permanent claims lose events to crashes, immediately-retryable claims let
+#: every concurrent consumer through at once.
+#:
+#: Five minutes comfortably exceeds a Scribe draft plus a PDF render, and is well
+#: under the ack deadline extension a long agent task would use.
+CLAIM_LEASE_SECONDS = 300.0
+
+
+@dataclass(frozen=True, slots=True)
+class _Claim:
+    state: ClaimState
+    claimed_at: float
+
+
 @dataclass
 class DedupTable:
-    """Records which logical events have already been processed.
+    """Records which logical events are in flight, and which finished.
 
     Deliberately separate from the delivery guarantee. Exactly-once bounds how
     often the BROKER hands you a message; this bounds how often the SYSTEM acts
@@ -147,38 +195,80 @@ class DedupTable:
     and it cannot help when a handler committed a side effect and then crashed
     before acknowledging.
 
-    In-memory here, which is correct for tests and for the emulator. The Cloud
-    SQL implementation satisfies the same two-method interface, and the
-    `claim`-returns-bool shape is chosen so the production version can be a
-    single INSERT ... ON CONFLICT DO NOTHING and report whether it inserted.
+    In-memory here, which is correct for tests and the emulator. The Cloud SQL
+    implementation satisfies the same interface; `claim` returning a bool is the
+    shape an INSERT ... ON CONFLICT DO UPDATE ... RETURNING reports.
     """
 
-    _seen: set[str] = field(default_factory=set)
+    lease_seconds: float = CLAIM_LEASE_SECONDS
+    _claims: dict[str, _Claim] = field(default_factory=dict)
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    #: Injectable so lease expiry is tested without sleeping. Monotonic, because
+    #: a wall clock that steps backwards would resurrect expired leases.
+    _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
 
     def claim(self, idempotency_key: str) -> bool:
         """Claim an event. True means this caller should process it.
 
-        A single atomic operation on purpose. A check-then-act pair
-        (`if not seen: mark()`) has a window between the two in which a
-        concurrent consumer claims the same key, and both then process it, which
-        is precisely the duplicate the table exists to prevent.
+        **Genuinely atomic, under a lock.** An earlier version was a bare
+        `if key in seen: ... seen.add(key)` whose docstring claimed an atomicity
+        it did not have. CPython's GIL makes that race hard to observe, which is
+        worse rather than better: the construction is unsafe and the tests could
+        not see it.
+
+        **Leased, not permanent.** The first repair of the crash case simply made
+        an in-progress entry re-claimable, which fixed crash recovery and broke
+        concurrency outright: 32 of 32 racing threads won. A lease resolves both.
+        An unexpired claim is exclusive; an expired one is assumed abandoned and
+        may be taken over; a completed one is never re-claimable.
         """
         if not idempotency_key:
             raise ValueError(
                 "an empty idempotency key would claim nothing and let every "
                 "duplicate through while the table reported success"
             )
-        if idempotency_key in self._seen:
-            return False
-        self._seen.add(idempotency_key)
-        return True
+        now = self._clock()
+        with self._lock:
+            existing = self._claims.get(idempotency_key)
+            if existing is not None:
+                if existing.state is ClaimState.COMPLETED:
+                    return False
+                if now - existing.claimed_at < self.lease_seconds:
+                    # Held by a worker that is probably still alive.
+                    return False
+            self._claims[idempotency_key] = _Claim(ClaimState.IN_PROGRESS, now)
+            return True
+
+    def complete(self, idempotency_key: str) -> None:
+        """Mark an event finished. Only now is a redelivery a true no-op.
+
+        Called AFTER the side effect, never before. The window between claim and
+        complete is exactly where a crash lands, and leaving the entry
+        IN_PROGRESS is what lets the retry proceed once the lease lapses instead
+        of being swallowed forever.
+        """
+        if not idempotency_key:
+            raise ValueError("cannot complete an empty idempotency key")
+        with self._lock:
+            self._claims[idempotency_key] = _Claim(ClaimState.COMPLETED, self._clock())
+
+    def state_of(self, idempotency_key: str) -> ClaimState | None:
+        with self._lock:
+            claim = self._claims.get(idempotency_key)
+            return claim.state if claim else None
 
     def has_seen(self, idempotency_key: str) -> bool:
-        """Read-only. For assertions and for the console, never for gating."""
-        return idempotency_key in self._seen
+        """Read-only, and COMPLETED only. For assertions and the console.
+
+        Never for gating: an in-progress entry must not read as handled.
+        """
+        with self._lock:
+            claim = self._claims.get(idempotency_key)
+            return claim is not None and claim.state is ClaimState.COMPLETED
 
     def __len__(self) -> int:
-        return len(self._seen)
+        with self._lock:
+            return len(self._claims)
 
 
 @dataclass(frozen=True, slots=True)

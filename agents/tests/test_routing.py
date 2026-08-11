@@ -533,3 +533,32 @@ class TestTheAllowlistTravelsWithTheCodeThatEnforcesIt:
         assert routing._CITATIONS_PATH.is_relative_to(package_root), (
             "the allowlist must live inside the package, or an installed deployment cannot find it"
         )
+
+
+class TestTheStatesOwnCitationStyleIsRecognised:
+    """A fabricated authority written in the California Style Manual form was
+    invisible to the shape matcher, so the allowlist was never consulted and it
+    reached a draft untouched. Text never matched as citation-shaped is never
+    checked against anything.
+    """
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            "See 999 Cal. App. 5th 123 for the contrary view.",
+            "See 999 Cal.App.5th 123 for the contrary view.",
+            "See 999 Cal. 4th 5 for the contrary view.",
+        ],
+    )
+    def test_a_fabricated_reporter_cite_is_stripped_in_either_spacing(self, body: str) -> None:
+        _, stripped = scrub_citations(body)
+        assert stripped, f"fabricated reporter cite survived: {body!r}"
+
+    def test_the_verified_reporter_cites_still_survive_both_spacings(self) -> None:
+        for body in (
+            "Stanford Vina Ranch Irrigation Co. v. State of California (2020) "
+            "50 Cal.App.5th 976 upheld it.",
+            "Lux v. Haggin (1886) 69 Cal. 255 is foundational.",
+        ):
+            _, stripped = scrub_citations(body)
+            assert stripped == (), f"verified authority stripped: {list(stripped)}"
