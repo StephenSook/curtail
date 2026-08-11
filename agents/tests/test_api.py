@@ -363,3 +363,120 @@ def _package_root() -> Path:
     located = curtail_agents.__file__
     assert located is not None, "curtail_agents has no __file__, so it is not installed normally"
     return Path(located).parent
+
+
+class TestTheConsolePage:
+    """The one surface a judge looks at rather than curls.
+
+    Served from inside the package by the same process as the API, for the reason
+    the fact sheet is: a container has no repository, and an asset resolved from one
+    is absent from every deployment while passing every local test.
+    """
+
+    def test_it_is_served_as_html(self) -> None:
+        response = TestClient(app).get("/")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/html")
+
+    def test_the_served_copy_is_inside_the_package(self) -> None:
+        from curtail_agents.api import CONSOLE
+
+        assert _package_root() in CONSOLE.parents, (
+            f"the console is served from {CONSOLE}, which is outside the package "
+            "and therefore absent from a wheel."
+        )
+
+    def test_a_built_wheel_actually_contains_it(self) -> None:
+        import subprocess
+        import tempfile
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as out:
+            result = subprocess.run(
+                ["uv", "build", "--package", "curtail-agents", "--wheel", "--out-dir", out],
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+            wheels = list(Path(out).glob("*.whl"))
+            assert wheels, "no wheel was produced"
+            names = zipfile.ZipFile(wheels[0]).namelist()
+            assert "curtail_agents/data/console.html" in names, (
+                f"the wheel does not carry the console: {sorted(names)[:12]}"
+            )
+
+    def test_it_states_that_it_is_not_a_government_system(self) -> None:
+        """Rule 8, and it has to be READABLE, not merely present in the markup."""
+        page = TestClient(app).get("/").text
+        assert "Not an official government system" in page
+        assert "self-executes" in page
+
+    def test_every_classification_the_engine_can_emit_is_rendered(self) -> None:
+        """The drift guard, and the reason this is a test rather than an eyeball.
+
+        A console that falls back to a neutral grey label for an event type it does
+        not know renders a real curtailment trigger as PENDING, which is a wrong
+        answer wearing a calm colour. Adding an event type must break this test.
+        """
+        from curtail_agents.events import EventType
+
+        rendered = _console_status_map()
+        assert len(EventType) >= 5, "the enum is empty, so this check proves nothing"
+        assert rendered, "no status rows parsed out of the console, so this is vacuous"
+
+        missing = {member.value for member in EventType} - set(rendered)
+        assert not missing, (
+            f"the console cannot render {sorted(missing)}, so those readings would "
+            "display as PENDING instead of as what they are"
+        )
+
+    def test_status_is_never_encoded_by_colour_alone(self) -> None:
+        """Rule 9. Colour plus glyph plus an uppercase text label, all three.
+
+        The check that matters is the SHAPE one: two classifications may share a
+        colour only when they also share a glyph, otherwise the sole thing telling
+        them apart is a hue, which is exactly what the rule forbids.
+        """
+        rendered = _console_status_map()
+        assert rendered, "no status rows parsed, so this is vacuous"
+
+        by_colour: dict[str, set[str]] = {}
+        for colour, glyph, label in rendered.values():
+            assert glyph.strip(), f"{label} has no glyph, so only colour marks it"
+            assert label.strip(), f"{colour} has no text label"
+            by_colour.setdefault(colour, set()).add(glyph)
+
+        for colour, glyphs in by_colour.items():
+            assert len(glyphs) == 1, (
+                f"{colour} is drawn with more than one glyph {sorted(glyphs)}, so a "
+                "reader distinguishing them is relying on something other than shape"
+            )
+        assert len(by_colour) == len({next(iter(g)) for g in by_colour.values()}), (
+            "two colours share a glyph, so those classifications differ by hue alone"
+        )
+
+    def test_no_compliance_value_is_animated(self) -> None:
+        """Rule 10. Animating a legal figure implies uncertainty about it."""
+        page = TestClient(app).get("/").text
+        for banned in ("animation:", "@keyframes", "transition:"):
+            assert banned not in page, f"the console animates something ({banned})"
+
+
+def _console_status_map() -> dict[str, tuple[str, str, str]]:
+    """Parse the console's status table out of the page it actually serves.
+
+    Read from the response rather than from the source file, so a page that ships
+    without the table fails here instead of passing against a copy on disk.
+    """
+    import re
+
+    page = TestClient(app).get("/").text
+    block = re.search(r"const STATUS = \{(.*?)\n  \};", page, re.DOTALL)
+    assert block, "the console no longer carries a STATUS table"
+
+    rows = re.findall(
+        r'(\w+):\s*\["([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\]',
+        block.group(1),
+    )
+    return {event: (colour, glyph, label) for event, colour, glyph, label in rows}

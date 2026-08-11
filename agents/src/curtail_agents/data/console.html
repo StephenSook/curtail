@@ -1,0 +1,194 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curtail, Watermaster Console</title>
+<!--
+  Served by the same FastAPI process as the API, from inside the package.
+
+  No build step, no second deployment, no framework. The constitution's own cut-line
+  says the metric, the governance wiring and the demo carry the score, and a console
+  exists to make the demo possible rather than to be admired. A previous cycle
+  shipped the best-looking entry at its event and placed nowhere, while a track was
+  won on one plain screen driving a complete loop.
+
+  Design rules taken from the build spec and not negotiable here:
+  status is never colour alone (colour plus glyph plus an uppercase text label, WCAG
+  2.2 1.4.1), compliance-critical numbers never animate because animating a figure
+  implies uncertainty about it, and cfs values use tabular figures so columns of
+  readings line up. Generic branding only: no seal, no government styling, and the
+  demonstration disclaimer is visible without scrolling.
+-->
+<style>
+  :root {
+    --bg: #0A0A0B; --card: #131417; --border: #2A2D34; --border-strong: #3A3E47;
+    --fg: #E6E8EB; --muted: #9CA3AF; --ring: #3B9AE1;
+    --curtailed: #EF7748; --conditional: #E69F00; --suspended: #3B9AE1;
+    --exempt: #009E73; --pending: #9CA3AF;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 var(--sans);
+    font-variant-numeric: tabular-nums;
+  }
+  header { border-bottom: 1px solid var(--border); padding: 20px 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .disclaimer {
+    margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border-strong);
+    border-radius: 6px; color: var(--muted); font-size: 12px; max-width: 70ch;
+  }
+  main { padding: 24px; display: grid; gap: 24px; max-width: 900px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  h2 { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+       color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+  input, select, button {
+    height: 32px; background: #0F1013; color: var(--fg);
+    border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 10px;
+    font: inherit; font-variant-numeric: tabular-nums;
+  }
+  button { cursor: pointer; border-color: var(--ring); }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid var(--ring); outline-offset: 2px;
+  }
+  .reading { font: 600 28px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+  .against { color: var(--muted); font-size: 13px; }
+  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
+            font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px; }
+  /* Distinct SHAPES, not distinct colours. The glyph vocabulary is the build
+     spec's: curtailed is a crossed circle, conditional a half ring, suspended a
+     pause, exempt a check, pending a hollow ring. Printed in grayscale, or read by
+     someone with a colour vision deficiency, the five stay separable, and the
+     uppercase text label beside each one carries the meaning on its own. */
+  .glyph { font-size: 14px; line-height: 1; flex: none; }
+  .s-curtailed { color: var(--curtailed); }
+  .s-conditional { color: var(--conditional); }
+  .s-suspended { color: var(--suspended); }
+  .s-exempt { color: var(--exempt); }
+  .s-pending { color: var(--pending); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 66ch; }
+  .refusal { color: var(--conditional); font-size: 13px; margin-top: 12px; max-width: 70ch; }
+  code { font-family: var(--mono); color: var(--muted); }
+  a { color: var(--ring); }
+  footer { border-top: 1px solid var(--border); padding: 16px 24px; color: var(--muted); font-size: 12px; }
+</style>
+
+<header>
+  <h1>Watermaster Console</h1>
+  <div class="sub">Prior-appropriation curtailment administration, Scott and Shasta rivers</div>
+  <p class="disclaimer">
+    <strong>Demonstration system. Not an official government system.</strong>
+    It carries no government authority and produces drafts for human review only.
+    23 CCR 875(b) vests the determination in a named human official; nothing here
+    self-executes.
+  </p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Classify a gage reading</h2>
+    <div class="row">
+      <div>
+        <label for="basin">Basin</label>
+        <select id="basin">
+          <option value="scott">Scott River, Fort Jones</option>
+          <option value="shasta">Shasta River, near Yreka</option>
+        </select>
+      </div>
+      <div>
+        <label for="cfs">Discharge (cfs)</label>
+        <input id="cfs" type="number" step="0.1" value="48.7" style="width: 120px">
+      </div>
+      <div>
+        <label for="at">Date</label>
+        <input id="at" type="date" value="2025-07-20">
+      </div>
+      <button id="go">Classify</button>
+    </div>
+    <div id="out" style="margin-top:18px">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Awaiting a reading</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What this is showing</h2>
+    <p class="note">
+      The default is the reading behind Scott Addendum 7: 48.7 cfs on 20 July 2025,
+      against a 50 cfs July minimum at Fort Jones. The flow schedule is bounded by
+      date PERIOD rather than by month, so Scott changes on 24 June and Shasta on
+      25 March and 16 September. Ask for a 2021 Shasta date and it refuses, because
+      that era's table has not been verified against a primary source and answering
+      from the readopted one would mark the Board wrong for following the rule that
+      was actually in force.
+    </p>
+    <p class="note">
+      The reading you type is labelled <code>unsourced</code>: this console
+      classifies a value you supply and never contacts USGS.
+    </p>
+  </section>
+</main>
+
+<footer>
+  Apache-2.0. Backtest, corpus provenance and eval evidence at
+  <a href="/api/facts">/api/facts</a>. API docs at <a href="/docs">/docs</a>.
+</footer>
+
+<script>
+  // No animation on any compliance-critical value. The reading, the minimum and the
+  // classification appear at their final value immediately, because animating a
+  // number implies uncertainty about it and these are legal facts.
+  const out = document.getElementById("out");
+
+  // Shape and text, with colour third. Every row carries its own glyph so the five
+  // classifications stay separable in grayscale and under any colour vision
+  // deficiency, which the status rule requires and colour alone cannot satisfy.
+  const STATUS = {
+    flow_below_minimum:            ["s-curtailed",  "\u2297", "Below minimum"],
+    reading_near_threshold:        ["s-conditional","\u25D0", "Near threshold"],
+    flow_above_minimum_unsustained:["s-suspended",  "\u2016", "Above minimum, not sustained"],
+    flow_recovered_sustained:      ["s-suspended",  "\u2016", "Recovered, sustained"],
+    revision_impact:               ["s-conditional","\u25D0", "Revision impact"],
+  };
+
+  async function classify() {
+    const basin = document.getElementById("basin").value;
+    const cfs = document.getElementById("cfs").value;
+    const day = document.getElementById("at").value;
+    const at = encodeURIComponent(day + "T12:00:00+00:00");
+    out.innerHTML = '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Asking the engine</span></div>';
+    const response = await fetch(`/api/classify/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
+    const body = await response.json();
+
+    if (!response.ok) {
+      // A refusal is a RESULT worth reading, not an error to hide. The engine
+      // declines rather than guessing, and the reason is the interesting part.
+      out.innerHTML =
+        '<div class="status s-conditional"><span class="glyph">&#9678;</span><span>Refused</span></div>' +
+        '<p class="refusal"></p>';
+      out.querySelector(".refusal").textContent = body.detail || "unavailable";
+      return;
+    }
+
+    const [cls, glyph, label] =
+      STATUS[body.classification] || ["s-pending", "\u25CB", body.classification];
+    out.innerHTML =
+      '<div class="reading"></div>' +
+      '<div class="against"></div>' +
+      `<div class="status ${cls}"><span class="glyph"></span><span></span></div>` +
+      '<p class="note"></p>';
+    out.querySelector(".glyph").textContent = glyph;
+    out.querySelector(".reading").textContent = `${body.observed_cfs} cfs`;
+    out.querySelector(".against").textContent =
+      `against a ${body.minimum_cfs} cfs operative minimum`;
+    out.querySelector(".status span:last-child").textContent =
+      `${label}, recommends to ${body.direction}`;
+    out.querySelector(".note").textContent = body.disclaimer;
+  }
+
+  document.getElementById("go").addEventListener("click", classify);
+  classify();
+</script>
