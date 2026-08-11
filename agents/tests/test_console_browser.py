@@ -23,7 +23,7 @@ import socket
 import threading
 import time
 import traceback
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -109,6 +109,41 @@ def _status(page: Page) -> str:
 
 def _classes(page: Page) -> str:
     return page.locator("#out .status").get_attribute("class") or ""
+
+
+def _sound_recommendation() -> dict[str, Any]:
+    """A response that passes every check, so a test can break exactly one thing."""
+    return {
+        "action": "consider_curtailment",
+        "deterministic_facts": {
+            "observed_cfs": 41.0,
+            "operative_minimum_cfs": 50.0,
+            "shortfall_cfs": 9.0,
+            "recommended_extent_rank": 1,
+            "rights_considered": 1,
+            "rights_reached": 1,
+        },
+        "ledger": [
+            {
+                "right_id": "A031522",
+                "priority_date": "2003-07-30",
+                "grouping": "Tier A",
+                "citation": "23 CCR 875.5(b)(1)(A)",
+                "would_be_curtailed": True,
+            }
+        ],
+        "provenance": {
+            "reading": {"source": "unsourced", "note": "typed by the caller"},
+            "rights": {"summary": "Addendum 6"},
+        },
+        "disclaimer": "A recommendation.",
+    }
+
+
+def _fulfil(body: dict[str, Any]) -> Callable[[Route], None]:
+    return lambda route: route.fulfill(
+        status=200, content_type="application/json", body=json.dumps(body)
+    )
 
 
 def _render_id(page: Page, card: str) -> str:
@@ -255,6 +290,39 @@ class TestAnUntrustworthyAnswerIsNeverShownAsAResult:
         assert "UNAVAILABLE" in _status(page), f"a response missing {dropped} rendered anyway"
         assert dropped in page.locator("#out .refusal").inner_text()
         assert "undefined" not in page.locator("#out").inner_text()
+        assert "s-pending" not in _classes(page)
+
+    @pytest.mark.parametrize("blanked", ["direction", "disclaimer"])
+    def test_a_present_but_blank_text_field_is_refused(
+        self, page: Page, console_url: str, blanked: str
+    ) -> None:
+        """Presence is not enough for a field that is interpolated into a sentence.
+
+        An `in body` check passes an empty string, which then renders as a blank where
+        the direction should be, or as nothing at all on the line that tells a reader
+        the system does not self-execute. This guard existed for one round without a
+        test, and an untested guard is not a working one.
+        """
+        body = {
+            "basin": "scott",
+            "observed_cfs": 41.0,
+            "minimum_cfs": 50.0,
+            "classification": "flow_below_minimum",
+            "direction": "curtail",
+            "disclaimer": "A recommendation.",
+        }
+        body[blanked] = "   "
+        page.route(
+            "**/api/classify/**",
+            lambda route: route.fulfill(
+                status=200, content_type="application/json", body=json.dumps(body)
+            ),
+        )
+        page.goto(console_url)
+        _settle(page)
+
+        assert "UNAVAILABLE" in _status(page)
+        assert f"carries no {blanked}" in page.locator("#out .refusal").inner_text()
         assert "s-pending" not in _classes(page)
 
     def test_an_unknown_classification_is_not_drawn_as_pending(
@@ -584,6 +652,74 @@ class TestTheLedgerCard:
 
         assert "CONSIDER SUSPENSION" in page.locator("#rec .status").inner_text().upper()
         assert "none" in page.locator("#rec .facts").inner_text().lower()
+
+    @pytest.mark.parametrize(
+        ("label", "mutate", "expected"),
+        [
+            ("no disclaimer", {"disclaimer": None}, "carries no disclaimer"),
+            ("blank disclaimer", {"disclaimer": "   "}, "carries no disclaimer"),
+        ],
+    )
+    def test_a_missing_disclaimer_is_not_interpolated_as_undefined(
+        self,
+        page: Page,
+        console_url: str,
+        label: str,
+        mutate: dict[str, Any],
+        expected: str,
+    ) -> None:
+        """It is interpolated straight into the provenance line, and it is the sentence
+        telling a reader that nothing here self-executes. Absent, it printed the word
+        "undefined" on exactly that line."""
+        page.route("**/api/recommendation/**", _fulfil(_sound_recommendation() | mutate))
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper(), label
+        assert expected in page.locator("#rec .refusal").inner_text()
+        assert "undefined" not in page.locator("#rec").inner_text()
+
+    @pytest.mark.parametrize(
+        ("label", "line", "expected"),
+        [
+            (
+                "no disposition",
+                {"right_id": "A1", "grouping": "Tier A", "citation": "23 CCR 875.5(b)(1)(A)"},
+                "states no disposition",
+            ),
+            (
+                "no right id",
+                {"grouping": "Tier A", "citation": "23 CCR 875.5", "would_be_curtailed": True},
+                "states no right_id",
+            ),
+            (
+                "no authority",
+                {"right_id": "A1", "grouping": "Tier A", "would_be_curtailed": True},
+                "states no citation",
+            ),
+        ],
+    )
+    def test_a_ledger_line_missing_a_field_is_not_rendered(
+        self,
+        page: Page,
+        console_url: str,
+        label: str,
+        line: dict[str, Any],
+        expected: str,
+    ) -> None:
+        """`would_be_curtailed` is read through a ternary, so an absent field rendered
+        as "not reached": a right the engine DID reach, shown as untouched. That is
+        worse than a visible gap, because it is a plausible wrong answer."""
+        page.route(
+            "**/api/recommendation/**", _fulfil(_sound_recommendation() | {"ledger": [line]})
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper(), label
+        assert expected in page.locator("#rec .refusal").inner_text()
+        assert page.locator("#rec tbody tr").count() == 0
+        assert "not reached" not in page.locator("#rec").inner_text()
 
     def test_a_basin_with_no_table_shows_the_refusal_not_an_empty_ledger(
         self, page: Page, console_url: str
