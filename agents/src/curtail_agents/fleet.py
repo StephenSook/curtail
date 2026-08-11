@@ -73,6 +73,7 @@ from google.adk.runners import Runner
 from google.adk.workflow import START, Edge, RetryConfig, Workflow, node
 from google.genai import types
 
+from curtail_agents.herald import deliver_order
 from curtail_agents.routing import (
     BACKOFF_FACTOR,
     INITIAL_DELAY_SECONDS,
@@ -464,6 +465,10 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
 #:
 #: Recorded because "unresolved tension" was the wrong label for "I did not test
 #: the other option", and the difference between those two is a minute of work.
+RECIPIENTS = "recipients"
+TRANSPORT = "transport"
+SYNTHETIC_TRANSPORT = "synthetic_transport"
+DELIVERY = "delivery"
 SOURCE_DOCUMENT = "source_document"
 PROMPT_BLOCK = "prompt_block"
 INJECTION_HITS = "injection_hits"
@@ -657,12 +662,33 @@ async def _scribe(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _herald(node_input: dict[str, Any]) -> dict[str, Any]:
-    """Serve and notify. NOT YET WIRED to a delivery channel.
+    """Route the artifact to its lane and distribute it. The Loop pattern.
 
-    The Loop pattern the README names. Its idempotency keys and dedup table
-    exist in `messaging.py` and are tested.
+    The lane is decided by what the artifact IS, never by this node's caller, and the
+    report says plainly whether anything was legally served. A notification that
+    succeeded is not service, and `may_report_as_served` is the single question any
+    surface must ask before showing that word.
+
+    No delivery vendor is wired. Without an injected transport the underlying call
+    REFUSES rather than recording a delivery that did not happen, and the demo passes an
+    explicitly named synthetic one whose results are marked as such.
     """
-    return node_input
+    recipients = node_input.get(RECIPIENTS)
+    if not recipients:
+        # Nothing to distribute is a real state on this path: a recommendation can be
+        # produced, reviewed and never served. It is reported rather than treated as a
+        # delivery of nothing.
+        return {**node_input, DELIVERY: None}
+
+    report = deliver_order(
+        order_id=str(node_input.get("order_id", "unsigned-draft")),
+        action=str(node_input.get("action", "notification")),
+        recipients=recipients,
+        artifact=str(node_input.get(PROMPT_BLOCK, node_input.get("draft_text", ""))),
+        transport=node_input.get(TRANSPORT),
+        synthetic=bool(node_input.get(SYNTHETIC_TRANSPORT, False)),
+    )
+    return {**node_input, DELIVERY: report}
 
 
 sentinel_node = _build_node(SENTINEL, _sentinel)

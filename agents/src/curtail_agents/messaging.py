@@ -64,6 +64,12 @@ class Channel(StrEnum):
     SMS = "sms"
     CERTIFIED_MAIL = "certified_mail"
     WEBSITE_POSTING = "website_posting"
+    #: The two remaining Water Code 1121 methods. Added when Herald needed to express
+    #: them: this enum previously modelled notification channels plus certified mail,
+    #: so a personally served order had no channel to be recorded under and would have
+    #: been forced into one that cannot effect service.
+    PERSONAL_DELIVERY = "personal_delivery"
+    RECEIPTED_DELIVERY = "receipted_delivery"
 
 
 class OrderType(StrEnum):
