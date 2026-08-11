@@ -1,0 +1,15 @@
+# What must NOT enter the build context.
+#
+# The corpus is gitignored government PDFs, the research folder holds internal
+# strategy documents the constitution bans from any public artifact, and neither
+# belongs in a container image that gets pushed to a registry.
+.git
+.venv
+_research/
+data/corpus/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/

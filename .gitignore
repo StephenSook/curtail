@@ -85,7 +85,14 @@ htmlcov/
 *.tfvars
 !*.tfvars.example
 crash.log
-.gcloudignore
+# .gcloudignore is TRACKED, deliberately, and it was ignored here by default.
+#
+# It is a safety control rather than local scratch: it keeps the gitignored corpus
+# of government PDFs and the internal strategy folder out of the Cloud Run build
+# context, so neither can end up inside a container image pushed to a registry. A
+# control that lives only on one machine protects only that machine, and the next
+# person to deploy from a fresh clone would have shipped both.
+# !.gcloudignore
 
 # ---------------------------------------------------------------------------
 # Test and capture artifacts
