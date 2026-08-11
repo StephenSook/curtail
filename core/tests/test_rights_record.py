@@ -43,13 +43,34 @@ def record() -> dict[str, Any]:
 
 class TestTheRecordAccountsForEveryRow:
     def test_the_counts_reconcile(self, record: dict[str, Any]) -> None:
-        """Parsed plus imprecise plus unparsed equals every application number seen.
+        """Every bucket adds up to the number of application numbers actually seen.
 
         This is the whole claim. A parser that reads most of a table and says nothing
         about the rest produces the same file as one that read all of it.
+
+        **The first version of this could not fail.** `application_numbers_seen` was
+        computed as `parsed + imprecise + unparsed`, so the assertion compared a sum to
+        itself, and it hid a real gap: `ambiguous` reached no bucket at all, so a row
+        refused because two adjacent lines both offered it a priority would have
+        vanished from the accounting without changing a single number. It read as clean
+        only because no row in the document was ambiguous yet. The total is now measured
+        in the parser as each application number is encountered, before any outcome is
+        decided.
         """
         a = record["accounting"]
-        assert a["parsed"] + a["imprecise"] + a["unparsed"] == a["application_numbers_seen"]
+        buckets = a["parsed"] + a["imprecise"] + a["ambiguous"] + a["unparsed"]
+        assert buckets == a["application_numbers_seen"], (
+            f"{a['application_numbers_seen']} application numbers were seen but "
+            f"{buckets} reached a bucket, so rows are vanishing between the page and "
+            "the record"
+        )
+
+    def test_every_refusal_category_is_present_in_the_record(self, record: dict[str, Any]) -> None:
+        """A category absent from the record cannot be reconciled against, however
+        carefully the parser fills it. `ambiguous` was missing exactly this way."""
+        for category in ("imprecise", "ambiguous", "unparsed", "blank_source"):
+            assert category in record["not_read"], f"{category} is missing from not_read"
+            assert category in record["accounting"] or category == "blank_source"
 
     def test_it_is_not_empty(self, record: dict[str, Any]) -> None:
         """Non-vacuity. Every consistency check above is satisfied by a record of

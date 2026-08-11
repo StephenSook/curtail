@@ -87,10 +87,13 @@ class TestEveryRowIsAccountedFor:
     """
 
     def test_nothing_is_silently_dropped(self, report: AttachmentReport) -> None:
-        accounted = len(report.rights) + len(report.imprecise) + len(report.unparsed)
-        assert accounted == 8, (
-            f"the fixture has 8 application numbers and {accounted} were accounted for, "
-            "so rows are vanishing between the page and the report"
+        """Measured against the parser's own count of application numbers encountered,
+        which is taken before any outcome is decided, so this cannot become a sum
+        compared to itself."""
+        assert report.application_numbers_seen == 8, "the fixture contains 8 application numbers"
+        assert report.accounted_for == report.application_numbers_seen, (
+            f"{report.application_numbers_seen} seen but {report.accounted_for} reached "
+            "a bucket, so rows are vanishing between the page and the report"
         )
 
     def test_the_ordinary_rows_are_read(self, report: AttachmentReport) -> None:
