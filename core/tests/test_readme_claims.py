@@ -121,6 +121,63 @@ class TestAPlaceholderCannotBeOvertakenByReality:
         "Agent Observability": None,  # genuinely not built
     }
 
+    @staticmethod
+    def _placeholders_in(readme: str) -> dict[str, str]:
+        """Every "not built yet" in the file, keyed by the thing it disclaims.
+
+        DISCOVERED, not listed. A review pointed out that a hardcoded pair let any
+        new placeholder pass silently while the class docstring claimed to cover
+        every one, which is a guard whose stated scope exceeds its actual scope: the
+        same defect it exists to catch, one level up.
+
+        A table row is labelled by its first cell, and any other line by the line
+        itself, so a placeholder cannot escape by being written in prose.
+        """
+        found: dict[str, str] = {}
+        for line in readme.splitlines():
+            if "not built yet" not in line:
+                continue
+            # The status line DESCRIBES the convention rather than using it, and the
+            # guard found it immediately, which is the guard working. A sentence
+            # explaining what a marker means is not a claim about a component, so it
+            # is excluded here explicitly. Any other meta-reference will fail this
+            # test and have to be excluded deliberately, which is the right cost.
+            if "Sections marked" in line:
+                continue
+            if line.lstrip().startswith("|"):
+                label = line.strip().strip("|").split("|")[0].strip()
+            else:
+                label = line.strip()
+            found[label] = line
+        return found
+
+    def test_every_placeholder_is_registered(self, readme: str) -> None:
+        """Registry completeness, enforced rather than assumed.
+
+        Adding a disclaimer without registering what would falsify it is how this
+        guard would quietly stop covering the README it guards.
+        """
+        discovered = self._placeholders_in(readme)
+        assert discovered, "no placeholders found, so the checks below prove nothing"
+        unregistered = sorted(set(discovered) - set(self.OVERTAKEN_BY))
+        assert not unregistered, (
+            f"these carry a 'not built yet' marker with no entry in OVERTAKEN_BY: "
+            f"{unregistered}. Register each one with the path that would falsify it, "
+            "or with None if it is genuinely unbuilt, so a placeholder overtaken by "
+            "reality cannot pass unnoticed."
+        )
+
+    def test_the_registry_names_no_placeholder_the_readme_lacks(self, readme: str) -> None:
+        """The other direction. A stale registry entry is a guard watching a line
+        that no longer exists, which reads as coverage and is not."""
+        discovered = self._placeholders_in(readme)
+        stale = sorted(
+            marker
+            for marker in self.OVERTAKEN_BY
+            if marker not in discovered and not _line_containing(readme, marker)
+        )
+        assert not stale, f"OVERTAKEN_BY names markers absent from the README: {stale}"
+
     def test_no_marker_disclaims_something_that_now_exists(self, readme: str) -> None:
         for marker, artifact in self.OVERTAKEN_BY.items():
             if artifact is None:
