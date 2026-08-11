@@ -1,12 +1,54 @@
-# What must NOT enter the build context.
+# What must NOT enter the Cloud Run build context.
 #
-# The corpus is gitignored government PDFs, the research folder holds internal
-# strategy documents the constitution bans from any public artifact, and neither
-# belongs in a container image that gets pushed to a registry.
+# **This file REPLACES the default behaviour, and that is the trap.** When no
+# .gcloudignore exists, gcloud falls back to .gitignore. The moment one exists, that
+# fallback stops, so an incomplete .gcloudignore silently UNPROTECTS everything
+# .gitignore was covering. The first version of this file listed the corpus and the
+# research folder and nothing else, which meant every secret pattern in .gitignore
+# had quietly stopped applying to build uploads. A review caught it before a deploy
+# carried one.
+#
+# The include directive restores that fallback explicitly. The patterns after it are
+# deliberate duplication: the ones that would put a credential inside a container
+# image pushed to a registry are worth stating here even though the include already
+# covers them, because this file is the one somebody reads when asking "what does a
+# build upload".
+
+#!include:.gitignore
+
+# ---------------------------------------------------------------------------
+# Credentials. Duplicated from .gitignore on purpose, see above.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+service-account*.json
+application_default_credentials.json
+.npmrc
+.pypirc
+
+# ---------------------------------------------------------------------------
+# Material that is public-facing but must not ship inside an image
+# ---------------------------------------------------------------------------
+# Internal strategy documents, banned from any public artifact by the build
+# constitution. An image pushed to a registry is a public artifact in every sense
+# that matters.
+_research/
+_private/
+_plan/
+
+# Government source PDFs. Gitignored, large, and not needed at runtime: the API
+# serves the GENERATED fact sheet, which travels inside the package.
+data/corpus/
+
+# ---------------------------------------------------------------------------
+# Build noise
+# ---------------------------------------------------------------------------
 .git
 .venv
-_research/
-data/corpus/
 **/__pycache__/
 *.pyc
 .pytest_cache/
