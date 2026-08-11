@@ -145,3 +145,101 @@ class TestTheRecordCarriesNoOwnerIdentity:
                     f"{row['application_number']} source {source!r} looks like an entity "
                     "name rather than a water source"
                 )
+
+
+class TestTheLoaderRefusesAnInconsistentRecord:
+    """Every case here was reproduced against the loader before it validated anything.
+
+    A partial rights table is the most dangerous shape this system can load. It does not
+    look broken: it produces a normal recommendation over fewer rights than the order
+    covers, carrying provenance that describes the whole document.
+    """
+
+    @staticmethod
+    def _write(tmp_path: Path, mutate: Any) -> Path:
+        from curtail_core.rights_record import PACKAGED
+
+        raw = json.loads(PACKAGED.read_text())
+        mutate(raw)
+        target = tmp_path / "record.json"
+        target.write_text(json.dumps(raw))
+        return target
+
+    def test_the_real_record_still_loads(self) -> None:
+        """Non-vacuity. Every refusal below is satisfied by a loader that refuses
+        everything, and that loader would take the whole system down silently."""
+        from curtail_core.rights_record import load_rights
+
+        loaded = load_rights()
+        assert len(loaded.converted.rights) > 50
+        assert loaded.rows_parsed == 85
+
+    @pytest.mark.parametrize(
+        ("label", "mutate", "expected"),
+        [
+            (
+                "rows truncated but the accounting left alone",
+                lambda raw: raw.__setitem__("rights", raw["rights"][:5]),
+                "claims 85 were parsed",
+            ),
+            (
+                "a refusal category emptied",
+                lambda raw: raw["not_read"].__setitem__("unparsed", []),
+                "unparsed lists 0 entries",
+            ),
+            (
+                "a refusal category deleted outright",
+                lambda raw: raw["not_read"].pop("ambiguous"),
+                "no 'ambiguous' refusal category",
+            ),
+            (
+                "the issue date removed",
+                lambda raw: raw["source"].pop("issued"),
+                "could not be read",
+            ),
+            (
+                "the source hash corrupted",
+                lambda raw: raw["source"].__setitem__("sha256", "nope"),
+                "no valid source sha256",
+            ),
+            (
+                "a duplicated row",
+                lambda raw: (
+                    raw["rights"].append(raw["rights"][0]),
+                    raw["accounting"].__setitem__("parsed", raw["accounting"]["parsed"] + 1),
+                ),
+                "reached a bucket",
+            ),
+            (
+                "a row with no application number",
+                lambda raw: raw["rights"][0].pop("application_number"),
+                "no valid application_number",
+            ),
+            (
+                "a row claiming both a date and a missing date",
+                lambda raw: raw["rights"][0].update(
+                    {"priority_date": "2001-01-01", "priority_date_missing": True}
+                ),
+                "also marked missing",
+            ),
+        ],
+    )
+    def test_it_refuses_rather_than_loading_part_of_a_table(
+        self, tmp_path: Path, label: str, mutate: Any, expected: str
+    ) -> None:
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = self._write(tmp_path, mutate)
+        with pytest.raises(RightsRecordUnavailableError, match=re.escape(expected)):
+            load_rights(target)
+
+    def test_corrupt_metadata_raises_the_stated_error_not_a_bare_keyerror(
+        self, tmp_path: Path
+    ) -> None:
+        """It escaped the guarded block, so a corrupt file surfaced as a 500 rather
+        than as a refusal a caller could report."""
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = self._write(tmp_path, lambda raw: raw.pop("source"))
+        with pytest.raises(RightsRecordUnavailableError):
+            load_rights(target)

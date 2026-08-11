@@ -7,6 +7,7 @@ the guard at the bottom is what stops the list going false again.
 
 from __future__ import annotations
 
+import json
 import tomllib
 from pathlib import Path
 from typing import ClassVar
@@ -490,7 +491,20 @@ class TestTheRecommendationEndpoint:
     """
 
     def test_it_runs_on_the_real_rights_and_returns_a_ledger_line_each(self) -> None:
-        from curtail_core.rights_record import load_rights
+        """Compared against the COMMITTED RECORD, not against the same loader.
+
+        The first version got its expected set by calling `load_rights` and comparing
+        counts. If the loader silently returned a truncated table, the endpoint and the
+        test derived the same reduced number and it passed: a self-derived expectation,
+        which this project has already been bitten by twice.
+        """
+        record = json.loads((REPO / "data" / "rights_shasta_addendum6.json").read_text())
+        expected = {
+            row["application_number"]
+            for row in record["rights"]
+            if row["priority_date"] is not None or row["priority_year_only"] is not None
+        }
+        assert len(expected) > 50, "the record is empty, so this test proves nothing"
 
         response = TestClient(app).get(
             "/api/recommendation/shasta?cfs=46.5&at=2026-06-15T12:00:00%2B00:00"
@@ -498,11 +512,10 @@ class TestTheRecommendationEndpoint:
         assert response.status_code == 200
         body = response.json()
 
-        placed = [r for r in load_rights().converted.rights if r.basin.value == "shasta"]
-        assert placed, "no rights loaded, so this test proves nothing"
-        assert len(body["ledger"]) == len(placed), (
-            "the ledger must carry one line per right considered, or an official "
-            "reading it cannot tell whose disposition is missing"
+        served = {entry["right_id"] for entry in body["ledger"]}
+        assert served == expected, (
+            "the ledger does not cover exactly the rights the committed record says are "
+            f"placeable. missing={sorted(expected - served)} extra={sorted(served - expected)}"
         )
 
     def test_it_is_a_recommendation_and_says_who_determines(self) -> None:
