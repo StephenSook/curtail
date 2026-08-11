@@ -118,6 +118,27 @@ restated here, because a count in prose goes stale the moment somebody adds a te
 What is worth stating is the discipline: guards are mutation-tested, so a guard that
 cannot fail is treated as a guard that does not exist.
 
+## Reach it
+
+The console API runs on Cloud Run and needs no credentials to read:
+
+| | |
+|---|---|
+| Liveness | https://curtail-console-api-672785135387.us-central1.run.app/api/healthz |
+| Classify a reading | [48.7 cfs at Fort Jones, 20 July 2025](https://curtail-console-api-672785135387.us-central1.run.app/api/classify/scott?cfs=48.7&at=2025-07-20T21:30:00%2B00:00) |
+| The generated fact sheet | https://curtail-console-api-672785135387.us-central1.run.app/api/facts |
+| Interactive docs | https://curtail-console-api-672785135387.us-central1.run.app/docs |
+
+That first link is the reading behind Addendum 7: 48.7 cfs against a 50 cfs July
+minimum, classified near-threshold and pointing at restriction. Change the `cfs` and
+the date and the answer follows the flow schedule, including the mid-month period
+boundaries a month-keyed table cannot express. Ask it for a 2021 Shasta date and it
+refuses with a reason rather than answering from the wrong era's table.
+
+Every response says it is a recommendation, and every reading is labelled
+`unsourced`, because the endpoint classifies a value you supply and never contacts
+USGS.
+
 ## Setup
 
 ```

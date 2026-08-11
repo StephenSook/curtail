@@ -69,9 +69,19 @@ app = FastAPI(
 )
 
 
-@app.get("/healthz")
+@app.get("/api/healthz")
 def healthz() -> dict[str, str]:
     """Liveness only. Deliberately returns nothing about any right, order or officer.
+
+    **Served at /api/healthz, not /healthz, and that was found in production.**
+    A request to /healthz on a .run.app host never reaches the container: Google's
+    frontend answers it with its own 404 page, and the Cloud Run request log has no
+    entry for it at all while showing every neighbouring path. The route existed,
+    the tests passed, the deploy was green, and the endpoint was unreachable.
+
+    Nothing local could have caught it. A TestClient talks to the ASGI app directly,
+    so it never meets the frontend that was swallowing the path, which is the whole
+    argument for probing a deployed URL rather than trusting a green deploy.
 
     A probe that leaked protected data to prove the process was up would be a
     permission hole with a reassuring name, and this one is documented as an

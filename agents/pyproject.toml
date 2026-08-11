@@ -37,6 +37,10 @@ dependencies = [
     "aiosqlite>=0.21,<0.22",
     "greenlet>=3.2,<4",
     "google-cloud-pubsub>=2.31,<3",
+    # The ASGI server Cloud Run runs. Invoked as a command, never imported, so it is
+    # registered in the manifest guard's RUNTIME_ONLY table with that reason rather
+    # than tripping the unused-dependency check.
+    "uvicorn>=0.41,<0.42",
 ]
 
 [build-system]

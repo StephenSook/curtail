@@ -26,13 +26,13 @@ def client() -> TestClient:
 
 class TestTheProbeLeaksNothing:
     def test_it_reports_liveness(self, client: TestClient) -> None:
-        assert client.get("/healthz").json() == {"status": "ok"}
+        assert client.get("/api/healthz").json() == {"status": "ok"}
 
     def test_it_returns_no_protected_data(self, client: TestClient) -> None:
         """A probe that leaked protected data to prove the process was up would be a
         permission hole with a reassuring name. This one is a documentable exception
         precisely because it returns none."""
-        body = client.get("/healthz").text.lower()
+        body = client.get("/api/healthz").text.lower()
         for leaked in ("right", "order", "officer", "priority", "curtail"):
             assert leaked not in body, f"the liveness probe mentions {leaked!r}"
 
@@ -157,6 +157,12 @@ class TestTheDependencyManifestStaysHonest:
         "aiosqlite": (
             "The async SQLite driver behind the sqlite+aiosqlite URL the ledger "
             "durability test uses, and the same shape a Cloud SQL URL takes."
+        ),
+        "uvicorn": (
+            "The ASGI server that runs this API on Cloud Run. It is invoked as a "
+            "command by the container entrypoint and never imported, which is a real "
+            "category rather than an oversight: a process we start is not a module "
+            "we call."
         ),
         "greenlet": (
             "SQLAlchemy's async bridge. Without it DatabaseSessionService raises at "
