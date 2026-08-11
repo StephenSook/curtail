@@ -75,7 +75,6 @@ def build() -> dict[str, Any]:
     report = parse_attachment(pages)
     converted = to_water_rights(report)
 
-    unique_ids = len(report.rights) + len(report.imprecise) + len(report.unparsed)
     return {
         "source": {
             "document": "Order WR 2024-0006-DWR, Addendum 6, Updated Attachment",
@@ -85,13 +84,15 @@ def build() -> dict[str, Any]:
             "pages": [FIRST_TABLE_PAGE, LAST_TABLE_PAGE],
         },
         "accounting": {
-            "application_numbers_seen": unique_ids,
+            "application_numbers_seen": report.application_numbers_seen,
             "parsed": len(report.rights),
             "imprecise": len(report.imprecise),
+            "ambiguous": len(report.ambiguous),
             "unparsed": len(report.unparsed),
         },
         "not_read": {
             "imprecise": list(report.imprecise),
+            "ambiguous": list(report.ambiguous),
             "unparsed": list(report.unparsed),
             "blank_source": list(report.blank_source),
             "recovered_from_neighbour": list(report.recovered_from_neighbour),

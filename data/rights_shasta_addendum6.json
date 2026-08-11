@@ -1,5 +1,6 @@
 {
   "accounting": {
+    "ambiguous": 0,
     "application_numbers_seen": 87,
     "imprecise": 1,
     "parsed": 85,
@@ -10,6 +11,7 @@
     "Tier B": 6
   },
   "not_read": {
+    "ambiguous": [],
     "blank_source": [
       "SG005923",
       "SG005924",

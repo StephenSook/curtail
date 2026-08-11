@@ -147,6 +147,10 @@ class AttachmentReport:
     somehow.
     """
 
+    #: Every distinct application number the page text contained, counted as it was
+    #: encountered and independently of what became of it. The one number in this
+    #: record that is measured rather than derived.
+    application_numbers_seen: int
     rights: tuple[AttachedRight, ...]
     #: Lines that carried an application number but no usable date cell.
     unparsed: tuple[str, ...] = field(default_factory=tuple)
@@ -173,6 +177,17 @@ class AttachmentReport:
             "colour alone and cannot be recovered from extracted text.",
         )
     )
+
+    @property
+    def accounted_for(self) -> int:
+        """Every row that reached a bucket. Must equal `application_numbers_seen`.
+
+        `ambiguous` belongs here and was missing from the first version of the audit
+        record, so a row refused for ambiguity reached no bucket and vanished from the
+        accounting entirely. It read as clean only because no row in the real document
+        was ambiguous yet.
+        """
+        return len(self.rights) + len(self.imprecise) + len(self.ambiguous) + len(self.unparsed)
 
     @property
     def with_dates(self) -> tuple[AttachedRight, ...]:
@@ -222,6 +237,7 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
     ambiguous: list[str] = []
     recovered_from_neighbour: list[str] = []
     seen: set[str] = set()
+    encountered: set[str] = set()
 
     for page in sorted(pages):
         lines = pages[page].splitlines()
@@ -231,6 +247,11 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
                 continue
 
             number = match.group("id")
+            # Counted BEFORE any outcome is decided, and this is the ground truth the
+            # accounting reconciles against. Deriving the total from the outcomes
+            # instead made the reconciliation a sum compared to itself: it could not
+            # fail, and it hid a whole category that reached no bucket at all.
+            encountered.add(number)
             # The Board reissues attachments, and a duplicate would double a right's
             # weight in any count computed off this table.
             if number in seen:
@@ -303,6 +324,7 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
             )
 
     return AttachmentReport(
+        application_numbers_seen=len(encountered),
         rights=tuple(rights),
         unparsed=tuple(unparsed),
         blank_source=tuple(blank_source),
