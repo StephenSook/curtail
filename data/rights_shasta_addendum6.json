@@ -1,0 +1,855 @@
+{
+  "accounting": {
+    "application_numbers_seen": 87,
+    "imprecise": 1,
+    "parsed": 85,
+    "unparsed": 1
+  },
+  "ladder_placement_counts": {
+    "Tier A": 79,
+    "Tier B": 6
+  },
+  "not_read": {
+    "blank_source": [
+      "SG005923",
+      "SG005924",
+      "SG005925",
+      "SG005926",
+      "SG005927",
+      "SG005956",
+      "SG005957",
+      "SG005445",
+      "SG005433",
+      "SG005434",
+      "SG005435",
+      "SG005436",
+      "SG005437",
+      "SG005915",
+      "SG005916",
+      "SG005914",
+      "SG005432",
+      "A031522",
+      "SG005919",
+      "SG005911",
+      "C001014",
+      "SG005908",
+      "SG005441",
+      "SG005438",
+      "A022336",
+      "A022099",
+      "A019522",
+      "A018186",
+      "A016392",
+      "A014580",
+      "A014074",
+      "A013200",
+      "A013150",
+      "A011705",
+      "A011092",
+      "A011059",
+      "A010982",
+      "A004909",
+      "A004831",
+      "A003952",
+      "A000448"
+    ],
+    "imprecise": [
+      "SG005439 states a range, '1970 to 1981'"
+    ],
+    "recovered_from_neighbour": [
+      "SG005432"
+    ],
+    "unparsed": [
+      "SG005440"
+    ],
+    "unrecoverable": [
+      "The curtailment status column wraps across adjacent lines in layout text and is not read positionally; disposition is derived from the document's own priority-date bands instead.",
+      "Addendum 6 states that rights subject to the additional conditions are 'listed in orange in the Attachment'. That distinction is encoded by colour alone and cannot be recovered from extracted text."
+    ]
+  },
+  "open_questions": [
+    "1 rows state a year with no month or day. The year is used only where it settles the band on its own, and is never widened into a date.",
+    "14 of 85 rows state no priority date. The table prints them as '--'. They are carried as missing rather than imputed, because riparian and pre-1914 claims are self-reported Statements whose dates are not verified as a condition of the record existing.",
+    "41 rows have a blank Source cell, carried down visually in the printed table. Not filled from the row above: layout text gives no cell boundaries, and a wrong source merges unrelated rights into one shared-source group where monotonicity is checked.",
+    "1 rows carried an application number with neither a date nor the '--' marker: SG005440",
+    "The curtailment status column wraps across adjacent lines in layout text and is not read positionally; disposition is derived from the document's own priority-date bands instead.",
+    "Addendum 6 states that rights subject to the additional conditions are 'listed in orange in the Attachment'. That distinction is encoded by colour alone and cannot be recovered from extracted text."
+  ],
+  "rights": [
+    {
+      "application_number": "SG005922",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "SG005923",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005924",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005925",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005926",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005927",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005956",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005957",
+      "band": "undetermined_no_date",
+      "page": 6,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005445",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005433",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005434",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005435",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005436",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005437",
+      "band": "undetermined_no_date",
+      "page": 7,
+      "priority_date": null,
+      "priority_date_missing": true,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005915",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2019-02-11",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005916",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2019-02-11",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005914",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2015-01-10",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005432",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2014-08-21",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "D031892",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2011-05-12",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "SG005913",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2010-12-13",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "SG005430",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2010-07-13",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "SG005431",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2010-07-14",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "SG005909",
+      "band": "conditional_with_additional_conditions",
+      "page": 7,
+      "priority_date": "2003-09-06",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "A031522",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "2003-07-30",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "D031166",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "2001-01-17",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A029558",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1989-08-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "FOGG GULCH"
+    },
+    {
+      "application_number": "A029415",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1989-02-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A028250",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1984-09-24",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "A028119",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1984-04-24",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "ZOLLS GULCH"
+    },
+    {
+      "application_number": "A028120",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1984-04-24",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "ZOLLS GULCH"
+    },
+    {
+      "application_number": "A027528",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1982-09-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "A027483",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1982-08-20",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "SG005919",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1982-05-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005911",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1982-06-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A026792",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1981-04-16",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "CREEK"
+    },
+    {
+      "application_number": "A026590",
+      "band": "conditional_with_additional_conditions",
+      "page": 8,
+      "priority_date": "1980-10-28",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A026316",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1980-04-25",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A025786",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1978-07-17",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "C001014",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1977-10-11",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005908",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1977-04-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005441",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": null,
+      "priority_date_missing": false,
+      "priority_year_only": 1977,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A025024",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1976-03-18",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "SG005918",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1974-01-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "A024200",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1972-10-05",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "SG005910",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1972-01-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "A023796",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1971-06-02",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "PARKS CREEK"
+    },
+    {
+      "application_number": "A023767",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1971-04-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "SG005438",
+      "band": "conditional_with_additional_conditions",
+      "page": 9,
+      "priority_date": "1970-12-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A023117",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1968-08-27",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A022961",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1967-12-26",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "SG005912",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1967-05-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "A022336",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1965-11-16",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A022099",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1965-04-07",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A021986",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1964-12-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP (2)"
+    },
+    {
+      "application_number": "A021238",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1963-04-11",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "SHASTA RIVER"
+    },
+    {
+      "application_number": "A021180",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1963-03-06",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNDR"
+    },
+    {
+      "application_number": "A021141",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1963-01-28",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNDR"
+    },
+    {
+      "application_number": "A020016",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1961-03-03",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A019522",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1960-07-07",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A018557",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1959-02-26",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "SHASTA RIVER"
+    },
+    {
+      "application_number": "A018434",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1958-12-15",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A018186",
+      "band": "conditional_with_additional_conditions",
+      "page": 10,
+      "priority_date": "1958-06-17",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "SG005920",
+      "band": "conditional_with_additional_conditions",
+      "page": 11,
+      "priority_date": "1958-01-01",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "Groundwater"
+    },
+    {
+      "application_number": "A017639",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1957-06-07",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A017334",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1956-10-19",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSL"
+    },
+    {
+      "application_number": "A016392",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1955-05-24",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A015687",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1954-01-15",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNST"
+    },
+    {
+      "application_number": "A014580",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1951-11-15",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A014074",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1950-11-28",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A013631",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1950-03-13",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "SHASTA RIVER"
+    },
+    {
+      "application_number": "A013283",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1949-08-08",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "JULIEN CREEK"
+    },
+    {
+      "application_number": "A013200",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1949-06-30",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A013150",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1949-06-13",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A011705",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1947-01-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A011092",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1945-06-29",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A011059",
+      "band": "conditional",
+      "page": 11,
+      "priority_date": "1945-05-26",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A010982",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1945-02-14",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A010930",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1944-12-11",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "UNSP"
+    },
+    {
+      "application_number": "A008809",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1936-10-10",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "CLEAR SPRING"
+    },
+    {
+      "application_number": "A004909",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1926-02-04",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A004831",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1925-11-09",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A003555",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1925-07-30",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "PARKS CREEK"
+    },
+    {
+      "application_number": "A003952",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1924-04-12",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    },
+    {
+      "application_number": "A003544",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1923-07-23",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": "SHASTA RIVER"
+    },
+    {
+      "application_number": "A000448",
+      "band": "conditional",
+      "page": 12,
+      "priority_date": "1916-08-28",
+      "priority_date_missing": false,
+      "priority_year_only": null,
+      "source_as_printed": ""
+    }
+  ],
+  "source": {
+    "document": "Order WR 2024-0006-DWR, Addendum 6, Updated Attachment",
+    "file": "addendum6-shasta-attach-a.pdf",
+    "issued": "2026-06-16",
+    "pages": [
+      6,
+      15
+    ],
+    "sha256": "e65b1e5dc5474d229040b0776cf247290599d4a275c2be662049555bf0150b7b"
+  }
+}
