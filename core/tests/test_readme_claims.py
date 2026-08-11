@@ -122,8 +122,15 @@ class TestAPlaceholderCannotBeOvertakenByReality:
     }
 
     @staticmethod
-    def _placeholders_in(readme: str) -> dict[str, str]:
-        """Every "not built yet" in the file, keyed by the thing it disclaims.
+    def _placeholders_in(readme: str) -> list[tuple[str, str]]:
+        """EVERY "not built yet" occurrence, as (label, line) pairs.
+
+        A list, not a dict, and a review is why. Keying by label silently collapsed
+        duplicates: a second row whose first cell matched a registered one
+        overwrote it and vanished, so an unregistered placeholder could hide behind
+        a registered label in a guard whose whole claim is "every placeholder".
+        Losing an occurrence during DISCOVERY defeats a completeness check more
+        quietly than any bug in the check itself.
 
         DISCOVERED, not listed. A review pointed out that a hardcoded pair let any
         new placeholder pass silently while the class docstring claimed to cover
@@ -133,7 +140,7 @@ class TestAPlaceholderCannotBeOvertakenByReality:
         A table row is labelled by its first cell, and any other line by the line
         itself, so a placeholder cannot escape by being written in prose.
         """
-        found: dict[str, str] = {}
+        found: list[tuple[str, str]] = []
         for line in readme.splitlines():
             if "not built yet" not in line:
                 continue
@@ -148,7 +155,7 @@ class TestAPlaceholderCannotBeOvertakenByReality:
                 label = line.strip().strip("|").split("|")[0].strip()
             else:
                 label = line.strip()
-            found[label] = line
+            found.append((label, line))
         return found
 
     def test_every_placeholder_is_registered(self, readme: str) -> None:
@@ -159,7 +166,7 @@ class TestAPlaceholderCannotBeOvertakenByReality:
         """
         discovered = self._placeholders_in(readme)
         assert discovered, "no placeholders found, so the checks below prove nothing"
-        unregistered = sorted(set(discovered) - set(self.OVERTAKEN_BY))
+        unregistered = sorted({label for label, _ in discovered} - set(self.OVERTAKEN_BY))
         assert not unregistered, (
             f"these carry a 'not built yet' marker with no entry in OVERTAKEN_BY: "
             f"{unregistered}. Register each one with the path that would falsify it, "
@@ -170,11 +177,11 @@ class TestAPlaceholderCannotBeOvertakenByReality:
     def test_the_registry_names_no_placeholder_the_readme_lacks(self, readme: str) -> None:
         """The other direction. A stale registry entry is a guard watching a line
         that no longer exists, which reads as coverage and is not."""
-        discovered = self._placeholders_in(readme)
+        labels = {label for label, _ in self._placeholders_in(readme)}
         stale = sorted(
             marker
             for marker in self.OVERTAKEN_BY
-            if marker not in discovered and not _line_containing(readme, marker)
+            if marker not in labels and not _line_containing(readme, marker)
         )
         assert not stale, f"OVERTAKEN_BY names markers absent from the README: {stale}"
 
@@ -235,3 +242,32 @@ def _line_containing(text: str, needle: str) -> str:
 def _unquote(text: str) -> str:
     """Strip markdown blockquote markers so a comparison is about content."""
     return "\n".join(re.sub(r"^\s*>\s?", "", line) for line in text.splitlines())
+
+
+class TestPlaceholderLabelsAreUnique:
+    """The registry keys on label, so two placeholders sharing one cannot be told
+    apart, and the second would inherit the first's registration.
+
+    Discovery now preserves every occurrence, which surfaces the collision instead
+    of swallowing it. Enforcing uniqueness is what makes the registration check mean
+    what it says.
+    """
+
+    def test_no_two_placeholders_share_a_label(self, readme: str) -> None:
+        from collections import Counter
+
+        discovered = TestAPlaceholderCannotBeOvertakenByReality._placeholders_in(readme)
+        counts = Counter(label for label, _ in discovered)
+        duplicated = sorted(label for label, n in counts.items() if n > 1)
+        assert not duplicated, (
+            f"these placeholder labels appear more than once: {duplicated}. The "
+            "registry is keyed by label, so the second would inherit the first's "
+            "entry and evade the completeness check."
+        )
+
+    def test_discovery_returns_every_occurrence(self) -> None:
+        """Non-vacuity for the fix itself. A discovery that still deduplicated would
+        make the uniqueness test above impossible to fail."""
+        sample = "| Thing | *(not built yet)* |\n| Thing | *(not built yet)* |\n"
+        found = TestAPlaceholderCannotBeOvertakenByReality._placeholders_in(sample)
+        assert len(found) == 2, f"discovery collapsed duplicates: {found}"
