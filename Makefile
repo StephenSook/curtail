@@ -53,6 +53,12 @@ secrets: ## Full-history secret scan
 evals: ## Regenerate the committed eval artifacts from the Board's own cases
 	uv run python scripts/export_evals.py
 
+rights: ## Re-parse Attachment A from the fetched corpus into the committed record
+	uv run python scripts/extract_attachment_a.py
+
+rights-check: ## Fail if the committed rights record has drifted from the source PDF
+	uv run python scripts/extract_attachment_a.py --check
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that
