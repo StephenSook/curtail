@@ -1108,3 +1108,88 @@ class TestAPoisonedDocumentSurvivesTheWholeRealPath:
             node_input=message,
         )
         assert SOURCE_DOCUMENT not in out
+
+
+class TestTheCoreNodeIsWired:
+    """Its placeholder said it needed a rights table the console would supply. That
+    reason went stale the moment Attachment A was parsed, and a stub whose stated blocker
+    has been removed is a claim about the system that is no longer true."""
+
+    async def test_it_recommends_from_the_sentinels_event(self) -> None:
+        from datetime import UTC, datetime
+
+        from curtail_agents.events import Provenance
+        from curtail_agents.fleet import RECOMMENDATION, _core, _sentinel
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        observation = Observation(
+            Basin.SHASTA, 46.5, datetime(2026, 6, 15, 12, tzinfo=UTC), Provenance.UNSOURCED
+        )
+        carried = await _sentinel(observation, correlation_id="test-core-1")
+        out = await _core(carried)
+
+        recommendation = out[RECOMMENDATION]
+        assert recommendation.ledger, "the Core produced no ledger, so nothing is wired"
+        assert len(recommendation.ledger) > 50
+        assert recommendation.needs_official_review is True
+
+    async def test_it_carries_the_sentinels_payload_forward(self) -> None:
+        """A node that quietly dropped the upstream event would make the chain look
+        wired while losing the only real payload moving through it."""
+        from datetime import UTC, datetime
+
+        from curtail_agents.events import Provenance
+        from curtail_agents.fleet import _core, _sentinel
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        observation = Observation(
+            Basin.SHASTA, 46.5, datetime(2026, 6, 15, 12, tzinfo=UTC), Provenance.UNSOURCED
+        )
+        carried = await _sentinel(observation, correlation_id="test-core-2")
+        out = await _core(carried)
+        assert out["correlation_id"] == "test-core-2"
+        assert out["event"] is carried["event"]
+
+    async def test_no_event_is_refused_rather_than_recommended_from_nothing(self) -> None:
+        from curtail_agents.fleet import _core
+        from curtail_agents.sentinel import SentinelError
+
+        with pytest.raises(SentinelError, match="no gage event"):
+            await _core({"correlation_id": "test-core-3"})
+
+    async def test_a_basin_with_no_table_carries_the_gap_rather_than_aborting(self) -> None:
+        """Two failures pull in opposite directions here.
+
+        Recommending from an empty rights list produces a well-formed answer reaching
+        nobody, which reads exactly like a real one. Aborting throws away the Sentinel's
+        classification, which stands on its own: a Scott gage crossing a legally
+        operative minimum is a real event whether or not that basin's rights table has
+        been ingested.
+
+        So the recommendation is None with a stated reason, and the event survives.
+        """
+        from datetime import UTC, datetime
+
+        from curtail_agents.events import Provenance
+        from curtail_agents.fleet import (
+            RECOMMENDATION,
+            RECOMMENDATION_UNAVAILABLE,
+            _core,
+            _sentinel,
+        )
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        observation = Observation(
+            Basin.SCOTT, 48.7, datetime(2025, 7, 20, 12, tzinfo=UTC), Provenance.UNSOURCED
+        )
+        carried = await _sentinel(observation, correlation_id="test-core-4")
+        out = await _core(carried)
+
+        assert out[RECOMMENDATION] is None
+        assert "no rights table has been ingested" in out[RECOMMENDATION_UNAVAILABLE]
+        assert out["event"] is carried["event"], (
+            "the Sentinel's classification was lost because allocation was unavailable"
+        )
