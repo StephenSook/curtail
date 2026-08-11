@@ -111,14 +111,29 @@ def _classes(page: Page) -> str:
 
 
 def _settle(page: Page) -> None:
-    """Wait for the page to leave the transient waiting label.
+    """Wait for a TERMINAL state, which is the only thing worth waiting for.
 
     Deliberately NOT `networkidle`: the defects under test are precisely the ones
     where the network settles and the page stays on the waiting label forever, so a
     network-based wait would hang rather than assert.
+
+    **And deliberately not the absence of the waiting label either, which is what
+    this did first.** That condition is already true before `classify` runs at all,
+    because the page opens on its own "Awaiting a reading" placeholder, so the wait
+    could return immediately and every assertion after it would read the DOM at an
+    arbitrary moment. It was caught by driving the DEPLOYED console, where one run
+    printed the pending label and the settled class in the same breath: two reads
+    that cannot both be true. Nothing failed, which is the problem. A wait keyed to
+    the absence of a transient state is a flake with a timer on it, and this
+    repository is about to sit frozen through a month of judging.
+
+    Both terminal states are identifiable by structure rather than by wording: a
+    rendered classification has a `.reading`, and refused or unavailable has a
+    `.refusal`. Neither exists in the placeholder or while waiting.
     """
     page.wait_for_function(
-        "() => !document.querySelector('#out .status').innerText.includes('Asking the engine')",
+        "() => !!(document.querySelector('#out .reading')"
+        "        || document.querySelector('#out .refusal'))",
         timeout=10_000,
     )
 
