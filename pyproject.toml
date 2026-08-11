@@ -93,4 +93,9 @@ filterwarnings = [
     # deprecation in our own code, which is the thing this setting is for.
     # Revisit when the pinned ADK version moves.
     "ignore:BaseAgentConfig is deprecated:DeprecationWarning",
+    # Starlette warns that its TestClient uses httpx rather than httpx2. That is a
+    # third-party transition, not our code, and the alternative is either dropping
+    # the API tests or adding a dependency for a warning. Scoped to that exact
+    # message rather than relaxed, and revisit when the pinned FastAPI moves.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:",
 ]

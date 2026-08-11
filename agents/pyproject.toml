@@ -5,12 +5,26 @@ description = "ADK agent fleet: Gage Sentinel, Order Scribe, Herald, Season Ledg
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "google-adk>=2.6.3,<2.7",
+    # WIRED, and audited that way. An earlier version of this list declared four
+    # dependencies that nothing imported: fastapi, structlog, pydantic and
+    # google-cloud-pubsub. A dependency list is a claim about what a project uses,
+    # checkable by anyone in one grep, and four of them were false. The wired-or-cut
+    # rule applies here exactly as it applies to a README.
+    #
+    # fastapi and structlog serve the console API in `api.py`. httpx is the gage
+    # client's transport and also FastAPI's test client. pydantic arrives through
+    # google-adk and is not declared directly, because declaring a transitive
+    # dependency you never import is the same false claim in a quieter form.
+    # google-cloud-pubsub is KEPT, and the first attempt at this audit cut it
+    # wrongly. `messaging.py` needs no client, but `test_messaging.py` imports
+    # `google.pubsub_v1.types` to assert the real library supports the dead-letter
+    # policy and delivery-attempt bounds we configure, which is a conformance check
+    # worth more than the dependency costs. The guard now scans tests as well as
+    # source, because a package used only by tests is still used.
     "fastapi>=0.141.1,<0.142",
-    "pydantic>=2.13.4,<3",
     "structlog>=26.1.0,<27",
     "httpx>=0.28.1,<0.29",
     "curtail-core",
-    "google-cloud-pubsub>=2.31,<3",
     # The Season Ledger's durability is the track's "weeks of asynchronous
     # operations" criterion, and durability means a session service that survives
     # the process. `DatabaseSessionService` is that service, ADK ships it behind
@@ -22,6 +36,7 @@ dependencies = [
     "sqlalchemy>=2.0.51,<2.1",
     "aiosqlite>=0.21,<0.22",
     "greenlet>=3.2,<4",
+    "google-cloud-pubsub>=2.31,<3",
 ]
 
 [build-system]
