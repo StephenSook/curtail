@@ -132,6 +132,7 @@ def _sound_recommendation() -> dict[str, Any]:
                 "would_be_curtailed": True,
             }
         ],
+        "judgment_inputs": [],
         "provenance": {
             "reading": {"source": "unsourced", "note": "typed by the caller"},
             "rights": {"summary": "Addendum 6"},
@@ -494,6 +495,7 @@ class TestTheLedgerCard:
                             "rights_reached": 1,
                         },
                         "ledger": [],
+                        "judgment_inputs": [],
                         "provenance": {"rights": {"summary": "Addendum 6"}},
                         "disclaimer": "A recommendation.",
                     }
@@ -561,6 +563,7 @@ class TestTheLedgerCard:
                             "rights_reached": 1,
                         },
                         "ledger": [],
+                        "judgment_inputs": [],
                         "provenance": provenance,
                         "disclaimer": "A recommendation.",
                     }
@@ -599,6 +602,7 @@ class TestTheLedgerCard:
                         "action": "consider_curtailment",
                         "deterministic_facts": facts,
                         "ledger": [],
+                        "judgment_inputs": [],
                         "provenance": {
                             "reading": {"source": "unsourced", "note": "typed"},
                             "rights": {"summary": "Addendum 6"},
@@ -638,6 +642,7 @@ class TestTheLedgerCard:
                             "rights_reached": 0,
                         },
                         "ledger": [],
+                        "judgment_inputs": [],
                         "provenance": {
                             "reading": {"source": "unsourced", "note": "typed"},
                             "rights": {"summary": "Addendum 6"},
@@ -720,6 +725,159 @@ class TestTheLedgerCard:
         assert expected in page.locator("#rec .refusal").inner_text()
         assert page.locator("#rec tbody tr").count() == 0
         assert "not reached" not in page.locator("#rec").inner_text()
+
+    @pytest.mark.parametrize(
+        ("label", "facts", "expected"),
+        [
+            ("fractional count", {"rights_considered": 2.5}, "not a whole count"),
+            ("negative count", {"rights_reached": -1}, "not a whole count"),
+            (
+                "more reached than considered",
+                {"rights_considered": 1, "rights_reached": 4},
+                "more rights are reached than were considered",
+            ),
+            ("negative discharge", {"observed_cfs": -3.0}, "negative"),
+            ("fractional extent", {"recommended_extent_rank": 1.5}, "neither a rank"),
+        ],
+    )
+    def test_an_impossible_count_is_not_shown_as_a_fact(
+        self,
+        page: Page,
+        console_url: str,
+        label: str,
+        facts: dict[str, Any],
+        expected: str,
+    ) -> None:
+        """Finite is not the same as possible.
+
+        These numbers land in the status line as a statement about how many diverters
+        are shut off. 2.5 rights, or more reached than considered, is not a gap a reader
+        would notice; it is an authoritative-looking wrong answer.
+        """
+        body = _sound_recommendation()
+        body["deterministic_facts"] = body["deterministic_facts"] | facts
+        page.route("**/api/recommendation/**", _fulfil(body))
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper(), label
+        assert expected in page.locator("#rec .refusal").inner_text(), label
+
+    @pytest.mark.parametrize(
+        ("label", "judgment", "expected"),
+        [
+            ("not a list", "a string", "not a list"),
+            ("a list of objects", [{"note": "x"}], "not readable text"),
+            ("a blank entry", ["  "], "not readable text"),
+        ],
+    )
+    def test_garbled_judgment_inputs_are_refused(
+        self,
+        page: Page,
+        console_url: str,
+        label: str,
+        judgment: Any,
+        expected: str,
+    ) -> None:
+        """This list is the discretion the regulation reserves to a human. Joining an
+        object into it puts "[object Object]" where a statutory consideration belongs,
+        which is worse than most fields rather than better."""
+        page.route(
+            "**/api/recommendation/**",
+            _fulfil(_sound_recommendation() | {"judgment_inputs": judgment}),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper(), label
+        assert expected in page.locator("#rec .refusal").inner_text(), label
+        assert "[object Object]" not in page.locator("#rec").inner_text()
+
+    def test_a_ledger_line_with_an_unreadable_priority_is_refused(
+        self, page: Page, console_url: str
+    ) -> None:
+        """`text()` renders whatever it is handed, so an object arrives on screen as
+        "[object Object]" in the priority column beside a real right id."""
+        line = _sound_recommendation()["ledger"][0] | {"priority_date": {"year": 2003}}
+        page.route(
+            "**/api/recommendation/**", _fulfil(_sound_recommendation() | {"ledger": [line]})
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper()
+        assert "no readable priority date" in page.locator("#rec .refusal").inner_text()
+        assert "[object Object]" not in page.locator("#rec").inner_text()
+
+    @pytest.mark.parametrize("body", ["null", '{"detail": {"why": "nested"}}', "{}"])
+    def test_a_refusal_with_no_usable_reason_still_lands_on_a_refusal(
+        self, page: Page, console_url: str, body: str
+    ) -> None:
+        """`body.detail` was read straight. A JSON `null` body THREW here, after the
+        try block, so the card stayed on the waiting label forever, which reads as
+        loading rather than as refused."""
+        page.route(
+            "**/api/recommendation/**",
+            lambda route: route.fulfill(status=422, content_type="application/json", body=body),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        shown = page.locator("#rec .status").inner_text().upper()
+        assert "REFUSED" in shown or "UNAVAILABLE" in shown
+        assert "Asking the engine" not in page.locator("#rec").inner_text()
+        assert page.locator("#rec .refusal").inner_text().strip()
+        assert "[object Object]" not in page.locator("#rec").inner_text()
+
+    def test_a_superseded_run_does_not_repaint_either_card(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The two cards share one token per RUN.
+
+        Each used to mint its own, and `run` called the second card unconditionally, so
+        a stale classify that had already been superseded still started a recommendation
+        and claimed the newest generation. The cards could then show different requests
+        while both carried valid-looking terminal stamps.
+        """
+        page.add_init_script(
+            """
+            (() => {
+              const real = window.fetch;
+              let calls = 0;
+              window.__releaseFirst = null;
+              window.fetch = (...args) => {
+                calls += 1;
+                if (calls === 1) {
+                  return new Promise((resolve, reject) => {
+                    window.__releaseFirst = () => real(...args).then(resolve, reject);
+                  });
+                }
+                return real(...args);
+              };
+            })();
+            """
+        )
+        page.goto(console_url)
+        page.wait_for_function("() => window.__releaseFirst !== null", timeout=15_000)
+
+        # A second run overtakes the first, which is still held open on its classify.
+        page.select_option("#basin", "shasta")
+        page.fill("#cfs", "46.5")
+        page.fill("#at", "2026-06-15")
+        page.click("#go")
+        _settle_after(page, "#rec", "")
+        settled = _render_id(page, "#rec")
+
+        page.evaluate("window.__releaseFirst()")
+        page.wait_for_timeout(2_500)
+
+        assert _render_id(page, "#rec") == settled, (
+            "a superseded run repainted the ledger card after being overtaken"
+        )
+        assert "46.5" in page.locator("#out .reading").inner_text()
+        assert page.locator("#rec tbody tr").count() > 50, (
+            "the ledger card lost the newer run's result"
+        )
 
     def test_a_basin_with_no_table_shows_the_refusal_not_an_empty_ledger(
         self, page: Page, console_url: str

@@ -206,6 +206,13 @@
   //: request repaints over a newer one and the page shows a valid-looking
   //: classification for a reading other than the one in the inputs. The automatic
   //: request on load makes that reachable with a single fast click.
+  //:
+  //: ONE token per RUN, minted by `run` and passed to both cards. Each card used to
+  //: mint its own, and `run` called the second card unconditionally, so a stale
+  //: classify that had already been superseded still went on to start a recommendation
+  //: and claim the newest generation for itself. The two cards could then show
+  //: different requests while both carried valid-looking terminal stamps, which is the
+  //: precise failure the counter exists to prevent.
   let generation = 0;
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
@@ -249,8 +256,7 @@
     return null;
   }
 
-  async function classify() {
-    const mine = ++generation;
+  async function classify(mine) {
     const basin = document.getElementById("basin").value;
     const cfs = document.getElementById("cfs").value;
     const day = document.getElementById("at").value;
@@ -278,7 +284,7 @@
     if (!response.ok) {
       // A refusal is a RESULT worth reading, not an error to hide. The engine
       // declines rather than guessing, and the reason is the interesting part.
-      systemState("\u2298", "Refused", body.detail || "no reason given");
+      systemState("\u2298", "Refused", detailOf(body));
       stamp(out, mine);
       return;
     }
@@ -354,6 +360,26 @@
     return typeof value === "string" && value.trim() !== "";
   }
 
+  //: A refusal always gets a readable reason. `body.detail` was read straight: a JSON
+  //: `null` body THREW here, after the try block, so the card stayed on the waiting
+  //: label forever, and an object detail was coerced into "[object Object]".
+  function detailOf(body) {
+    if (body && typeof body === "object" && nonEmptyString(body.detail)) {
+      return body.detail;
+    }
+    return "the service refused and stated no reason";
+  }
+
+  function isCount(value) {
+    return Number.isInteger(value) && value >= 0;
+  }
+
+  //: Either an ISO date or an explicit null. `text()` renders whatever it is handed,
+  //: and an object arrives on screen as "[object Object]" beside a real right id.
+  function isNullableIsoDate(value) {
+    return value === null || (nonEmptyString(value) && /^\d{4}-\d{2}-\d{2}$/.test(value));
+  }
+
   function whyRecUntrustworthy(body) {
     if (!body || typeof body !== "object") return "the service did not return an object";
     for (const field of REC_REQUIRED) {
@@ -380,6 +406,9 @@
       if (typeof entry.would_be_curtailed !== "boolean") {
         return `the ledger line for ${entry.right_id} states no disposition`;
       }
+      if (!isNullableIsoDate(entry.priority_date)) {
+        return `the ledger line for ${entry.right_id} states no readable priority date`;
+      }
     }
     if (!body.provenance || typeof body.provenance !== "object") {
       return "the answer carries no provenance at all";
@@ -403,6 +432,18 @@
         return `${field} is not a finite number`;
       }
     }
+    // Finite is not the same as possible. A count of 2.5 rights, or more rights
+    // reached than considered, renders in the status line as an authoritative
+    // statement about how many diverters are shut off.
+    for (const field of ["rights_considered", "rights_reached"]) {
+      if (!isCount(facts[field])) return `${field} is not a whole count`;
+    }
+    if (facts.rights_reached > facts.rights_considered) {
+      return "more rights are reached than were considered";
+    }
+    if (facts.observed_cfs < 0 || facts.operative_minimum_cfs < 0 || facts.shortfall_cfs < 0) {
+      return "a discharge is negative, which is a sensor sentinel and not a river";
+    }
     // Null is a REAL value here: no extent means curtailment reaches nobody, which is
     // different from the field being absent, so the two are separated rather than
     // both treated as missing.
@@ -410,8 +451,18 @@
       return "the answer does not say how far curtailment would extend";
     }
     const extent = facts.recommended_extent_rank;
-    if (extent !== null && (typeof extent !== "number" || !Number.isFinite(extent))) {
+    if (extent !== null && !isCount(extent)) {
       return "the recommended extent is neither a rank nor an explicit none";
+    }
+
+    // Joined into a sentence shown to the official, so anything but strings would be
+    // coerced. This list is the discretion the regulation reserves to a human, which
+    // makes garbling it worse than most fields, not better.
+    if (!Array.isArray(body.judgment_inputs)) {
+      return "the judgment inputs are not a list";
+    }
+    if (!body.judgment_inputs.every(nonEmptyString)) {
+      return "a judgment input is not readable text";
     }
     return null;
   }
@@ -422,8 +473,7 @@
     return cell;
   }
 
-  async function recommendFor() {
-    const mine = ++generation;
+  async function recommendFor(mine) {
     const basin = document.getElementById("basin").value;
     const cfs = document.getElementById("cfs").value;
     const day = document.getElementById("at").value;
@@ -447,7 +497,7 @@
     if (mine !== generation) return;
 
     if (!response.ok) {
-      recSystemState("\u2298", "Refused", body.detail || "no reason given");
+      recSystemState("\u2298", "Refused", detailOf(body));
       stamp(rec, mine);
       return;
     }
@@ -516,8 +566,12 @@
   }
 
   async function run() {
-    await classify();
-    await recommendFor();
+    const mine = ++generation;
+    await classify(mine);
+    // A superseded run must not go on to start a second request. Without this the
+    // stale run reached the recommendation call anyway.
+    if (mine !== generation) return;
+    await recommendFor(mine);
   }
 
   document.getElementById("go").addEventListener("click", run);

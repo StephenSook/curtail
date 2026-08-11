@@ -20,6 +20,7 @@ rights exist: there is one function that answers that, not two.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -95,7 +96,9 @@ def load_rights(path: Path | None = None) -> LoadedRights:
 
     try:
         raw: dict[str, Any] = json.loads(source.read_text())
+        _validate(raw, source)
         report = _rebuild(raw)
+        issued = date.fromisoformat(raw["source"]["issued"])
     except (ValueError, KeyError, TypeError) as exc:
         raise RightsRecordUnavailableError(
             f"the rights record at {source} could not be read: {exc}"
@@ -104,11 +107,108 @@ def load_rights(path: Path | None = None) -> LoadedRights:
     return LoadedRights(
         converted=to_water_rights(report),
         document=raw["source"]["document"],
-        issued=date.fromisoformat(raw["source"]["issued"]),
+        issued=issued,
         source_sha256=raw["source"]["sha256"],
         rows_parsed=raw["accounting"]["parsed"],
         application_numbers_seen=raw["accounting"]["application_numbers_seen"],
     )
+
+
+#: Every refusal category the record must carry, and the accounting key each one is
+#: counted under. A category missing from the file cannot be reconciled against however
+#: carefully the generator filled it.
+_REFUSAL_CATEGORIES = {"imprecise": "imprecise", "ambiguous": "ambiguous", "unparsed": "unparsed"}
+
+_ROW_FIELDS = {
+    "application_number": str,
+    "source_as_printed": str,
+    "priority_date_missing": bool,
+    "band": str,
+    "page": int,
+}
+
+
+def _validate(raw: dict[str, Any], source: Path) -> None:
+    """Refuse a record that does not hold together, BEFORE any of it is converted.
+
+    **This was found by an adversarial pass and every case below was reproduced.** The
+    loader used to rebuild whatever rows happened to be present. Truncating the rights
+    array while leaving the accounting alone loaded a partial table and reported the
+    original count as provenance; erasing a refusal category lost it silently; and a
+    missing `issued` escaped as a bare KeyError, so a corrupt file surfaced as a 500
+    rather than as a stated refusal.
+
+    A partial rights table is the most dangerous shape this system can load. It does not
+    look broken. It produces a normal recommendation over fewer rights than the order
+    covers, carrying provenance that describes the whole document.
+    """
+    for key in ("source", "accounting", "not_read", "rights"):
+        if key not in raw:
+            raise ValueError(f"the record has no {key!r} section")
+
+    meta = raw["source"]
+    if not isinstance(meta.get("document"), str) or not meta["document"].strip():
+        raise ValueError("the record names no source document")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(meta.get("sha256", ""))):
+        raise ValueError("the record carries no valid source sha256")
+    date.fromisoformat(meta["issued"])  # raises ValueError or KeyError, both caught above
+
+    accounting = raw["accounting"]
+    for key in ("application_numbers_seen", "parsed", *_REFUSAL_CATEGORIES.values()):
+        value = accounting.get(key)
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"accounting.{key} is not a count: {value!r}")
+
+    rows = raw["rights"]
+    if not isinstance(rows, list):
+        raise ValueError("the record's rights section is not a list")
+    if len(rows) != accounting["parsed"]:
+        raise ValueError(
+            f"the record holds {len(rows)} rows but claims {accounting['parsed']} were "
+            "parsed. A partial table produces a normal recommendation over fewer rights "
+            "than the order covers, under provenance describing the whole document."
+        )
+
+    unread = raw["not_read"]
+    for category, counted_as in _REFUSAL_CATEGORIES.items():
+        if category not in unread:
+            raise ValueError(f"the record has no {category!r} refusal category")
+        if len(unread[category]) != accounting[counted_as]:
+            raise ValueError(
+                f"{category} lists {len(unread[category])} entries but the accounting "
+                f"says {accounting[counted_as]}"
+            )
+    for category in ("blank_source", "recovered_from_neighbour", "unrecoverable"):
+        if category not in unread:
+            raise ValueError(f"the record has no {category!r} section")
+
+    buckets = accounting["parsed"] + sum(accounting[k] for k in _REFUSAL_CATEGORIES.values())
+    if buckets != accounting["application_numbers_seen"]:
+        raise ValueError(
+            f"{accounting['application_numbers_seen']} application numbers were seen but "
+            f"{buckets} reached a bucket, so the record does not account for its own rows"
+        )
+
+    seen: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"row {index} is not a record")
+        for field, kind in _ROW_FIELDS.items():
+            if not isinstance(row.get(field), kind):
+                raise ValueError(f"row {index} has no valid {field}")
+        number = row["application_number"]
+        if number in seen:
+            raise ValueError(
+                f"{number} appears twice. A duplicate doubles a right's weight in every "
+                "count taken off this table."
+            )
+        seen.add(number)
+        if row["priority_date"] is not None:
+            date.fromisoformat(row["priority_date"])
+        if row["priority_date"] is not None and row["priority_date_missing"]:
+            raise ValueError(f"{number} states a date and is also marked missing")
+    if len(seen) != len(rows):  # pragma: no cover - the loop above already refuses
+        raise ValueError("duplicate application numbers survived the row scan")
 
 
 def _rebuild(raw: dict[str, Any]) -> AttachmentReport:
