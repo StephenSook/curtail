@@ -28,11 +28,12 @@ from datetime import date
 
 import pytest
 
-from curtail_core.adjudications import AdjudicationId, RightClass
+from curtail_core.adjudications import RightClass
 from curtail_core.attachment_a import (
     AttachmentReport,
     DateBand,
     band_for,
+    decree_membership,
     parse_attachment,
     to_water_rights,
 )
@@ -214,25 +215,69 @@ class TestConversionToTheLadder:
         """Addendum 6's scope sentence puts every right in this attachment in the
         appropriative class, surface or groundwater, under 875.5(b)(1)(A) and (B). That
         is stated, so it is not an inference from the SG prefix."""
-        rights, _ = to_water_rights(report)
+        rights = to_water_rights(report).rights
         assert rights
         assert all(r.right_class is RightClass.APPROPRIATIVE for r in rights)
         assert all(r.basin is Basin.SHASTA for r in rights)
 
-    def test_decree_membership_comes_from_the_decree_date(self, report: AttachmentReport) -> None:
-        """A right whose priority precedes the Shasta decree of December 29 1932 cannot
-        have been initiated after it, which is what separates Tier A from Tier B."""
-        rights, _ = to_water_rights(report)
-        by_id = {r.right_id: r for r in rights}
-        assert by_id["A031522"].adjudication is None
-        assert by_id["A031522"].priority_date == date(2003, 7, 30)
-        senior = [r for r in rights if r.priority_date and r.priority_date < date(1932, 12, 29)]
-        assert all(r.adjudication is AdjudicationId.SHASTA for r in senior)
+    @pytest.mark.parametrize(
+        ("priority", "year", "expected"),
+        [
+            # Hardcoded, NOT recomputed from the implementation's own comparison. The
+            # first version built its expected set with the same `< date(1932, 12, 29)`
+            # expression the code uses, so a wrong boundary would have satisfied both.
+            (date(1932, 12, 28), None, True),
+            (date(1932, 12, 29), None, False),  # the decree date itself is not before it
+            (date(1932, 12, 30), None, False),
+            (date(1912, 11, 25), None, True),
+            (date(2003, 7, 30), None, False),
+            (None, 1977, False),  # every day of 1977 is after the decree
+            (None, 1900, True),  # every day of 1900 is before it
+            (None, 1932, None),  # the decree date falls inside 1932, so it cannot say
+            (None, None, None),  # no priority at all says nothing
+        ],
+    )
+    def test_decree_membership_is_established_or_refused(
+        self, priority: date | None, year: int | None, expected: bool | None
+    ) -> None:
+        assert decree_membership(priority, year_only=year, decree=date(1932, 12, 29)) is expected
+
+    def test_a_row_with_no_establishable_membership_is_not_placed_at_all(
+        self, report: AttachmentReport
+    ) -> None:
+        """The critical finding from an adversarial pass, and it was real.
+
+        `adjudication=None` is a positive claim that a right is in none of the four
+        decrees, and the Shasta ladder reads it as evidence for Tier A, returning
+        "appropriative diversion initiated after the Shasta Adjudication" under
+        875.5(b)(1)(A). Passing None for every undated row put fourteen rights the
+        document says nothing about into the FIRST grouping curtailed, with a citation
+        that made the guess look authoritative.
+        """
+        converted = to_water_rights(report)
+        placed = {r.right_id for r in converted.rights}
+        assert "SG005922" not in placed, "an undated right was placed on the ladder"
+        assert "SG005923" not in placed
+        assert any("SG005922" in note for note in converted.unplaceable)
+        assert all(
+            r.priority_date is not None or r.right_id == "SG005441" for r in converted.rights
+        )
+
+    def test_a_year_only_row_is_placed_when_the_year_settles_it(
+        self, report: AttachmentReport
+    ) -> None:
+        """1977 lies wholly after the 1932 decree, so membership IS established. The
+        refusal above is about what cannot be known, not about imprecision as such."""
+        converted = to_water_rights(report)
+        by_id = {r.right_id: r for r in converted.rights}
+        assert "SG005441" in by_id
+        assert by_id["SG005441"].adjudication is None
+        assert by_id["SG005441"].priority_date is None
 
     def test_every_converted_right_places_on_the_ladder(self, report: AttachmentReport) -> None:
         """The point of the whole module. Before this the Core had only ever run on
         rights invented in tests."""
-        rights, _ = to_water_rights(report)
+        rights = to_water_rights(report).rights
         assert rights
         for right in rights:
             placement = place(right)
@@ -242,7 +287,7 @@ class TestConversionToTheLadder:
     def test_the_open_questions_are_stated_with_counts(self, report: AttachmentReport) -> None:
         """Recording what was NOT read, with a number, is what makes the result usable
         rather than merely confident."""
-        _, questions = to_water_rights(report)
+        questions = to_water_rights(report).open_questions
         assert questions
         assert any("no priority date" in q for q in questions)
         assert any("blank Source" in q for q in questions)
@@ -254,7 +299,7 @@ class TestConversionToTheLadder:
         """The first version counted them together and said the table "prints them as
         '--'", which is untrue of a row printed "1977 -". A count in a sentence is a
         claim like any other."""
-        _, questions = to_water_rights(report)
+        questions = to_water_rights(report).open_questions
         undated = [q for q in questions if "state no priority date" in q]
         assert len(undated) == 1
         assert undated[0].startswith("2 of "), undated[0]

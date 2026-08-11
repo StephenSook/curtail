@@ -71,6 +71,24 @@ class TestTheRecordAccountsForEveryRow:
         present its bands as the whole disposition."""
         assert any("orange" in note for note in record["not_read"]["unrecoverable"])
 
+    def test_rows_the_ladder_must_not_place_are_named_and_excluded(
+        self, record: dict[str, Any]
+    ) -> None:
+        """The record must not quietly place a right the document cannot support.
+
+        `adjudication=None` is a positive claim, and the Shasta ladder reads it as
+        evidence for Tier A under 875.5(b)(1)(A). Fourteen undated rights were once
+        placed in the first grouping curtailed on the strength of a default.
+        """
+        unplaceable = record["unplaceable"]
+        assert unplaceable, "no row was refused placement, which the source cannot support"
+        placed = sum(record["ladder_placement_counts"].values())
+        assert placed + len(unplaceable) == record["accounting"]["parsed"], (
+            "placed rights plus refused rights do not add up to the rows parsed"
+        )
+        for note in unplaceable:
+            assert re.search(r"\b(?:SG|A|D|C)\d{4,7}\b", note), note
+
     def test_it_names_its_source_and_hashes_it(self, record: dict[str, Any]) -> None:
         source = record["source"]
         assert source["file"].endswith(".pdf")

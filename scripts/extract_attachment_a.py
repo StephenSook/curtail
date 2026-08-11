@@ -73,7 +73,7 @@ def build() -> dict[str, Any]:
 
     pages = {p: page_text(SOURCE, p) for p in range(FIRST_TABLE_PAGE, LAST_TABLE_PAGE + 1)}
     report = parse_attachment(pages)
-    rights, questions = to_water_rights(report)
+    converted = to_water_rights(report)
 
     unique_ids = len(report.rights) + len(report.imprecise) + len(report.unparsed)
     return {
@@ -97,7 +97,8 @@ def build() -> dict[str, Any]:
             "recovered_from_neighbour": list(report.recovered_from_neighbour),
             "unrecoverable": list(report.unrecoverable),
         },
-        "open_questions": list(questions),
+        "open_questions": list(converted.open_questions),
+        "unplaceable": list(converted.unplaceable),
         "rights": [
             {
                 **{k: v for k, v in asdict(r).items() if k != "band"},
@@ -106,7 +107,7 @@ def build() -> dict[str, Any]:
             }
             for r in report.rights
         ],
-        "ladder_placement_counts": _placement_counts(rights),
+        "ladder_placement_counts": _placement_counts(converted.rights),
     }
 
 
