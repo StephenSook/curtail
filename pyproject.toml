@@ -32,6 +32,21 @@ dev = [
     # rest on a parser with a known weakness.
     "defusedxml>=0.7.1,<0.8",
     "pytest-asyncio>=1.4.0,<2",
+    # Drives the console in a real Chromium. The defects it covers live in browser
+    # control flow (an unguarded await, a fallback on a missing field, two responses
+    # racing to write one element) and no in-process client reaches any of them.
+    #
+    # It is why the default run carries `-m "not browser"`: this plugin's call hook
+    # disables pytest-asyncio's auto mode for every async test that runs after it in
+    # the same session. See [tool.pytest.ini_options] and the guard in
+    # core/tests/test_browser_suite_is_actually_run.py.
+    "pytest-playwright>=0.9.0,<0.10",
+    # Reads the CI workflow in that guard. Declared rather than borrowed from the
+    # transitive tree: an import with no declaration behind it is the mirror of the
+    # four declared-but-unimported dependencies this project already had to cut, and
+    # it breaks on the first clean install rather than here.
+    "pyyaml>=6.0.3,<7",
+    "types-pyyaml>=6.0.12,<7",
 ]
 
 [tool.ruff]
@@ -81,8 +96,23 @@ explicit_package_bases = true
 [tool.pytest.ini_options]
 testpaths = ["core/tests", "agents/tests"]
 pythonpath = ["core/src", "agents/src"]
-addopts = "-q --strict-markers --strict-config"
+# `-m "not browser"` is a SEPARATION, not a silent exclusion, and it is forced by a
+# real plugin conflict rather than by taste. A single Playwright test poisons every
+# async test that runs after it in the same session: pytest-playwright's call hook
+# takes over, pytest-asyncio's auto mode stops applying, and later async tests are
+# invoked as plain functions whose coroutines are discarded. The symptom is
+# "coroutine ... was never awaited" on tests that pass perfectly on their own, and
+# it took 26 unrelated failures to surface it.
+#
+# Deselection like this is one commit away from becoming "those tests never run
+# again", which is the false-green shape this project keeps meeting. Two things stop
+# that: a dedicated CI job runs `-m browser`, and a test in the DEFAULT suite asserts
+# that job still exists and still runs it.
+addopts = "-q --strict-markers --strict-config -m 'not browser'"
 asyncio_mode = "auto"
+markers = [
+    "browser: drives a real Chromium. Run separately via `make test-browser`.",
+]
 filterwarnings = [
     # Warnings are errors. That is what surfaced everything below, and it stays.
     "error",

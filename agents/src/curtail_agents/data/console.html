@@ -70,6 +70,9 @@
   .s-suspended { color: var(--suspended); }
   .s-exempt { color: var(--exempt); }
   .s-pending { color: var(--pending); }
+  /* Deliberately OFF the five-hue status palette. Refused and Unavailable are
+     statements about the system, not about the river. */
+  .s-system { color: var(--fg); }
   .note { color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 66ch; }
   .refusal { color: var(--conditional); font-size: 13px; margin-top: 12px; max-width: 70ch; }
   code { font-family: var(--mono); color: var(--muted); }
@@ -154,27 +157,95 @@
     revision_impact:               ["s-conditional","\u25D0", "Revision impact"],
   };
 
+  //: Fields a classification must carry before any of it is shown. An adversarial
+  //: review of this page found the original rendering an incomplete answer as a
+  //: plausible one: a missing `classification` fell through to the neutral PENDING
+  //: label, and a missing number printed the word "undefined" beside the unit. A
+  //: reading below the minimum displayed in calm grey is the worst output this
+  //: surface can produce, so an answer that cannot be fully trusted is not shown
+  //: at all.
+  const REQUIRED = ["classification", "observed_cfs", "minimum_cfs", "direction", "disclaimer"];
+
+  //: Monotonic, and every render is gated on it. Each click starts an independent
+  //: request and they can finish out of order, so without this a slow earlier
+  //: request repaints over a newer one and the page shows a valid-looking
+  //: classification for a reading other than the one in the inputs. The automatic
+  //: request on load makes that reachable with a single fast click.
+  let generation = 0;
+
+  function systemState(glyph, label, detail) {
+    // NOT one of the five river classifications, and drawn in the bright neutral
+    // rather than in any status hue for exactly that reason. These two states say
+    // something about the SYSTEM, and a reader must never read one as a statement
+    // about the river.
+    out.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    out.querySelector(".glyph").textContent = glyph;
+    out.querySelector(".status span:last-child").textContent = label;
+    out.querySelector(".refusal").textContent = detail;
+  }
+
+  function whyUntrustworthy(body) {
+    if (!body || typeof body !== "object") return "the service did not return an object";
+    for (const field of REQUIRED) {
+      if (!(field in body)) return `the answer is missing ${field}`;
+    }
+    for (const field of ["observed_cfs", "minimum_cfs"]) {
+      if (typeof body[field] !== "number" || !Number.isFinite(body[field])) {
+        return `${field} is not a finite number`;
+      }
+    }
+    if (!STATUS[body.classification]) {
+      return `this page cannot render the classification ${body.classification}`;
+    }
+    if (typeof body.direction !== "string" || !body.direction) {
+      return "the answer carries no direction";
+    }
+    return null;
+  }
+
   async function classify() {
+    const mine = ++generation;
     const basin = document.getElementById("basin").value;
     const cfs = document.getElementById("cfs").value;
     const day = document.getElementById("at").value;
     const at = encodeURIComponent(day + "T12:00:00+00:00");
-    out.innerHTML = '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Asking the engine</span></div>';
-    const response = await fetch(`/api/classify/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
-    const body = await response.json();
+    out.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Asking the engine</span></div>';
+
+    let response;
+    let body;
+    try {
+      response = await fetch(`/api/classify/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
+      body = await response.json();
+    } catch (error) {
+      // Unguarded, this left the calm grey PENDING label on screen for a network
+      // failure, a timeout, or a proxy returning an HTML error page, which reads
+      // as "waiting" rather than as "this told you nothing".
+      if (mine !== generation) return;
+      systemState("\u26A0", "Unavailable",
+        `The engine could not be reached, so nothing here describes the river: ${error}`);
+      return;
+    }
+    if (mine !== generation) return;
 
     if (!response.ok) {
       // A refusal is a RESULT worth reading, not an error to hide. The engine
       // declines rather than guessing, and the reason is the interesting part.
-      out.innerHTML =
-        '<div class="status s-conditional"><span class="glyph">&#9678;</span><span>Refused</span></div>' +
-        '<p class="refusal"></p>';
-      out.querySelector(".refusal").textContent = body.detail || "unavailable";
+      systemState("\u2298", "Refused", body.detail || "no reason given");
       return;
     }
 
-    const [cls, glyph, label] =
-      STATUS[body.classification] || ["s-pending", "\u25CB", body.classification];
+    const problem = whyUntrustworthy(body);
+    if (problem) {
+      systemState("\u26A0", "Unavailable",
+        `The engine answered and the answer cannot be trusted, so none of it is ` +
+        `shown: ${problem}.`);
+      return;
+    }
+
+    const [cls, glyph, label] = STATUS[body.classification];
     out.innerHTML =
       '<div class="reading"></div>' +
       '<div class="against"></div>' +
