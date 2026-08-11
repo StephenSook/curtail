@@ -108,13 +108,20 @@ class DeliveryReport:
     attempts: tuple[tuple[str, int], ...]
     escalations: tuple[str, ...] = field(default_factory=tuple)
     skipped_as_duplicate: tuple[str, ...] = field(default_factory=tuple)
-    #: Recipients whose key had a LAPSED prior claim on the legal lane, so this delivery
-    #: may be the second physical one. See `deliver_order` for why this cannot be
-    #: resolved from here and is surfaced instead.
-    possible_duplicate_service: tuple[str, ...] = field(default_factory=tuple)
+
     #: True when the transport was synthetic. Travels with the result so no surface can
     #: present a demonstration as real delivery.
     synthetic: bool = False
+
+    @property
+    def possible_duplicate_service(self) -> tuple[str, ...]:
+        """DERIVED from the records, never stored beside them.
+
+        Held as its own list first, which meant the report and the records could
+        disagree about the same delivery, and only the records persist. Deriving it
+        removes that possibility rather than documenting it.
+        """
+        return tuple(r.recipient_id for r in self.records if r.possible_duplicate)
 
     @property
     def legally_served(self) -> tuple[str, ...]:
@@ -224,7 +231,6 @@ def deliver_order(
 
     records: list[ServiceRecord] = []
     tries: list[tuple[str, int]] = []
-    possible_duplicates: list[str] = []
     escalations: list[str] = []
     duplicates: list[str] = []
 
@@ -254,8 +260,7 @@ def deliver_order(
             duplicates.append(recipient.recipient_id)
             continue
 
-        if prior is ClaimState.IN_PROGRESS and lane is ServiceLane.LEGAL_SERVICE:
-            possible_duplicates.append(recipient.recipient_id)
+        may_be_second = prior is ClaimState.IN_PROGRESS and lane is ServiceLane.LEGAL_SERVICE
 
         result = TransportResult(accepted=False, error="never attempted")
         used = 0
@@ -287,6 +292,7 @@ def deliver_order(
             sent_at=stamp,
             delivered_at=result.delivered_at,
             receipt_reference=result.receipt_reference,
+            possible_duplicate=may_be_second,
         )
         records.append(record)
 
@@ -326,6 +332,5 @@ def deliver_order(
         attempts=tuple(tries),
         escalations=tuple(escalations),
         skipped_as_duplicate=tuple(duplicates),
-        possible_duplicate_service=tuple(possible_duplicates),
         synthetic=synthetic,
     )
