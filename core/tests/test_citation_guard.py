@@ -4,7 +4,7 @@ Hard rule 13 says no legal citation enters any artifact without a verified
 primary source. A rule enforced by vigilance does not survive the night before
 a deadline, so this makes it mechanical (HARD RULE 74).
 
-The self-reference problem is handled explicitly. `docs/citations.json` and this
+The self-reference problem is handled explicitly. The citations file and this
 test both necessarily contain the banned strings, so both are excluded from the
 sweep. An exclusion is exactly how a guard silently becomes inert, so
 `TestTheGuardIsNotVacuous` plants a banned string in a real tracked file and
@@ -20,11 +20,11 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CITATIONS = REPO_ROOT / "docs" / "citations.json"
+CITATIONS = REPO_ROOT / "agents" / "src" / "curtail_agents" / "data" / "citations.json"
 
 #: Files that must contain the banned strings in order to do their job.
 SELF_REFERENTIAL = {
-    "docs/citations.json",
+    "agents/src/curtail_agents/data/citations.json",
     "core/tests/test_citation_guard.py",
 }
 

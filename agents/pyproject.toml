@@ -19,5 +19,19 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/curtail_agents"]
 
+# The citation allowlist lives INSIDE the package, and that is the whole fix.
+#
+# It began at the repo root with `_CITATIONS_PATH` resolving through
+# `parents[3]`, which is the repo root ONLY in a source checkout. Installed
+# non-editable, that path lands above site-packages and the citation guard
+# raises FileNotFoundError on the first drafted order.
+#
+# The first attempt kept the file at the root and used a cross-root
+# force-include. That FAILED TO BUILD: uv builds from an sdist, so `../docs`
+# is outside the build root and hatchling cannot reach it. The plan for this
+# task predicted that reaching for a multi-path loader would signal the
+# packaging was still wrong, and it did. One file, in the package, is the
+# answer; everything else reads it from there.
+
 [tool.uv.sources]
 curtail-core = { workspace = true }

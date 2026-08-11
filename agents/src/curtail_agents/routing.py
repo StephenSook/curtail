@@ -65,7 +65,14 @@ JITTER = 0.3
 #: it simply never returns, so an attempt limit alone cannot catch it.
 NODE_TIMEOUT_SECONDS = 120.0
 
-_CITATIONS_PATH = Path(__file__).resolve().parents[3] / "docs" / "citations.json"
+
+#: The allowlist, packaged with the code that enforces it.
+#:
+#: A single path, deliberately. An earlier version tried the packaged location
+#: and then fell back to the repo root, which read as prudence and was actually a
+#: symptom: the file was still outside the package and the build was broken. When
+#: a loader needs a fallback chain to find its own data, the packaging is wrong.
+_CITATIONS_PATH = Path(__file__).resolve().parent / "data" / "citations.json"
 
 #: Characters that can appear inside a section number.
 #:
@@ -128,7 +135,18 @@ class DraftAssertion:
     """
 
     right_ids: tuple[str, ...]
-    priority_dates: tuple[date, ...]
+    #: (right_id, priority_date) PAIRS, not a bare set of dates.
+    #:
+    #: A set validated any date against any right. With A-001 at 1912-11-25 and
+    #: B-002 at 1885-04-01, a draft asserting A-001 with B-002's date passed. The
+    #: set was also built from the WHOLE ledger, including entries the Core
+    #: explicitly did not reach, so a date belonging to an unreached right
+    #: counted as support for a curtailed one.
+    #:
+    #: Given that the November 1 versus November 25 1912 ambiguity is a standing
+    #: open item on this project, a date check that cannot say WHICH right a date
+    #: belongs to is weaker than it reads.
+    asserted_dates: tuple[tuple[str, date], ...]
     extent_rank: int | None
     body_text: str
 
@@ -306,8 +324,24 @@ def validate_draft(
     # claims nothing extra would have passed that defective order.
     missing = tuple(r for r in recommendation.rights_reached if r not in set(draft.right_ids))
 
-    ledger_dates = {e.priority_date for e in recommendation.ledger if e.priority_date is not None}
-    unsupported_dates = tuple(d for d in draft.priority_dates if d not in ledger_dates)
+    # Per RIGHT, and only from entries that would actually be curtailed. A date
+    # belonging to a right the Core did not reach cannot vouch for one it did.
+    dates_by_right: dict[str, date] = {
+        e.right_id: e.priority_date
+        for e in recommendation.ledger
+        if e.priority_date is not None and e.would_be_curtailed
+    }
+    unsupported_dates = tuple(
+        asserted
+        for right_id, asserted in draft.asserted_dates
+        if dates_by_right.get(right_id) != asserted
+    )
+    mismatched_pairs = tuple(
+        f"{right_id} asserted as {asserted.isoformat()}, ledger says "
+        + (dates_by_right[right_id].isoformat() if right_id in dates_by_right else "no date")
+        for right_id, asserted in draft.asserted_dates
+        if dates_by_right.get(right_id) != asserted
+    )
 
     extent_mismatch: str | None = None
     if (
@@ -357,8 +391,8 @@ def validate_draft(
         )
     if unsupported_dates:
         parts.append(
-            f"{len(unsupported_dates)} priority date(s) not in the ledger: "
-            + ", ".join(d.isoformat() for d in unsupported_dates[:5])
+            f"{len(unsupported_dates)} priority date(s) that do not match the right "
+            "they are asserted for: " + "; ".join(mismatched_pairs[:3])
         )
     if missing:
         parts.append(

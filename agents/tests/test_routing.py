@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -73,7 +74,7 @@ def recommendation() -> Recommendation:
 
 def draft(
     rights: tuple[str, ...] = ("A-001",),
-    dates: tuple[date, ...] = (date(1912, 11, 25),),
+    dates: tuple[tuple[str, date], ...] = (("A-001", date(1912, 11, 25)),),
     extent: int | None = 8,
     body: str = LAWFUL_BODY,
 ) -> DraftAssertion:
@@ -101,7 +102,7 @@ class TestALawfulDraftPasses:
     ) -> None:
         """November 25 1912 is the real Shasta Addendum 6 cutoff, and the guard
         refused it because the ledger carried no dates at all."""
-        result = validate_draft(draft(dates=(date(1912, 11, 25),)), recommendation)
+        result = validate_draft(draft(dates=(("A-001", date(1912, 11, 25)),)), recommendation)
         assert result.unsupported_dates == ()
 
     def test_verified_authorities_survive_the_scrubber(self) -> None:
@@ -124,7 +125,7 @@ class TestTheLedgerGuardCatchesEachViolationClass:
     ) -> None:
         """November 1 rather than November 25, 1912. Several research hauls
         carried the wrong one, and a draft asserting it must not pass."""
-        result = validate_draft(draft(dates=(date(1912, 11, 1),)), recommendation)
+        result = validate_draft(draft(dates=(("A-001", date(1912, 11, 1)),)), recommendation)
         assert date(1912, 11, 1) in result.unsupported_dates
 
     def test_an_extent_that_disagrees_with_the_core_is_refused(
@@ -412,3 +413,123 @@ class TestAnAllowlistThatCouldDisarmTheGuardIsRefused:
         """Non-vacuity against the file that actually ships."""
         _, stripped = scrub_citations("Per Fictional v. Invented, 111 P.9d 222.")
         assert stripped
+
+
+class TestADateMustMatchTheRightItIsAssertedFor:
+    """A bare set of dates validated any date against any right.
+
+    With A-001 at 1912-11-25 and B-002 at 1885-04-01, a draft asserting A-001
+    with B-002's date passed. The set was also built from the WHOLE ledger,
+    including entries the Core explicitly did not reach, so a date belonging to
+    an unreached right counted as support for a curtailed one.
+    """
+
+    @pytest.fixture
+    def two_rights(self) -> Recommendation:
+        def entry(rid: str, when: date, reached: bool) -> RightLedgerEntry:
+            return RightLedgerEntry(
+                right_id=rid,
+                placement=Placement(rid, Basin.SCOTT, 8, "Group 8", "875.5", "post-1914"),
+                reached_by_extent=reached,
+                lcs_protected=False,
+                lcs_id=None,
+                diversion_cfs=None,
+                note="n",
+                priority_date=when,
+            )
+
+        return Recommendation(
+            basin=Basin.SCOTT,
+            evaluated_for=date(2026, 6, 15),
+            action=RecommendedAction.CONSIDER_CURTAILMENT,
+            observed_cfs=Decimal("45.3"),
+            operative_minimum_cfs=Decimal("50"),
+            shortfall_cfs=Decimal("4.7"),
+            near_threshold=False,
+            recommended_extent_rank=8,
+            ledger=(
+                entry("A-001", date(1912, 11, 25), True),
+                entry("B-002", date(1885, 4, 1), True),
+                entry("C-003", date(1850, 3, 1), False),
+            ),
+        )
+
+    def test_a_right_paired_with_its_own_date_passes(self, two_rights: Recommendation) -> None:
+        result = validate_draft(
+            DraftAssertion(
+                ("A-001", "B-002"),
+                (("A-001", date(1912, 11, 25)), ("B-002", date(1885, 4, 1))),
+                8,
+                LAWFUL_BODY,
+            ),
+            two_rights,
+        )
+        assert result.verdict is Verdict.PASS
+
+    def test_a_right_paired_with_another_rights_date_is_refused(
+        self, two_rights: Recommendation
+    ) -> None:
+        """Both dates are real and both are in the ledger. Only the PAIRING is
+        wrong, which a set-based check cannot see at all."""
+        result = validate_draft(
+            DraftAssertion(
+                ("A-001", "B-002"),
+                (("A-001", date(1885, 4, 1)), ("B-002", date(1912, 11, 25))),
+                8,
+                LAWFUL_BODY,
+            ),
+            two_rights,
+        )
+        assert result.verdict is not Verdict.PASS
+        assert len(result.unsupported_dates) == 2
+
+    def test_a_date_from_an_unreached_right_cannot_vouch_for_a_curtailed_one(
+        self, two_rights: Recommendation
+    ) -> None:
+        """C-003 is in the ledger but was NOT reached by the extent. Its date is
+        not support for anything the order curtails."""
+        result = validate_draft(
+            DraftAssertion(
+                ("A-001", "B-002"),
+                (("A-001", date(1850, 3, 1)), ("B-002", date(1885, 4, 1))),
+                8,
+                LAWFUL_BODY,
+            ),
+            two_rights,
+        )
+        assert date(1850, 3, 1) in result.unsupported_dates
+
+    def test_the_reason_names_the_right_and_both_dates(self, two_rights: Recommendation) -> None:
+        """A refusal the reviewer cannot check is an assertion, not a diff."""
+        result = validate_draft(
+            DraftAssertion(
+                ("A-001", "B-002"),
+                (("A-001", date(1912, 11, 1)), ("B-002", date(1885, 4, 1))),
+                8,
+                LAWFUL_BODY,
+            ),
+            two_rights,
+        )
+        assert "A-001" in result.reason
+        assert "1912-11-01" in result.reason
+        assert "1912-11-25" in result.reason
+
+
+class TestTheAllowlistTravelsWithTheCodeThatEnforcesIt:
+    def test_the_citations_file_sits_inside_the_package(self) -> None:
+        """It began at the repo root, resolved through parents[3], and therefore
+        existed only in a source checkout. Installed non-editable the path landed
+        above site-packages and the whole citation layer raised on the first
+        drafted order.
+
+        A cross-root force-include was tried first and FAILED TO BUILD, because
+        uv builds from an sdist and the repo root is outside it. One file, in the
+        package, is the answer.
+        """
+        import curtail_agents.routing as routing
+
+        assert routing._CITATIONS_PATH.exists()
+        package_root = Path(routing.__file__).resolve().parent
+        assert routing._CITATIONS_PATH.is_relative_to(package_root), (
+            "the allowlist must live inside the package, or an installed deployment cannot find it"
+        )
