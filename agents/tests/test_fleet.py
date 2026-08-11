@@ -90,9 +90,40 @@ class TestTheGraphAssembles:
 
 
 class TestTheLoopBreakerIsAttachedNotDescribed:
-    @pytest.mark.parametrize("name", [SENTINEL, SCRIBE, HERALD])
+    @pytest.mark.parametrize("name", [SCRIBE, HERALD])
     def test_a_transient_node_carries_a_retry_policy(self, name: str) -> None:
         assert policy_for(name).retry_config is TRANSIENT_RETRY
+
+    def test_the_sentinel_carries_the_same_policy_with_its_exceptions_scoped(self) -> None:
+        """Same attempts, same backoff, narrower trigger. Built by copy so the
+        two cannot drift on the numbers while differing on the scope."""
+        from curtail_agents.fleet import SENTINEL_RETRY
+
+        assert policy_for(SENTINEL).retry_config is SENTINEL_RETRY
+        assert SENTINEL_RETRY.max_attempts == TRANSIENT_RETRY.max_attempts
+        assert SENTINEL_RETRY.initial_delay == TRANSIENT_RETRY.initial_delay
+        assert SENTINEL_RETRY.backoff_factor == TRANSIENT_RETRY.backoff_factor
+
+    def test_the_sentinel_does_not_retry_a_deterministic_refusal(self) -> None:
+        """Asserted through ADK's OWN decision function, not by reading our list.
+
+        A `SentinelError` is the flow schedule refusing because no minimum is
+        encoded for that basin in that era. The answer is identical on every
+        attempt, so retrying it burns the budget and delays the person who has to
+        go encode the missing table. Before this scoping, a refusal took three
+        attempts and two backoff sleeps to reach a human.
+        """
+        from google.adk.workflow._node_state import NodeState
+        from google.adk.workflow.utils._retry_utils import _should_retry_node
+
+        from curtail_agents.gage_client import GageError
+        from curtail_agents.sentinel import SentinelError
+
+        policy = policy_for(SENTINEL).retry_config
+        first_attempt = NodeState(attempt_count=1)
+
+        assert not _should_retry_node(SentinelError("no table"), policy, first_attempt)
+        assert _should_retry_node(GageError("connection reset"), policy, first_attempt)
 
     @pytest.mark.parametrize("name", [SENTINEL, CORE, SCRIBE, HERALD])
     def test_every_node_carries_a_timeout(self, name: str) -> None:
@@ -175,8 +206,12 @@ class TestTheRuntimeNodesCarryThePolicy:
     """
 
     def test_each_transient_node_object_actually_carries_the_retry_policy(self) -> None:
+        """Against its OWN policy entry, since the Sentinel's is scoped. A single
+        shared expectation here would have to be loosened to accommodate that,
+        and a loosened assertion is how the original defect passed."""
         for built in (sentinel_node, scribe_node, herald_node):
-            assert built.retry_config is TRANSIENT_RETRY, built.name
+            assert built.retry_config is policy_for(built.name).retry_config, built.name
+            assert built.retry_config is not None, built.name
 
     def test_the_core_node_object_actually_has_no_retry_policy(self) -> None:
         """Not "the table says None". The node itself."""
@@ -254,22 +289,177 @@ class TestTheSentinelNodeRunsTheRealAgent:
         from curtail_agents.sentinel import Observation
         from curtail_core.basins import Basin
 
-        state = {
-            "observation": Observation(
+        result = await _sentinel(
+            Observation(
                 Basin.SCOTT, 48.7, datetime(2025, 7, 20, 21, 30, tzinfo=UTC), Provenance.USGS_LIVE
             ),
-            "correlation_id": "c-1",
-        }
-        result = await _sentinel(state)
+            correlation_id="c-1",
+        )
         assert result["event"].event_type is EventType.READING_NEAR_THRESHOLD
 
-    async def test_it_refuses_a_state_with_no_observation(self) -> None:
-        """Rather than returning the state unchanged, which would look like a
-        successful classification that never happened."""
-        from curtail_agents.fleet import _sentinel
+    async def test_the_whole_graph_actually_executes_on_a_real_runner(self) -> None:
+        """The test whose absence let an unrunnable graph pass this suite.
 
+        Everything else here asserts the graph's SHAPE: its edges, its policies,
+        its ceiling. All of that was true while `build_curtailment_graph()` could
+        not be executed at all, because the node functions declared a `state`
+        parameter and ADK binds parameters by NAME out of session state, so it
+        looked for a key called `state`, found none, and raised before any node
+        body ran. Shape is not execution, and only running it says which you have.
+        """
+        from datetime import UTC, datetime
+
+        from google.adk.sessions import InMemorySessionService
+
+        from curtail_agents.app import APP_NAME, build_fleet_runner, evaluate_reading
+        from curtail_agents.events import EventType, Provenance
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
+        runner = build_fleet_runner(sessions)
+        await sessions.create_session(app_name=APP_NAME, user_id="watermaster", session_id="s1")
+
+        event = await evaluate_reading(
+            Observation(
+                Basin.SCOTT, 48.7, datetime(2025, 7, 20, 21, 30, tzinfo=UTC), Provenance.USGS_LIVE
+            ),
+            runner=runner,
+            correlation_id="c-1",
+            user_id="watermaster",
+            session_id="s1",
+            deadline=30.0,
+        )
+
+        # 48.7 against the 50 cfs July minimum at Fort Jones: below it, and inside
+        # the 10 cfs band, so the Sentinel announces the more actionable of the two.
+        assert event.event_type is EventType.READING_NEAR_THRESHOLD
+        assert event.observed_cfs == 48.7
+        assert event.correlation_id == "c-1"
+
+    async def test_a_reading_with_no_encoded_minimum_fails_the_invocation(self) -> None:
+        """The Sentinel's refusal has to survive the trip through ADK.
+
+        It reaches the caller as the original `SentinelError`, message intact,
+        rather than being flattened into a generic empty result. That matters
+        because the message names exactly what is missing and why answering from
+        the wrong era's table would mark the Board wrong for following the rule
+        that was actually in force.
+        """
+        from datetime import UTC, datetime
+
+        from google.adk.sessions import InMemorySessionService
+
+        from curtail_agents.app import APP_NAME, build_fleet_runner, evaluate_reading
+        from curtail_agents.events import Provenance
+        from curtail_agents.sentinel import Observation, SentinelError
+        from curtail_core.basins import Basin
+
+        sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
+        runner = build_fleet_runner(sessions)
+        await sessions.create_session(app_name=APP_NAME, user_id="watermaster", session_id="s2")
+
+        # The 2021 Shasta table was never verified, so nothing is encoded for it
+        # and the schedule refuses rather than reaching for the 2024 numbers.
+        # The cfs value is immaterial: the schedule refuses before any comparison
+        # happens, so this is a placeholder rather than a reading anyone recorded.
+        # The citation guard caught an earlier draft using a real retired figure
+        # here, which would have asserted a number as fact in passing.
+        with pytest.raises(SentinelError) as caught:
+            await evaluate_reading(
+                Observation(
+                    Basin.SHASTA,
+                    41.0,
+                    datetime(2021, 8, 15, 12, 0, tzinfo=UTC),
+                    Provenance.UNSOURCED,
+                ),
+                runner=runner,
+                correlation_id="c-2",
+                user_id="watermaster",
+                session_id="s2",
+                deadline=30.0,
+            )
+        assert "not encoded" in str(caught.value)
+
+    async def test_a_fleet_that_returns_no_classification_is_an_error_not_a_none(
+        self,
+    ) -> None:
+        """Covers the guard for a run that completes without classifying.
+
+        Handing a caller None would make them invent a meaning for it, and the
+        only honest meanings are "the Sentinel did not run" and "its output was
+        lost", both of which a watermaster must see rather than handle.
+        """
+        from datetime import UTC, datetime
+
+        from google.adk.runners import Runner
+        from google.adk.sessions import InMemorySessionService
+
+        from curtail_agents.app import NoClassificationError, evaluate_reading
+        from curtail_agents.events import Provenance
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        async def says_nothing_useful(node_input: object) -> str:
+            return "no classification in here"
+
+        sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
+        runner = Runner(
+            app_name="curtail_no_classification",
+            node=Workflow(
+                name="silent",
+                description="completes without ever classifying a reading",
+                edges=[Edge(from_node=START, to_node=node(says_nothing_useful, name="quiet"))],
+            ),
+            session_service=sessions,
+        )
+        await sessions.create_session(
+            app_name="curtail_no_classification", user_id="watermaster", session_id="s4"
+        )
+
+        with pytest.raises(NoClassificationError):
+            await evaluate_reading(
+                Observation(
+                    Basin.SCOTT,
+                    48.7,
+                    datetime(2025, 7, 20, 21, 30, tzinfo=UTC),
+                    Provenance.USGS_LIVE,
+                ),
+                runner=runner,
+                correlation_id="c-3",
+                user_id="watermaster",
+                session_id="s4",
+                deadline=30.0,
+            )
+
+    async def test_an_empty_correlation_id_is_refused_before_the_fleet_runs(self) -> None:
+        """A dead-lettered message with no correlation ID cannot be traced back
+        to the poll that produced it, which is the one thing the chaos drill
+        demonstrates."""
+        from datetime import UTC, datetime
+
+        from google.adk.sessions import InMemorySessionService
+
+        from curtail_agents.app import build_fleet_runner, evaluate_reading
+        from curtail_agents.events import Provenance
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
+        runner = build_fleet_runner(sessions)
         with pytest.raises(ValueError):
-            await _sentinel({})
+            await evaluate_reading(
+                Observation(
+                    Basin.SCOTT,
+                    48.7,
+                    datetime(2025, 7, 20, 21, 30, tzinfo=UTC),
+                    Provenance.USGS_LIVE,
+                ),
+                runner=runner,
+                correlation_id="   ",
+                user_id="watermaster",
+                session_id="s3",
+            )
 
 
 class TestTheCeilingCarriesNoInventedMargin:

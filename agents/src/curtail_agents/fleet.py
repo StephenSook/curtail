@@ -29,21 +29,24 @@ policy that governs nothing.** The Sentinel node calls the real
 labelled as such in their own docstrings: the Core needs a rights table the
 console will supply, the Scribe needs a model, and the Herald needs a delivery
 channel. Their GUARDS exist and are tested (`routing.py`, `messaging.py`); their
-handlers are not yet attached. `build_curtailment_graph()` is not yet invoked by
-an application entrypoint, so nothing here is claimed to be governing production
-traffic today.
+handlers are not yet attached.
 
-**An open review finding, recorded rather than closed, because closing it would
-require inventing the thing it asks for.** Three review passes said the deadline
-below has no production caller. That is TRUE and it is a statement about the
-milestone, not about the code: an entrypoint cannot exist while the Core has no
-rights table and the Scribe has no model, and writing a hollow one so a reviewer
-sees a call site would be the same fabrication this module already refuses in its
-placeholder docstrings. What IS available before an entrypoint exists is
-enforcement against the omission arriving quietly, so `run_invocation` is the
-only sanctioned execution path and a CI guard fails on the commit that adds any
-other `run_async` caller, including one in a file not yet tracked by git. When
-M4 attaches the handlers, that guard is what will refuse an unwrapped entrypoint.
+**The graph IS invoked, by `app.evaluate_reading`, and getting there found a
+defect worth more than the argument that preceded it.** Four review passes said
+the deadline below had no production caller. Three times the answer was that no
+entrypoint could exist while the Core has no rights table. That was half true and
+the wrong half mattered: the Sentinel is real, so a real invocation classifying a
+real gage reading was available the whole time. Building it immediately exposed
+that `build_curtailment_graph()` **could not be executed at all**, because ADK
+binds node parameters by NAME from session state and the nodes declared a single
+`state` parameter that matched no key. Every test asserted the graph's shape;
+none asserted that it runs. Trying to run it is the only thing that could have
+found that, and it is why "it has no caller" was worth taking seriously rather
+than answering a fourth time.
+
+`run_invocation` remains the only sanctioned execution path, and a CI guard fails
+on the commit that adds any other `run_async` caller, including one in a file not
+yet tracked by git.
 
 **A timeout is not a slower attempt limit.** A model that loops does not fail, it
 simply never returns, so an attempt ceiling alone never fires. `timeout` bounds
@@ -78,7 +81,7 @@ from curtail_agents.routing import (
     MAX_DELAY_SECONDS,
     NODE_TIMEOUT_SECONDS,
 )
-from curtail_agents.sentinel import evaluate
+from curtail_agents.sentinel import Observation, evaluate
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
 #:
@@ -101,6 +104,28 @@ TRANSIENT_RETRY = RetryConfig(
     max_delay=MAX_DELAY_SECONDS,
     backoff_factor=BACKOFF_FACTOR,
     jitter=JITTER,
+)
+
+#: The Sentinel's retry, scoped to the failures that are actually transient.
+#:
+#: **The Sentinel has two failure modes and only one of them is worth retrying.**
+#: A `GageError` is a USGS poll that failed on transport, and transport recovers.
+#: A `SentinelError` is the flow schedule REFUSING, because no minimum is encoded
+#: for that basin in that regulatory era, and that answer is identical on every
+#: attempt. Retrying it is the exact thing this module argues against for the
+#: Allocation Core: it burns the budget, delays the human who has to encode the
+#: missing table, and quietly implies the failure was a blip.
+#:
+#: Found by making the graph runnable and watching a refusal take three attempts
+#: and two backoff sleeps to surface. The principle was already written down here;
+#: it simply had no failing case to apply to until the graph could run.
+#:
+#: ADK matches these by exception class NAME with no subclass walking, so a name
+#: that is wrong or a subclass that is unlisted means NO retry. That is the
+#: fail-safe direction: an unrecognised failure surfaces to a human immediately
+#: rather than being smoothed over.
+SENTINEL_RETRY = TRANSIENT_RETRY.model_copy(
+    update={"exceptions": ["GageError", "TimeoutError", "NodeTimeoutError"]}
 )
 
 
@@ -271,6 +296,7 @@ async def run_invocation(
     user_id: str,
     session_id: str,
     new_message: types.Content | None = None,
+    state_delta: dict[str, Any] | None = None,
     deadline: float = INVOCATION_DEADLINE_SECONDS,
 ) -> list[Event]:
     """Drive one ADK Runner invocation to completion, under the deadline.
@@ -294,7 +320,10 @@ async def run_invocation(
         return [
             event
             async for event in runner.run_async(
-                user_id=user_id, session_id=session_id, new_message=new_message
+                user_id=user_id,
+                session_id=session_id,
+                new_message=new_message,
+                state_delta=state_delta,
             )
         ]
 
@@ -340,12 +369,15 @@ class NodePolicy:
 
 NODE_POLICY: dict[str, NodePolicy] = {
     SENTINEL: NodePolicy(
-        retry_config=TRANSIENT_RETRY,
+        retry_config=SENTINEL_RETRY,
         timeout=NODE_TIMEOUT_SECONDS,
         rationale=(
             "A USGS poll fails on transport, and transport recovers. Retrying is "
             "correct here and the jitter matters: without it, both basin pollers "
-            "retry in lockstep against an API that just failed."
+            "retry in lockstep against an API that just failed. SCOPED, though: a "
+            "SentinelError is the flow schedule refusing because no minimum is "
+            "encoded for that era, which is deterministic and must surface at "
+            "once rather than after three attempts and two backoff sleeps."
         ),
     ),
     CORE: NodePolicy(
@@ -408,52 +440,63 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
     )
 
 
-async def _sentinel(state: dict[str, Any]) -> dict[str, Any]:
+async def _sentinel(
+    observation: Observation,
+    correlation_id: str = "",
+    recent: tuple[Observation, ...] = (),
+) -> dict[str, Any]:
     """Classify a gage reading using the real Sentinel.
 
-    Wired to `sentinel.evaluate`, not a placeholder. A review pointed out that a
-    graph of no-op functions carries a retry policy that governs nothing, which
-    is the same defect as a guard described in prose: structure present, force
-    absent.
+    **Parameters are named for the session-state keys they bind to, which is
+    ADK's actual contract and not a style choice.** `FunctionNode._bind_parameters`
+    resolves each parameter BY NAME out of `ctx.state`, so the previous signature,
+    a single `state: dict`, made the node unrunnable: ADK looked for a state key
+    literally called `state`, found none, and raised before the body was ever
+    entered. Every test asserted the graph's SHAPE and none asserted that it runs,
+    so a graph that could not execute at all passed a suite whose stated subject
+    is guards that are attached rather than described. It was found by trying to
+    run it, which is the only thing that could have found it.
+
+    The type hints are load-bearing too. Session state has to survive a real
+    session service, so the entrypoint puts a plain JSON-safe dict in state and
+    ADK coerces it to `Observation` here through the annotation.
     """
-    observation = state.get("observation")
-    if observation is None:
-        raise ValueError("sentinel node requires an 'observation' in state")
-    event = evaluate(
-        observation,
-        correlation_id=str(state.get("correlation_id", "")),
-        recent=state.get("recent", ()),
-    )
-    return {**state, "event": event}
+    event = evaluate(observation, correlation_id=correlation_id, recent=tuple(recent))
+    return {"event": event, "correlation_id": correlation_id}
 
 
-async def _core(state: dict[str, Any]) -> dict[str, Any]:
+async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
     """Compute the recommendation. Deterministic, so it does not retry.
 
     NOT YET WIRED to `curtail_core.allocation.recommend`. It needs a rights
     table and LCS set that the console will supply, and inventing a source here
     would be worse than an honest placeholder.
+
+    `node_input` is the one parameter name ADK passes the upstream node's output
+    to directly, so a passthrough declares it and nothing else. A placeholder
+    that quietly dropped the Sentinel's event would make the chain look wired
+    while losing the only real payload moving through it.
     """
-    return state
+    return node_input
 
 
-async def _scribe(state: dict[str, Any]) -> dict[str, Any]:
+async def _scribe(node_input: dict[str, Any]) -> dict[str, Any]:
     """Draft the order. NOT YET WIRED to a model.
 
     The only node that will call one, so the only one that can loop rather than
     fail, which is why the timeout matters here most. The routing guard that
     checks its output already exists and is tested.
     """
-    return state
+    return node_input
 
 
-async def _herald(state: dict[str, Any]) -> dict[str, Any]:
+async def _herald(node_input: dict[str, Any]) -> dict[str, Any]:
     """Serve and notify. NOT YET WIRED to a delivery channel.
 
     The Loop pattern the README names. Its idempotency keys and dedup table
     exist in `messaging.py` and are tested.
     """
-    return state
+    return node_input
 
 
 sentinel_node = _build_node(SENTINEL, _sentinel)
