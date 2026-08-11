@@ -17,6 +17,7 @@ from curtail_core.clocks import (
     ServiceRecord,
     SignatoryRole,
     clocks_for_order,
+    judicial_review_clock,
     lane_for_action,
     open_clocks,
 )
@@ -70,12 +71,11 @@ class TestDelegationException:
     def test_deputy_director_orders_require_exhaustion(self) -> None:
         clocks = clocks_for_order(ADOPTED, signatory=SignatoryRole.DEPUTY_DIRECTOR)
         assert _by_type(clocks, ClockType.RECONSIDERATION_PETITION).exhaustion_required
-        assert _by_type(clocks, ClockType.JUDICIAL_REVIEW).exhaustion_required
 
     def test_executive_director_orders_also_require_exhaustion(self) -> None:
         """875(b)(2) assigns some determinations to the Executive Director."""
         clocks = clocks_for_order(ADOPTED, signatory=SignatoryRole.EXECUTIVE_DIRECTOR)
-        assert _by_type(clocks, ClockType.JUDICIAL_REVIEW).exhaustion_required
+        assert _by_type(clocks, ClockType.RECONSIDERATION_PETITION).exhaustion_required
 
     def test_board_orders_do_not_require_exhaustion(self) -> None:
         """The exception applies to DELEGATED authority. The Board is not delegate."""
@@ -83,11 +83,48 @@ class TestDelegationException:
         assert not _by_type(clocks, ClockType.JUDICIAL_REVIEW).exhaustion_required
 
     def test_the_delegation_resolution_is_named_in_the_record(self) -> None:
-        c = _by_type(
-            clocks_for_order(ADOPTED, signatory=SignatoryRole.DEPUTY_DIRECTOR),
-            ClockType.JUDICIAL_REVIEW,
-        )
-        assert DELEGATION_RESOLUTION in c.description
+        assert DELEGATION_RESOLUTION in judicial_review_clock(ADOPTED, delegated=True).description
+
+
+class TestJudicialReviewRunsFromFinalActionNotAdoption:
+    """The defect these tests previously asserted, corrected.
+
+    The clock was emitted at adoption as adoption plus 30 days while its own
+    description read "30 days from final action". For a delegated order those are
+    different events separated by up to 90 days, because reconsideration is a
+    mandatory prerequisite and the final action is the Board's ruling on that
+    petition. A window computed from adoption tells a party their right to judicial
+    review expired before it opened, which is the worst answer a deadline tracker
+    can give, and three tests here were holding it in place.
+    """
+
+    def test_a_delegated_order_starts_no_writ_window_at_adoption(self) -> None:
+        clocks = clocks_for_order(ADOPTED, signatory=SignatoryRole.DEPUTY_DIRECTOR)
+        assert ClockType.JUDICIAL_REVIEW not in {c.clock_type for c in clocks}
+
+    def test_a_board_order_does_start_one_immediately(self) -> None:
+        """No exhaustion is required, so the order itself IS the final action and
+        the two timestamps genuinely coincide."""
+        clocks = clocks_for_order(ADOPTED, signatory=SignatoryRole.BOARD)
+        writ = _by_type(clocks, ClockType.JUDICIAL_REVIEW)
+        assert writ.opens_at == ADOPTED
+        assert (writ.closes_at - ADOPTED).days == 30
+
+    def test_the_window_runs_from_the_final_action_it_is_given(self) -> None:
+        from datetime import timedelta
+
+        final_action = ADOPTED + timedelta(days=88)
+        writ = judicial_review_clock(final_action, delegated=True)
+        assert writ.opens_at == final_action
+        assert (writ.closes_at - final_action).days == 30
+        # And the whole point: it is still open long after adoption plus 30 days.
+        assert writ.is_open(ADOPTED + timedelta(days=100))
+
+    def test_a_naive_final_action_is_refused(self) -> None:
+        from datetime import datetime as _dt
+
+        with pytest.raises(ValueError):
+            judicial_review_clock(_dt(2026, 6, 5, 17, 30), delegated=True)  # noqa: DTZ001
 
 
 class TestStatutoryFloors:

@@ -95,6 +95,42 @@ MINIMUM_INFORMATION_RESPONSE_DAYS = 5
 DELEGATION_RESOLUTION = "State Water Board Resolution No. 2012-0061"
 
 
+def judicial_review_clock(final_action_at: datetime, *, delegated: bool) -> Clock:
+    """The Water Code 1126(b) writ window, running from FINAL ACTION.
+
+    Separated from `clocks_for_order` because its trigger is a different event, and
+    conflating the two produced a deadline that could expire before it opened. For a
+    delegated order the final action is the Board's ruling on the reconsideration
+    petition, or the deemed denial when the 90-day window lapses; for a
+    non-delegated one it is the order itself.
+
+    Args:
+        final_action_at: When the final action actually occurred. Not the adoption
+            timestamp, unless the order is non-delegated and they coincide.
+        delegated: Whether exhaustion was required to reach this point.
+    """
+    if final_action_at.tzinfo is None:
+        raise ValueError("final_action_at must be timezone-aware; a legal deadline cannot be naive")
+    return Clock(
+        clock_type=ClockType.JUDICIAL_REVIEW,
+        opens_at=final_action_at,
+        closes_at=final_action_at + timedelta(days=JUDICIAL_REVIEW_DAYS),
+        citation="Water Code 1126(b)",
+        description=(
+            "A petition for writ of mandate must be filed not later than 30 days "
+            "from final action. Because this order issued under authority delegated "
+            f"by {DELEGATION_RESOLUTION}, it fell inside the delegation exception "
+            "and reconsideration was a mandatory prerequisite, so this window runs "
+            "from the Board's action on that petition rather than from adoption."
+            if delegated
+            else "A petition for writ of mandate must be filed not later than 30 days "
+            "from final action, which for an order not issued under delegated "
+            "authority is the order itself."
+        ),
+        exhaustion_required=delegated,
+    )
+
+
 def clocks_for_order(
     adopted_at: datetime,
     *,
@@ -146,23 +182,30 @@ def clocks_for_order(
             ),
             agency_deadline_non_jurisdictional=True,
         ),
-        Clock(
-            clock_type=ClockType.JUDICIAL_REVIEW,
-            opens_at=adopted_at,
-            closes_at=adopted_at + timedelta(days=JUDICIAL_REVIEW_DAYS),
-            citation="Water Code 1126(b)",
-            description=(
-                "A petition for writ of mandate must be filed not later than 30 days "
-                "from final action. Because this order issued under authority delegated "
-                f"by {DELEGATION_RESOLUTION}, it falls inside the delegation exception "
-                "and reconsideration is a mandatory prerequisite."
-                if delegated
-                else "A petition for writ of mandate must be filed not later than 30 days "
-                "from final action."
-            ),
-            exhaustion_required=delegated,
-        ),
     ]
+
+    # JUDICIAL REVIEW IS NOT STARTED BY ADOPTION FOR A DELEGATED ORDER, and getting
+    # this wrong was the most dangerous defect in this module.
+    #
+    # The clock was previously emitted here as adoption plus 30 days while its own
+    # description read "30 days from final action". Those are the same sentence
+    # contradicting itself, which is the drift this project exists to catch, and a
+    # review caught it in the ledger that stored the result.
+    #
+    # For an order under delegated authority, reconsideration is a mandatory
+    # prerequisite (1126(b) delegation exception), so the final action that starts
+    # the writ window is the Board's ruling on that petition, or the deemed denial
+    # when the 90 days lapse. Both are AFTER adoption, by up to three months. A
+    # clock computed from adoption therefore tells a party their right to judicial
+    # review expired before it had opened, which is the worst answer a legal
+    # deadline tracker can give.
+    #
+    # So it is not fabricated from the wrong event. It is emitted only when the
+    # triggering event actually exists: immediately for a non-delegated order, where
+    # the order itself is the final action, and via `judicial_review_clock` once
+    # final action is recorded for a delegated one.
+    if not delegated:
+        clocks.append(judicial_review_clock(adopted_at, delegated=False))
 
     if certification_days is not None:
         if certification_days < MINIMUM_CERTIFICATION_DAYS:
