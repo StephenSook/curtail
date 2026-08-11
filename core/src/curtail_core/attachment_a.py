@@ -236,7 +236,7 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
     imprecise: list[str] = []
     ambiguous: list[str] = []
     recovered_from_neighbour: list[str] = []
-    seen: set[str] = set()
+    handled: set[str] = set()
     encountered: set[str] = set()
 
     for page in sorted(pages):
@@ -252,10 +252,21 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
             # instead made the reconciliation a sum compared to itself: it could not
             # fail, and it hid a whole category that reached no bucket at all.
             encountered.add(number)
-            # The Board reissues attachments, and a duplicate would double a right's
-            # weight in any count computed off this table.
-            if number in seen:
+
+            # The duplicate guard covers EVERY outcome, not just the successful one.
+            # It used to be set immediately before appending to `rights`, so a repeated
+            # application number that failed to parse twice was appended to `unparsed`
+            # twice while `encountered` counted it once, and the accounting invariant
+            # broke: 1 seen, 2 accounted for. The Board reissues attachments, and a
+            # duplicate would also double a right's weight in any count taken off this
+            # table.
+            #
+            # Set HERE rather than per branch because every path below terminates in
+            # exactly one bucket, so one add covers all four and cannot drift out of
+            # step with a branch someone adds later.
+            if number in handled:
                 continue
+            handled.add(number)
 
             cell = _read_cell(line[match.end() :])
             source = cell.source
@@ -310,7 +321,6 @@ def parse_attachment(pages: dict[int, str]) -> AttachmentReport:
             if not source:
                 blank_source.append(number)
 
-            seen.add(number)
             rights.append(
                 AttachedRight(
                     application_number=number,
