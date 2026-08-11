@@ -196,6 +196,10 @@
   //: surface can produce, so an answer that cannot be fully trusted is not shown
   //: at all.
   const REQUIRED = ["classification", "observed_cfs", "minimum_cfs", "direction", "disclaimer"];
+  //: Of those, the ones INTERPOLATED into text. Presence is not enough: an empty or
+  //: null disclaimer passes an `in body` check and then renders as a blank or as the
+  //: word "null", on the line that tells a reader nothing here self-executes.
+  const REQUIRED_TEXT = ["direction", "disclaimer"];
 
   //: Monotonic, and every render is gated on it. Each click starts an independent
   //: request and they can finish out of order, so without this a slow earlier
@@ -239,8 +243,8 @@
     if (!STATUS[body.classification]) {
       return `this page cannot render the classification ${body.classification}`;
     }
-    if (typeof body.direction !== "string" || !body.direction) {
-      return "the answer carries no direction";
+    for (const field of REQUIRED_TEXT) {
+      if (!nonEmptyString(body[field])) return `the answer carries no ${field}`;
     }
     return null;
   }
@@ -356,7 +360,27 @@
       if (!(field in body)) return `the answer is missing ${field}`;
     }
     if (!ACTION[body.action]) return `this page cannot render the action ${body.action}`;
+    if (!nonEmptyString(body.disclaimer)) {
+      return "the answer carries no disclaimer";
+    }
     if (!Array.isArray(body.ledger)) return "the ledger is not a list";
+
+    // Every LINE, not just the container. `would_be_curtailed` is read through a
+    // ternary, so an absent field rendered as "not reached": a right the engine
+    // reached, displayed as untouched. That is worse than printing "undefined",
+    // because it is a plausible wrong answer rather than a visible gap, and it is the
+    // exact thing this whole surface exists not to do.
+    for (const entry of body.ledger) {
+      if (!entry || typeof entry !== "object") return "a ledger line is not a record";
+      for (const field of ["right_id", "grouping", "citation"]) {
+        if (!nonEmptyString(entry[field])) {
+          return `a ledger line states no ${field}`;
+        }
+      }
+      if (typeof entry.would_be_curtailed !== "boolean") {
+        return `the ledger line for ${entry.right_id} states no disposition`;
+      }
+    }
     if (!body.provenance || typeof body.provenance !== "object") {
       return "the answer carries no provenance at all";
     }
