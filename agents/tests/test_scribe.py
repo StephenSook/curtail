@@ -405,3 +405,71 @@ class TestTheProseMustUseTheRightBasinsLadder:
         assert wrong_basin_vocabulary("curtailing Priority Group 3 under Schedule D", "scott") == ()
         outcome = draft_order(recommendation, generate=answering(sound_claims(recommendation)))
         assert outcome.may_reach_pdf is True
+
+
+class TestAModelOutageIsNotADraft:
+    """The documented contract said an unreachable model becomes ScribeUnavailableError.
+
+    Only the CREDENTIAL path was guarded, so a 404 from a region that does not serve the
+    model escaped as a raw ClientError and crashed the drafting path. The module's own
+    docstring named that case, which is the tell: a docstring is a specification, and the
+    word it uses is the thing worth testing.
+    """
+
+    @pytest.mark.parametrize(
+        ("label", "boom"),
+        [
+            ("a transport timeout", TimeoutError("read timed out")),
+            ("a connection failure", ConnectionError("connection reset")),
+            ("an unexpected api error", RuntimeError("404 NOT_FOUND publisher model")),
+            ("a value error from the sdk", ValueError("malformed request")),
+        ],
+    )
+    def test_every_model_failure_becomes_the_stated_error(
+        self, recommendation: Recommendation, label: str, boom: Exception
+    ) -> None:
+        def call(prompt: str) -> str:
+            raise boom
+
+        with pytest.raises(ScribeUnavailableError, match="the model call failed"):
+            draft_order(recommendation, generate=call)
+
+    def test_it_names_which_attempt_failed(self, recommendation: Recommendation) -> None:
+        """A failure on the retry is a different situation from one on the first call,
+        and a reviewer reading the log needs to know which happened."""
+        calls = 0
+
+        def call(prompt: str) -> str:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return sound_claims(recommendation, extent_rank=9)
+            raise TimeoutError("read timed out")
+
+        with pytest.raises(ScribeUnavailableError, match="attempt 2 of"):
+            draft_order(recommendation, generate=call)
+
+    def test_an_outage_is_not_reported_as_an_escalation(
+        self, recommendation: Recommendation
+    ) -> None:
+        """Different causes, and conflating them sends a reviewer to read prose that was
+        never written. Escalation means a draft EXISTS and failed its checks."""
+
+        def call(prompt: str) -> str:
+            raise TimeoutError("read timed out")
+
+        with pytest.raises(ScribeUnavailableError) as caught:
+            draft_order(recommendation, generate=call)
+        assert "escalat" not in str(caught.value).lower()
+
+    def test_the_generators_own_refusal_is_not_rewrapped(
+        self, recommendation: Recommendation
+    ) -> None:
+        """An empty answer already raises the right error with its own specific reason.
+        Wrapping it again would bury the cause under a generic one."""
+
+        def call(prompt: str) -> str:
+            raise ScribeUnavailableError("returned no text, and an empty draft passes")
+
+        with pytest.raises(ScribeUnavailableError, match="returned no text"):
+            draft_order(recommendation, generate=call)

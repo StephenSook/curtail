@@ -305,7 +305,13 @@ def draft_order(
             so the guard chain can be tested without a model. Production passes nothing.
 
     Raises:
-        ScribeUnavailableError: when no model can be reached. Never returns a stub.
+        ScribeUnavailableError: when no model can be reached, for ANY reason: no
+            project, no SDK, a region that does not serve the model, a timeout, a
+            transport failure, or an empty answer. Never returns a stub.
+
+            Read as a specification. The earlier version guarded only the credential
+            path, so the 404 this module's own docstring describes escaped as a raw
+            ClientError and crashed the drafting path.
     """
     chosen = model or os.environ.get("MODEL_SCRIBE") or DEFAULT_MODEL
     where = location or os.environ.get("VERTEX_LOCATION") or DEFAULT_LOCATION
@@ -318,7 +324,26 @@ def draft_order(
     assertion = DraftAssertion((), (), None, "")
 
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        raw = call(build_prompt(recommendation, feedback=feedback))
+        try:
+            raw = call(build_prompt(recommendation, feedback=feedback))
+        except ScribeUnavailableError:
+            # Already the stated failure, already carrying its own reason. Re-wrapping
+            # would bury the specific cause under a generic one.
+            raise
+        except Exception as exc:
+            # The documented contract said an unreachable model becomes this error, and
+            # only the CREDENTIAL path was guarded. A 404 from a region that does not
+            # serve the model, a timeout, or any transport failure escaped as itself and
+            # crashed the drafting path. The module's own docstring named the case.
+            #
+            # Raised rather than escalated, deliberately. An outage and a rejected draft
+            # are DIFFERENT CAUSES: escalation means a draft exists and failed its
+            # checks, and reporting an outage that way sends a reviewer to read prose
+            # that was never written.
+            raise ScribeUnavailableError(
+                f"the model call failed on attempt {attempt} of {MAX_ATTEMPTS}: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
         try:
             assertion = _assertion_from(json.loads(raw))
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
