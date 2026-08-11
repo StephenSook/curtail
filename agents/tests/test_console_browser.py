@@ -24,6 +24,7 @@ import threading
 import time
 import traceback
 from collections.abc import Iterator
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -438,6 +439,151 @@ class TestTheLedgerCard:
         assert "UNAVAILABLE" in status
         assert "reading came from" in page.locator("#rec .refusal").inner_text()
         assert page.locator("#rec tbody tr").count() == 0
+
+    @pytest.mark.parametrize(
+        ("label", "provenance", "expected"),
+        [
+            (
+                "both sides present but empty",
+                {"reading": {}, "rights": {}},
+                "states no source",
+            ),
+            (
+                "reading names no note",
+                {"reading": {"source": "unsourced"}, "rights": {"summary": "Addendum 6"}},
+                "states no note",
+            ),
+            (
+                "rights summary is blank",
+                {"reading": {"source": "unsourced", "note": "typed"}, "rights": {"summary": "   "}},
+                "states no summary",
+            ),
+            (
+                "a side is a string rather than a record",
+                {"reading": "unsourced", "rights": {"summary": "Addendum 6"}},
+                "does not say where its reading came from",
+            ),
+        ],
+    )
+    def test_an_empty_or_malformed_provenance_side_is_not_rendered(
+        self,
+        page: Page,
+        console_url: str,
+        label: str,
+        provenance: dict[str, Any],
+        expected: str,
+    ) -> None:
+        """Checking that a side is PRESENT was a truthy test, so `{reading: {}}` passed
+        it and the page printed "Reading: undefined". A validator that checks a
+        container rather than its contents proves the shape and not the answer."""
+        page.route(
+            "**/api/recommendation/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "action": "consider_curtailment",
+                        "deterministic_facts": {
+                            "observed_cfs": 41.0,
+                            "operative_minimum_cfs": 50.0,
+                            "shortfall_cfs": 9.0,
+                            "recommended_extent_rank": 1,
+                            "rights_considered": 1,
+                            "rights_reached": 1,
+                        },
+                        "ledger": [],
+                        "provenance": provenance,
+                        "disclaimer": "A recommendation.",
+                    }
+                ),
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper(), label
+        assert expected in page.locator("#rec .refusal").inner_text(), label
+        assert "undefined" not in page.locator("#rec").inner_text()
+
+    @pytest.mark.parametrize("dropped", ["observed_cfs", "shortfall_cfs", "rights_reached"])
+    def test_a_missing_fact_is_not_printed_as_undefined(
+        self, page: Page, console_url: str, dropped: str
+    ) -> None:
+        """Same class, on the numbers. The fact tiles are the one place on this page
+        whose whole job is to be exact."""
+        facts = {
+            "observed_cfs": 41.0,
+            "operative_minimum_cfs": 50.0,
+            "shortfall_cfs": 9.0,
+            "recommended_extent_rank": 1,
+            "rights_considered": 1,
+            "rights_reached": 1,
+        }
+        facts.pop(dropped)
+        page.route(
+            "**/api/recommendation/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "action": "consider_curtailment",
+                        "deterministic_facts": facts,
+                        "ledger": [],
+                        "provenance": {
+                            "reading": {"source": "unsourced", "note": "typed"},
+                            "rights": {"summary": "Addendum 6"},
+                        },
+                        "disclaimer": "A recommendation.",
+                    }
+                ),
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper()
+        assert dropped in page.locator("#rec .refusal").inner_text()
+        assert "undefined" not in page.locator("#rec").inner_text()
+
+    def test_an_extent_of_none_is_a_real_answer_and_still_renders(
+        self, page: Page, console_url: str
+    ) -> None:
+        """`recommended_extent_rank: null` means curtailment reaches nobody, which the
+        Core returns whenever flow is at or above the minimum. Treating it as missing
+        would refuse to display the most common good-news answer there is."""
+        page.route(
+            "**/api/recommendation/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "action": "consider_suspension",
+                        "deterministic_facts": {
+                            "observed_cfs": 90.0,
+                            "operative_minimum_cfs": 50.0,
+                            "shortfall_cfs": 0.0,
+                            "recommended_extent_rank": None,
+                            "rights_considered": 2,
+                            "rights_reached": 0,
+                        },
+                        "ledger": [],
+                        "provenance": {
+                            "reading": {"source": "unsourced", "note": "typed"},
+                            "rights": {"summary": "Addendum 6"},
+                        },
+                        "disclaimer": "A recommendation.",
+                    }
+                ),
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "CONSIDER SUSPENSION" in page.locator("#rec .status").inner_text().upper()
+        assert "none" in page.locator("#rec .facts").inner_text().lower()
 
     def test_a_basin_with_no_table_shows_the_refusal_not_an_empty_ledger(
         self, page: Page, console_url: str
