@@ -7,11 +7,17 @@ anybody and the honest move was to label the gap. That was half right and the wr
 half mattered, the same shape as an earlier finding on this project: the boundary
 was declared unbuildable without anyone trying to build it.
 
-It is buildable, and this is it. An `Officer` cannot be constructed from strings at
-all. The only way to obtain one is `verify_officer_token`, which checks an HMAC over
-the exact claim bytes using a key the domain layer does not hold. Forging an
-approval therefore requires the signing key rather than a keyboard, which is the
-difference between a documented gap and a boundary.
+It is buildable, and this is it. `approval.sign` accepts a TOKEN, never an identity
+object, and verifies an HMAC over the exact claim bytes with a key its caller must
+possess. Forging an approval therefore requires the signing key rather than a
+keyboard, which is the difference between a documented gap and a boundary.
+
+**The first attempt at that got it wrong in an instructive way**, and a review caught
+it. It made `Officer` "unconstructible" with a private-constructor sentinel and let
+`sign` accept the resulting object. Both halves failed: the sentinel was a module
+attribute anybody could import, and `dataclasses.replace` on a verified officer
+escalated a Board clerk to Deputy Director while carrying the clerk's own proof. An
+object is not a capability. Verifying at the point of use is what closes it.
 
 **What this does and does not claim.**
 
@@ -36,7 +42,7 @@ import hmac
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Final
+from typing import Final
 
 from curtail_core.clocks import SignatoryRole
 
@@ -49,11 +55,6 @@ MINIMUM_KEY_BYTES: Final = 32
 #: here to approve a curtailment order.
 AUDIENCE: Final = "curtail.approval.officer"
 
-#: A sentinel only this module can pass. It is what makes `Officer` unconstructible
-#: from ordinary code: the dataclass refuses any instantiation that does not present
-#: it, so a caller cannot fabricate an identity by filling in the fields.
-_VERIFIED = object()
-
 
 class CredentialError(RuntimeError):
     """A token was absent, expired, tampered with, or minted for something else.
@@ -65,13 +66,19 @@ class CredentialError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class Officer:
-    """A verified officer identity. Obtainable only from `verify_officer_token`.
+    """What a verified token said. A plain carrier, and deliberately not a capability.
 
-    The `_proof` field is the private-constructor idiom: ordinary code cannot supply
-    it, so this type cannot be conjured beside the verifier that produces it. That
-    is not a defence against someone editing this file; it is a defence against the
-    far likelier event of a future console filling in an identity by hand because it
-    was easy.
+    **An earlier version tried to make this type unforgeable with a private
+    constructor sentinel, and a review was right that it was bypassable by design.**
+    Two ways, both confirmed by running them: the sentinel was a module attribute
+    anybody could import, and `dataclasses.replace` on a legitimately verified
+    officer produced a privilege escalation, turning a Board clerk into the Deputy
+    Director while keeping the proof that had been issued for the clerk.
+
+    Removing an ineffective guard beats keeping a misleading one, so the sentinel is
+    gone rather than patched. Holding one of these proves nothing, and nothing in
+    this codebase accepts one as authority: `approval.sign` takes the TOKEN and
+    verifies it itself, so the only path to a signature runs through the MAC.
     """
 
     role: SignatoryRole
@@ -79,16 +86,6 @@ class Officer:
     authenticated_via: str
     issued_at: datetime
     expires_at: datetime
-    _proof: Any = None
-
-    def __post_init__(self) -> None:
-        if self._proof is not _VERIFIED:
-            raise CredentialError(
-                "an Officer cannot be constructed directly. Obtain one from "
-                "verify_officer_token, which checks an HMAC the domain layer has no "
-                "key for. An identity assembled from strings is an identity anybody "
-                "can assemble."
-            )
 
 
 def _b64(raw: bytes) -> str:
@@ -218,5 +215,4 @@ def verify_officer_token(token: str, *, key: bytes, now: datetime) -> Officer:
         authenticated_via=authenticated_via,
         issued_at=issued_at,
         expires_at=expires_at,
-        _proof=_VERIFIED,
     )

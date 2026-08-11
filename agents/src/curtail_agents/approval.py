@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
-from curtail_agents.credentials import Officer
+from curtail_agents.credentials import Officer, verify_officer_token
 from curtail_agents.routing import GuardResult, Verdict
 from curtail_core.clocks import SignatoryRole
 
@@ -171,9 +171,10 @@ class QueueItem:
 def sign(
     item: QueueItem,
     *,
-    officer: Officer,
+    officer_token: str,
+    key: bytes,
+    now: datetime,
     reviewed_digest: str,
-    decided_at: datetime,
     approved: bool = True,
     overriding: tuple[str, ...] = (),
     note: str = "",
@@ -193,8 +194,11 @@ def sign(
             review, or when an unverified draft is approved without naming what is
             being overridden.
     """
-    if decided_at.tzinfo is None:
-        raise ApprovalError("decided_at must be timezone aware")
+    # Verified HERE. Accepting an already-built identity object is what made the
+    # previous version bypassable, so there is no parameter through which a caller
+    # can assert who they are.
+    officer = verify_officer_token(officer_token, key=key, now=now)
+    decided_at = now
 
     if officer.role is not item.requires_role:
         raise ApprovalError(

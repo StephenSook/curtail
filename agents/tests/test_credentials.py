@@ -58,30 +58,48 @@ class TestAVerifiedTokenYieldsAnOfficer:
         assert officer.expires_at == EXPIRES
 
 
-class TestAnOfficerCannotBeConjured:
-    def test_direct_construction_is_refused(self) -> None:
-        """The finding this module exists for. An identity assembled from strings is
-        an identity anybody can assemble, and the role gate above it then guards
-        nothing."""
-        with pytest.raises(CredentialError, match="cannot be constructed directly"):
-            Officer(
-                role=SignatoryRole.DEPUTY_DIRECTOR,
-                officer_id="impostor",
-                authenticated_via="i said so",
-                issued_at=ISSUED,
-                expires_at=EXPIRES,
-            )
+class TestTheTypeIsAnHonestCarrierNotACapability:
+    """The sentinel is gone, and its removal is the finding.
 
-    def test_guessing_the_proof_sentinel_does_not_work(self) -> None:
-        with pytest.raises(CredentialError):
-            Officer(
-                role=SignatoryRole.DEPUTY_DIRECTOR,
-                officer_id="impostor",
-                authenticated_via="i said so",
-                issued_at=ISSUED,
-                expires_at=EXPIRES,
-                _proof=True,
-            )
+    An earlier version made `Officer` "unconstructible" with a private-constructor
+    sentinel. A review called the boundary bypassable by design and was right twice
+    over, both confirmed by running them: the sentinel was a module attribute
+    anybody could import, and `dataclasses.replace` on a verified officer escalated
+    a Board clerk to Deputy Director while carrying the clerk's own proof.
+
+    Removing an ineffective guard beats keeping a misleading one. This type now
+    admits it is only what a token said, and nothing accepts one as authority.
+    """
+
+    def test_one_can_be_built_and_it_proves_nothing(self) -> None:
+        conjured = Officer(
+            role=SignatoryRole.DEPUTY_DIRECTOR,
+            officer_id="impostor",
+            authenticated_via="i said so",
+            issued_at=ISSUED,
+            expires_at=EXPIRES,
+        )
+        assert conjured.officer_id == "impostor"
+
+    def test_no_sentinel_survives_to_be_imported(self) -> None:
+        """A guard that can be imported is not a guard, and leaving it in place
+        would keep advertising a property the module no longer claims."""
+        from curtail_agents import credentials
+
+        assert not hasattr(credentials, "_VERIFIED")
+
+    def test_replace_can_still_lie_and_that_is_why_nothing_trusts_the_object(
+        self,
+    ) -> None:
+        import dataclasses
+
+        clerk = verify_officer_token(
+            _token(role=SignatoryRole.BOARD, officer_id="clerk"), key=KEY, now=DURING
+        )
+        escalated = dataclasses.replace(clerk, role=SignatoryRole.DEPUTY_DIRECTOR)
+        assert escalated.role is SignatoryRole.DEPUTY_DIRECTOR
+        # The authority is the TOKEN. approval.sign re-verifies rather than reading
+        # this field, and test_approval covers that the escalation buys nothing.
 
 
 class TestForgeryRequiresTheKey:
