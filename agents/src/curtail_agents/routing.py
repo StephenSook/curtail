@@ -23,18 +23,21 @@ exist in no database, and you cannot blacklist a citation nobody has invented
 yet. Anything shaped like a legal citation that is not on the verified allowlist
 is stripped and flagged.
 
-**Layer three, the loop breaker, is PARTLY here and the rest is honestly
-labelled.** The attempt ceiling below is wired: `MAX_ATTEMPTS` drives the
-retry-then-escalate decision, so a model failing the same check twice escalates
-rather than looping. The backoff, jitter and wall-clock ceiling are declared as
-constants and are NOT yet attached to an ADK node; that wiring lands with the
-Pub/Sub work in M3.3, where the node graph exists to attach them to.
+**Layer three, the loop breaker, is now wired.** `MAX_ATTEMPTS` drives the
+retry-then-escalate decision here, so a model failing the same check twice
+escalates rather than looping. The backoff, jitter and wall-clock ceiling below
+are consumed by `fleet.py`, which builds them into an ADK `RetryConfig` and
+attaches it, with a `timeout`, to the nodes of the curtailment graph. One source
+for both, so the threshold this guard escalates at and the attempts the graph
+permits cannot drift apart.
 
-Saying so matters more than it costs. A review found this docstring claiming
-`RetryConfig` and `NodeTimeoutError` were in force while both were dead
-constants, which is exactly the drift this project's own rule about auditing
-claims against the shipped code exists to catch, committed in the file whose
-subject is not trusting assertions.
+This paragraph previously said the opposite, and the history is worth keeping. A
+review found it claiming `RetryConfig` and `NodeTimeoutError` were in force while
+both were dead constants: the drift this project's own rule about auditing claims
+against shipped code exists to catch, committed in the file whose subject is not
+trusting assertions. It was then labelled honestly as unwired, and only now, with
+`fleet.py` importing these constants and `build_curtailment_graph()` assembling,
+does the claim hold.
 
 Nothing here trusts the model to behave. Every check runs on its output.
 """

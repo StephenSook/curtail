@@ -83,4 +83,14 @@ testpaths = ["core/tests", "agents/tests"]
 pythonpath = ["core/src", "agents/src"]
 addopts = "-q --strict-markers --strict-config"
 asyncio_mode = "auto"
-filterwarnings = ["error"]
+filterwarnings = [
+    # Warnings are errors. That is what surfaced everything below, and it stays.
+    "error",
+    # google-adk 2.6.3 subclasses its OWN deprecated BaseAgentConfig at import
+    # time, so merely importing google.adk.workflow raises under -W error. This
+    # is a third-party defect, not ours, and it is scoped to that exact message
+    # rather than relaxed globally: a blanket ignore would also hide a
+    # deprecation in our own code, which is the thing this setting is for.
+    # Revisit when the pinned ADK version moves.
+    "ignore:BaseAgentConfig is deprecated:DeprecationWarning",
+]
