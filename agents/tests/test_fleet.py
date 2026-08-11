@@ -232,3 +232,58 @@ class TestTheGraphCeilingCoversTheRetriesItPermits:
         """Raising MAX_ATTEMPTS must not leave the ceiling behind."""
         assert GRAPH_TIMEOUT_SECONDS == build_curtailment_graph().timeout
         assert GRAPH_TIMEOUT_SECONDS > NODE_TIMEOUT_SECONDS * 4
+
+
+class TestTheSentinelNodeRunsTheRealAgent:
+    """A graph of no-op functions carries a retry policy that governs nothing.
+
+    That is the same defect as a guard described in prose: structure present,
+    force absent. The Sentinel node calls the real `sentinel.evaluate`, so its
+    retry policy protects actual work.
+    """
+
+    async def test_it_classifies_a_real_reading(self) -> None:
+        from datetime import UTC, datetime
+
+        from curtail_agents.events import EventType, Provenance
+        from curtail_agents.fleet import _sentinel
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        state = {
+            "observation": Observation(
+                Basin.SCOTT, 48.7, datetime(2025, 7, 20, 21, 30, tzinfo=UTC), Provenance.USGS_LIVE
+            ),
+            "correlation_id": "c-1",
+        }
+        result = await _sentinel(state)
+        assert result["event"].event_type is EventType.READING_NEAR_THRESHOLD
+
+    async def test_it_refuses_a_state_with_no_observation(self) -> None:
+        """Rather than returning the state unchanged, which would look like a
+        successful classification that never happened."""
+        from curtail_agents.fleet import _sentinel
+
+        with pytest.raises(ValueError):
+            await _sentinel({})
+
+
+class TestTheCeilingCoversWorkOutsideTheTimedBody:
+    def test_a_margin_is_added_for_adk_bookkeeping(self) -> None:
+        """ADK applies the node timeout around `_run_node_loop` only. Output
+        flushing and retry-event enqueueing happen outside it, so a blocked sink
+        adds wall time no attempt-derived figure bounds."""
+        from curtail_agents.fleet import OVERHEAD_MARGIN_FRACTION
+
+        transient = 3
+        attempts = NODE_TIMEOUT_SECONDS * (MAX_ATTEMPTS * transient + 1)
+        backoff = (
+            sum(
+                min(MAX_DELAY_SECONDS, INITIAL_DELAY_SECONDS * BACKOFF_FACTOR**i)
+                for i in range(MAX_ATTEMPTS - 1)
+            )
+            * transient
+        )
+        bare = attempts + backoff
+        assert GRAPH_TIMEOUT_SECONDS > bare
+        assert GRAPH_TIMEOUT_SECONDS == pytest.approx(bare * (1 + OVERHEAD_MARGIN_FRACTION))

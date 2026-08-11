@@ -23,6 +23,16 @@ see the failure. Worse, a retry policy on a deterministic node quietly implies
 its failures are transient, which invites treating a genuine data defect as
 noise. Failures there are surfaced immediately, not smoothed over.
 
+**What is wired, stated plainly, because a graph of no-op nodes carries a retry
+policy that governs nothing.** The Sentinel node calls the real
+`sentinel.evaluate`. The Core, Scribe and Herald nodes are placeholders and are
+labelled as such in their own docstrings: the Core needs a rights table the
+console will supply, the Scribe needs a model, and the Herald needs a delivery
+channel. Their GUARDS exist and are tested (`routing.py`, `messaging.py`); their
+handlers are not yet attached. `build_curtailment_graph()` is not yet invoked by
+an application entrypoint, so nothing here is claimed to be governing production
+traffic today.
+
 **A timeout is not a slower attempt limit.** A model that loops does not fail, it
 simply never returns, so an attempt ceiling alone never fires. `timeout` bounds
 wall time and raises `NodeTimeoutError`, which is a different failure with a
@@ -45,6 +55,7 @@ from curtail_agents.routing import (
     MAX_DELAY_SECONDS,
     NODE_TIMEOUT_SECONDS,
 )
+from curtail_agents.sentinel import evaluate
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
 #:
@@ -80,6 +91,15 @@ TRANSIENT_RETRY = RetryConfig(
 #:
 #: Derived from the same constants the policy uses, so raising MAX_ATTEMPTS
 #: cannot leave the ceiling behind.
+#: Fraction added for ADK bookkeeping outside the timed node body.
+#:
+#: Not a fudge factor for uncertainty. It covers a specific, named cost: output
+#: flushing and retry-event enqueueing sit outside the per-node timeout, so a
+#: blocked sink can extend a traversal past any figure derived from attempts
+#: alone.
+OVERHEAD_MARGIN_FRACTION = 0.25
+
+
 def _worst_case_seconds() -> float:
     transient_nodes = 3  # sentinel, scribe, herald
     deterministic_nodes = 1  # core, one attempt only
@@ -91,7 +111,13 @@ def _worst_case_seconds() -> float:
         )
         * transient_nodes
     )
-    return attempts + backoff
+    # ADK applies the node timeout around `_run_node_loop` only. Flushing output
+    # and deltas, and enqueueing retry events, happen OUTSIDE it, so a slow event
+    # or session sink adds wall time the per-node timeout never bounds. A review
+    # found this by reading NodeRunner rather than the docs. The margin is
+    # explicit and proportional rather than a round number pulled from nowhere.
+    overhead_margin = (attempts + backoff) * OVERHEAD_MARGIN_FRACTION
+    return attempts + backoff + overhead_margin
 
 
 GRAPH_TIMEOUT_SECONDS = _worst_case_seconds()
@@ -205,23 +231,50 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
 
 
 async def _sentinel(state: dict[str, Any]) -> dict[str, Any]:
-    """Poll a gage and classify the reading."""
-    return state
+    """Classify a gage reading using the real Sentinel.
+
+    Wired to `sentinel.evaluate`, not a placeholder. A review pointed out that a
+    graph of no-op functions carries a retry policy that governs nothing, which
+    is the same defect as a guard described in prose: structure present, force
+    absent.
+    """
+    observation = state.get("observation")
+    if observation is None:
+        raise ValueError("sentinel node requires an 'observation' in state")
+    event = evaluate(
+        observation,
+        correlation_id=str(state.get("correlation_id", "")),
+        recent=state.get("recent", ()),
+    )
+    return {**state, "event": event}
 
 
 async def _core(state: dict[str, Any]) -> dict[str, Any]:
-    """Compute the recommendation. Deterministic, so it does not retry."""
+    """Compute the recommendation. Deterministic, so it does not retry.
+
+    NOT YET WIRED to `curtail_core.allocation.recommend`. It needs a rights
+    table and LCS set that the console will supply, and inventing a source here
+    would be worse than an honest placeholder.
+    """
     return state
 
 
 async def _scribe(state: dict[str, Any]) -> dict[str, Any]:
-    """Draft the order. The only node calling a model, so the only one that can
-    loop rather than fail, which is why the timeout matters here most."""
+    """Draft the order. NOT YET WIRED to a model.
+
+    The only node that will call one, so the only one that can loop rather than
+    fail, which is why the timeout matters here most. The routing guard that
+    checks its output already exists and is tested.
+    """
     return state
 
 
 async def _herald(state: dict[str, Any]) -> dict[str, Any]:
-    """Serve and notify. The Loop pattern the README names."""
+    """Serve and notify. NOT YET WIRED to a delivery channel.
+
+    The Loop pattern the README names. Its idempotency keys and dedup table
+    exist in `messaging.py` and are tested.
+    """
     return state
 
 
