@@ -116,7 +116,18 @@ _CITATION_SHAPES: tuple[re.Pattern[str], ...] = (
         rf"(?:\s*,?\s*(?:\u00a7|section)\s*|\s+)"
         rf"[{_SECTION_NUMBER_CHARS}]*\d(?:\([a-z0-9]+\))*"
     ),
-    re.compile(r"\b\d{1,3}\s+CCR\s+[\d.]+"),
+    # `\d+(?:\.\d+)*`, never `[\d.]+`. The character class was GREEDY over a
+    # trailing full stop, so a citation ending a sentence produced the candidate
+    # "23 CCR 875." while the allowlist matches "23 CCR 875". Full coverage then
+    # failed by one character and the scrubber deleted a VERIFIED authority out of
+    # a lawful draft, replacing it with a removal notice mid-sentence.
+    #
+    # A drafted order ends sentences with citations constantly, so this fired on
+    # ordinary correct output rather than on anything adversarial. It is the third
+    # time a boundary disagreement between the shape matcher and the allowlist has
+    # stripped a real authority, which is why the fix belongs in the shape rather
+    # than in another special case downstream.
+    re.compile(r"\b\d{1,3}\s+CCR\s+\d+(?:\.\d+)*"),
 )
 
 
