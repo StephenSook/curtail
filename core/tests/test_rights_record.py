@@ -364,6 +364,39 @@ class TestTheLoaderRefusesAnInconsistentRecord:
             f"the raw attribute error leaked into the message: {message}"
         )
 
+    def test_a_directory_at_the_record_path_is_refused(self, tmp_path: Path) -> None:
+        """A directory satisfies `exists()` and then fails inside `read_text`, so the
+        check passed and the read raised IsADirectoryError, uncaught."""
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = tmp_path / "record.json"
+        target.mkdir()
+        with pytest.raises(RightsRecordUnavailableError):
+            load_rights(target)
+
+    def test_an_unreadable_file_is_refused_not_raised_through(self, tmp_path: Path) -> None:
+        """The docstring promised an unreadable record becomes this error, and only the
+        PARSE was guarded, so the case the word "unreadable" most obviously names was
+        the one that escaped as a 500."""
+        import os
+
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = tmp_path / "record.json"
+        target.write_text("{}")
+        os.chmod(target, 0o000)
+        try:
+            if os.access(target, os.R_OK):  # pragma: no cover - running as root
+                pytest.fail(
+                    "this process can read a mode-000 file, so the check cannot run "
+                    "here. Failing rather than skipping: a guard that skips under CI "
+                    "is a false green."
+                )
+            with pytest.raises(RightsRecordUnavailableError):
+                load_rights(target)
+        finally:
+            os.chmod(target, 0o600)
+
     def test_corrupt_metadata_raises_the_stated_error_not_a_bare_keyerror(
         self, tmp_path: Path
     ) -> None:

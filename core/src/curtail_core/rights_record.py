@@ -86,7 +86,10 @@ def load_rights(path: Path | None = None) -> LoadedRights:
             answer.
     """
     source = path or record_path()
-    if not source.exists():
+    # is_file, not exists. A DIRECTORY at this path satisfies exists() and then fails
+    # inside read_text, which produced an IsADirectoryError rather than the stated
+    # refusal, under a message about the file being absent when it was not.
+    if not source.is_file():
         raise RightsRecordUnavailableError(
             f"the rights record is not at {source}. Either it has not been generated "
             "(scripts/extract_attachment_a.py) or this package was built without it. "
@@ -103,7 +106,11 @@ def load_rights(path: Path | None = None) -> LoadedRights:
         # placing rights escaped untranslated and became a 500. The guard has to
         # cover every step that touches the file's contents, not only the parse.
         converted = to_water_rights(report)
-    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+    except (ValueError, KeyError, TypeError, AttributeError, OSError) as exc:
+        # OSError covers the file system itself: a directory at this path, a mode that
+        # denies reading, a truncated mount. The docstring promised that an unreadable
+        # record becomes this error and only the PARSE was guarded, so the one case the
+        # word "unreadable" most obviously names was the one that escaped as a 500.
         raise RightsRecordUnavailableError(
             f"the rights record at {source} could not be read: {exc}"
         ) from exc
