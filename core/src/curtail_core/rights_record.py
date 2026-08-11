@@ -99,13 +99,17 @@ def load_rights(path: Path | None = None) -> LoadedRights:
         _validate(raw, source)
         report = _rebuild(raw)
         issued = date.fromisoformat(raw["source"]["issued"])
-    except (ValueError, KeyError, TypeError) as exc:
+        # Converted INSIDE the guard. It ran after it, so any error raised while
+        # placing rights escaped untranslated and became a 500. The guard has to
+        # cover every step that touches the file's contents, not only the parse.
+        converted = to_water_rights(report)
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
         raise RightsRecordUnavailableError(
             f"the rights record at {source} could not be read: {exc}"
         ) from exc
 
     return LoadedRights(
-        converted=to_water_rights(report),
+        converted=converted,
         document=raw["source"]["document"],
         issued=issued,
         source_sha256=raw["source"]["sha256"],
@@ -128,6 +132,35 @@ _ROW_FIELDS = {
 }
 
 
+def _section(raw: dict[str, Any], key: str) -> dict[str, Any]:
+    """A section, proved to BE a section before anything reads it.
+
+    `raw["source"]` being JSON null made `meta.get(...)` raise AttributeError, which the
+    caller did not translate, so a corrupt file surfaced as a 500 rather than as a
+    stated refusal. Checking the type here is the real fix; widening the caught tuple
+    is the backstop behind it, because the next malformed shape will not be this one.
+    """
+    value = raw[key]
+    if not isinstance(value, dict):
+        raise ValueError(f"the record's {key!r} section is a {type(value).__name__}, not an object")
+    return value
+
+
+def _string_list(holder: dict[str, Any], key: str) -> list[str]:
+    """A list of strings, or a refusal naming what arrived instead."""
+    value = holder[key]
+    if not isinstance(value, list):
+        raise ValueError(
+            f"the record's {key!r} entry is a {type(value).__name__}, not a list. "
+            "Counting one is not the same as reading one: len() answers for a string "
+            "and for an object too."
+        )
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            raise ValueError(f"{key}[{index}] is a {type(item).__name__}, not text")
+    return value
+
+
 def _validate(raw: dict[str, Any], source: Path) -> None:
     """Refuse a record that does not hold together, BEFORE any of it is converted.
 
@@ -142,18 +175,20 @@ def _validate(raw: dict[str, Any], source: Path) -> None:
     look broken. It produces a normal recommendation over fewer rights than the order
     covers, carrying provenance that describes the whole document.
     """
+    if not isinstance(raw, dict):
+        raise ValueError(f"the record is a {type(raw).__name__}, not an object")
     for key in ("source", "accounting", "not_read", "rights"):
         if key not in raw:
             raise ValueError(f"the record has no {key!r} section")
 
-    meta = raw["source"]
+    meta = _section(raw, "source")
     if not isinstance(meta.get("document"), str) or not meta["document"].strip():
         raise ValueError("the record names no source document")
     if not re.fullmatch(r"[0-9a-f]{64}", str(meta.get("sha256", ""))):
         raise ValueError("the record carries no valid source sha256")
     date.fromisoformat(meta["issued"])  # raises ValueError or KeyError, both caught above
 
-    accounting = raw["accounting"]
+    accounting = _section(raw, "accounting")
     for key in ("application_numbers_seen", "parsed", *_REFUSAL_CATEGORIES.values()):
         value = accounting.get(key)
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -169,18 +204,27 @@ def _validate(raw: dict[str, Any], source: Path) -> None:
             "than the order covers, under provenance describing the whole document."
         )
 
-    unread = raw["not_read"]
-    for category, counted_as in _REFUSAL_CATEGORIES.items():
+    unread = _section(raw, "not_read")
+    for category in (
+        *_REFUSAL_CATEGORIES,
+        "blank_source",
+        "recovered_from_neighbour",
+        "unrecoverable",
+    ):
         if category not in unread:
-            raise ValueError(f"the record has no {category!r} refusal category")
+            raise ValueError(f"the record has no {category!r} section")
+        # A LIST OF STRINGS, proved before it is counted or joined. `len` works on a
+        # string and on a dict, so `"X"` satisfied a count of one and a dict of one key
+        # satisfied it too, after which `tuple(...)` turned the string into its
+        # characters. A list holding a non-string then raised inside a join, after the
+        # guard, and escaped as a 500.
+        _string_list(unread, category)
+    for category, counted_as in _REFUSAL_CATEGORIES.items():
         if len(unread[category]) != accounting[counted_as]:
             raise ValueError(
                 f"{category} lists {len(unread[category])} entries but the accounting "
                 f"says {accounting[counted_as]}"
             )
-    for category in ("blank_source", "recovered_from_neighbour", "unrecoverable"):
-        if category not in unread:
-            raise ValueError(f"the record has no {category!r} section")
 
     buckets = accounting["parsed"] + sum(accounting[k] for k in _REFUSAL_CATEGORIES.values())
     if buckets != accounting["application_numbers_seen"]:
@@ -205,6 +249,11 @@ def _validate(raw: dict[str, Any], source: Path) -> None:
         seen.add(number)
         if row["priority_date"] is not None:
             date.fromisoformat(row["priority_date"])
+        # Reaches `date(year, 1, 1)` during conversion, so a string here raised a
+        # TypeError from inside to_water_rights rather than from the parse.
+        year = row.get("priority_year_only")
+        if year is not None and (not isinstance(year, int) or isinstance(year, bool)):
+            raise ValueError(f"{number} has a priority_year_only that is not a year: {year!r}")
         if row["priority_date"] is not None and row["priority_date_missing"]:
             raise ValueError(f"{number} states a date and is also marked missing")
     if len(seen) != len(rows):  # pragma: no cover - the loop above already refuses
