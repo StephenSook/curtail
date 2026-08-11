@@ -387,6 +387,58 @@ class TestTheLedgerCard:
         first = rows.first.inner_text()
         assert "23 CCR 875.5" in first, f"a ledger row carries no authority: {first!r}"
 
+    def test_it_names_the_provenance_of_both_inputs(self, page: Page, console_url: str) -> None:
+        """Showing where the rights came from and not where the reading came from
+        implies the reading is sourced as carefully. It is a number someone typed."""
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+        before = _render_id(page, "#rec")
+        page.select_option("#basin", "shasta")
+        page.fill("#cfs", "46.5")
+        page.fill("#at", "2026-06-15")
+        page.click("#go")
+        _settle_after(page, "#rec", before)
+
+        shown = page.locator("#rec .js-prov").inner_text()
+        assert "not from USGS" in shown, f"the reading's provenance is absent: {shown!r}"
+        assert "Addendum 6" in shown, "the rights provenance is absent"
+
+    def test_an_answer_missing_a_provenance_side_is_not_rendered(
+        self, page: Page, console_url: str
+    ) -> None:
+        """A partial answer is shown as untrustworthy rather than rendered, because the
+        gap is exactly the thing a reader fills in wrongly."""
+        page.route(
+            "**/api/recommendation/**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(
+                    {
+                        "action": "consider_curtailment",
+                        "deterministic_facts": {
+                            "observed_cfs": 41.0,
+                            "operative_minimum_cfs": 50.0,
+                            "shortfall_cfs": 9.0,
+                            "recommended_extent_rank": 1,
+                            "rights_considered": 1,
+                            "rights_reached": 1,
+                        },
+                        "ledger": [],
+                        "provenance": {"rights": {"summary": "Addendum 6"}},
+                        "disclaimer": "A recommendation.",
+                    }
+                ),
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        status = page.locator("#rec .status").inner_text().upper()
+        assert "UNAVAILABLE" in status
+        assert "reading came from" in page.locator("#rec .refusal").inner_text()
+        assert page.locator("#rec tbody tr").count() == 0
+
     def test_a_basin_with_no_table_shows_the_refusal_not_an_empty_ledger(
         self, page: Page, console_url: str
     ) -> None:

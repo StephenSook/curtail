@@ -323,6 +323,10 @@
   };
 
   const REC_REQUIRED = ["action", "deterministic_facts", "ledger", "provenance"];
+  //: Provenance is required PER INPUT. An answer that describes where the rights came
+  //: from but not where the reading came from is shown as untrustworthy rather than
+  //: rendered, because the gap is exactly what a reader fills in wrongly.
+  const REC_PROVENANCE_REQUIRED = ["reading", "rights"];
 
   function whyRecUntrustworthy(body) {
     if (!body || typeof body !== "object") return "the service did not return an object";
@@ -331,6 +335,11 @@
     }
     if (!ACTION[body.action]) return `this page cannot render the action ${body.action}`;
     if (!Array.isArray(body.ledger)) return "the ledger is not a list";
+    for (const side of REC_PROVENANCE_REQUIRED) {
+      if (!body.provenance || !body.provenance[side]) {
+        return `the answer does not say where its ${side} came from`;
+      }
+    }
     return null;
   }
 
@@ -425,8 +434,11 @@
     rec.querySelector(".js-judgment").textContent = judgment.length
       ? `For the official, not resolved here: ${judgment.join(" ")}`
       : "No discretionary provision was flagged for this set.";
+    // Both inputs, never one. Showing the rights provenance alone would imply the
+    // reading beside it is sourced as carefully, and it is a number someone typed.
     rec.querySelector(".js-prov").textContent =
-      `${body.provenance.summary} ${body.disclaimer}`;
+      `Reading: ${body.provenance.reading.note} ` +
+      `Rights: ${body.provenance.rights.summary} ${body.disclaimer}`;
     stamp(rec, mine);
   }
 

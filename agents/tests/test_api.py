@@ -544,13 +544,26 @@ class TestTheRecommendationEndpoint:
 
     def test_it_carries_the_provenance_of_the_rights_it_used(self) -> None:
         body = TestClient(app).get("/api/recommendation/shasta?cfs=46.5").json()
-        provenance = body["provenance"]
+        provenance = body["provenance"]["rights"]
         assert "Addendum 6" in provenance["document"]
         assert len(provenance["source_sha256"]) == 64
         assert provenance["not_placed"], (
             "the rows that could not be placed must travel with the answer, or the "
             "ledger reads as covering every right in the order"
         )
+
+    def test_it_says_where_the_reading_came_from_too(self) -> None:
+        """Provenance per input, not per response.
+
+        The answer carries a document name and a SHA-256 for the rights. Saying nothing
+        about the other input does not merely omit a fact, it implies the reading is
+        sourced to the same standard, because a reader who sees that much rigour on one
+        side assumes it covers both. The reading is a number the caller typed.
+        """
+        body = TestClient(app).get("/api/recommendation/shasta?cfs=46.5").json()
+        reading = body["provenance"]["reading"]
+        assert reading["source"] == "unsourced"
+        assert "not from USGS" in reading["note"]
 
     def test_a_basin_with_no_ingested_table_refuses(self) -> None:
         """An empty rights list is a valid input to the Core and produces a well-formed
