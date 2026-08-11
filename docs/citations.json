@@ -65,5 +65,109 @@
       "kind": "wrong_section",
       "finding": "The 90-day Board response deadline is in Water Code 1122, not 1123. Section 1123 governs the manner of reconsideration."
     }
+  ],
+  "allowlist_comment": [
+    "Authorities that MAY appear in a drafted order. Everything else is stripped.",
+    "",
+    "An allowlist, not a denylist, and the direction matters. A denylist stops",
+    "the fabrications you already know about; six external models reviewing this",
+    "concept invented case law nobody had seen before, including two cases that",
+    "exist in NO database. You cannot blacklist a citation nobody has invented",
+    "yet.",
+    "",
+    "Every entry was verified against a primary source. Adding one without doing",
+    "that defeats the whole mechanism, so the pattern field is deliberately",
+    "narrow: it matches the citation as it must be written, not loosely.",
+    "",
+    "Every numeric pattern carries a RIGHT-HAND BOUNDARY. Without one, 'Water Code",
+    "1846' matched the prefix of the fabricated 'Water Code 18460' and, combined",
+    "with an overlap-based allow test, waved the invention through. Case entries",
+    "carry their reporter cites so a FULLY cited verified authority survives."
+  ],
+  "allowlist": [
+    {
+      "pattern": "\\b23\\s+CCR(?:\\s*(?:\u00a7|section)\\s*|\\s+)875(?:\\.\\d)?(?:\\([a-z0-9]+\\))*(?!\\d)",
+      "authority": "23 CCR 875 to 875.9"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1846(?:\\([b]\\)(?:\\(\\d\\))?)?(?!\\d)",
+      "authority": "Water Code 1846(b), penalties, as amended by AB 460"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1058\\.5(?:\\(d\\))?(?!\\d)",
+      "authority": "Water Code 1058.5(d)"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1052(?!\\d)",
+      "authority": "Water Code 1052, trespass"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1121(?!\\d)",
+      "authority": "Water Code 1121, service, as amended by SB 756"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1122(?!\\d)",
+      "authority": "Water Code 1122, reconsideration"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1126(?:\\(b\\))?(?!\\d)",
+      "authority": "Water Code 1126(b), judicial review"
+    },
+    {
+      "pattern": "\\bWater Code(?:\\s*(?:\u00a7|section)\\s*|\\s+)1707(?!\\d)",
+      "authority": "Water Code 1707, instream dedication"
+    },
+    {
+      "pattern": "\\bAB 460\\b",
+      "authority": "AB 460, Stats. 2024, Ch. 342"
+    },
+    {
+      "pattern": "\\bSB 756\\b",
+      "authority": "SB 756, Stats. 2023, Ch. 158"
+    },
+    {
+      "pattern": "\\bAB 263\\b",
+      "authority": "AB 263, extension to January 1, 2031"
+    },
+    {
+      "pattern": "\\bStanford Vina Ranch Irrigation Co\\. v\\. State of California(?:,?\\s*\\(2020\\))?(?:,?\\s*50 Cal\\.App\\.5th 976)?",
+      "authority": "(2020) 50 Cal.App.5th 976"
+    },
+    {
+      "pattern": "\\bCalifornia Water Curtailment Cases(?:,?\\s*83 Cal\\.App\\.5th 164)?",
+      "authority": "83 Cal.App.5th 164, Sixth District 2022"
+    },
+    {
+      "pattern": "\\bLux v\\. Haggin(?:,?\\s*\\(1886\\))?(?:,?\\s*69 Cal\\. 255)?",
+      "authority": "(1886) 69 Cal. 255"
+    },
+    {
+      "pattern": "\\bWells v\\. Mantes(?:,?\\s*\\(1893\\))?(?:,?\\s*99 Cal\\. 583)?",
+      "authority": "(1893) 99 Cal. 583"
+    },
+    {
+      "pattern": "\\bBoard Resolution No\\. 2012-0061\\b",
+      "authority": "the delegation resolution"
+    },
+    {
+      "pattern": "\\bMason v\\. Bemrod\\b",
+      "authority": "French Creek adjudication, No. 14478"
+    },
+    {
+      "pattern": "\\b50 Cal\\.App\\.5th 976\\b",
+      "authority": "Stanford Vina Ranch reporter cite"
+    },
+    {
+      "pattern": "\\b83 Cal\\.App\\.5th 164\\b",
+      "authority": "California Water Curtailment Cases reporter cite"
+    },
+    {
+      "pattern": "\\b69 Cal\\. 255\\b",
+      "authority": "Lux v. Haggin reporter cite"
+    },
+    {
+      "pattern": "\\b99 Cal\\. 583\\b",
+      "authority": "Wells v. Mantes reporter cite"
+    }
   ]
 }

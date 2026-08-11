@@ -76,6 +76,21 @@ class RightLedgerEntry:
     lcs_id: str | None
     diversion_cfs: Decimal | None
     note: str
+    #: The right's priority date, or None when the record does not state one.
+    #:
+    #: A ledger without it is missing the single most important fact about a
+    #: water right, and it had a second, sharper consequence: the routing guard
+    #: validates a drafted order's asserted priority dates against this ledger,
+    #: and with no dates here it rejected every draft that named one. A draft
+    #: citing the CORRECT cutoff, November 25 1912, was refused. A guard that
+    #: blocks lawful orders is worse than no guard, because it will be switched
+    #: off.
+    #:
+    #: None is a real state and is never filled in. Riparian and pre-1914 claims
+    #: are self-reported Statements of Water Diversion and Use whose priority
+    #: dates are not verified as a condition of the record existing, so a missing
+    #: date is reported as missing.
+    priority_date: date | None = None
 
     @property
     def would_be_curtailed(self) -> bool:
@@ -172,6 +187,10 @@ def recommend(
             "A negative value is a sensor sentinel, not a river."
         )
 
+    # Priority dates, keyed by right, so the ledger can carry each one. A right
+    # whose record states no date maps to None and stays None.
+    _priority_dates: dict[str, date | None] = {r.right_id: r.priority_date for r in rights}
+
     minimum = Decimal(str(minimum_flow(basin, when, override=flow_override)))
     shortfall = max(Decimal("0"), minimum - observed)
     near = is_near_threshold(basin, when, float(observed), override=flow_override)
@@ -227,6 +246,7 @@ def recommend(
                     lcs_protected=_protecting_lcs(rid, lcs_solutions, when) is not None,
                     lcs_id=getattr(_protecting_lcs(rid, lcs_solutions, when), "lcs_id", None),
                     diversion_cfs=rates.get(rid),
+                    priority_date=_priority_dates.get(rid),
                     note="not reached: flow is at or above the operative minimum",
                 )
                 for rid, p in placements.items()
@@ -285,6 +305,7 @@ def recommend(
             lcs_protected=_protecting_lcs(rid, lcs_solutions, when) is not None,
             lcs_id=getattr(_protecting_lcs(rid, lcs_solutions, when), "lcs_id", None),
             diversion_cfs=rates.get(rid),
+            priority_date=_priority_dates.get(rid),
             note=_ledger_note(p, extent, _protecting_lcs(rid, lcs_solutions, when), rates.get(rid)),
         )
         for rid, p in by_rank
