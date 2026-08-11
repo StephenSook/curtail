@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from curtail_agents.credentials import Officer, verify_officer_token
@@ -173,7 +173,6 @@ def sign(
     *,
     officer_token: str,
     key: bytes,
-    now: datetime,
     reviewed_digest: str,
     approved: bool = True,
     overriding: tuple[str, ...] = (),
@@ -194,9 +193,20 @@ def sign(
             review, or when an unverified draft is approved without naming what is
             being overridden.
     """
-    # Verified HERE. Accepting an already-built identity object is what made the
-    # previous version bypassable, so there is no parameter through which a caller
-    # can assert who they are.
+    # THE CLOCK IS READ HERE, and there is no parameter to override it.
+    #
+    # The previous version took `now` from the caller, and a review caught what that
+    # meant: a token that expired in 2020 signed a curtailment order when the caller
+    # supplied a convenient 2020 timestamp, and the resulting record was BACKDATED
+    # to 2020 as well. Expiry evaluated against an attacker-chosen clock is not
+    # expiry, and the previous commit message had already stated the principle it
+    # then violated, that anything the caller supplies is something the caller can
+    # choose.
+    #
+    # `verify_officer_token` keeps an injectable clock because it is a primitive its
+    # own tests must drive. The AUTHORITY path is this function, and this function
+    # does not offer the choice.
+    now = datetime.now(UTC)
     officer = verify_officer_token(officer_token, key=key, now=now)
     decided_at = now
 

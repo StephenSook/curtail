@@ -29,7 +29,9 @@ from curtail_agents.credentials import (
 from curtail_agents.routing import GuardResult, Verdict
 from curtail_core.clocks import SignatoryRole
 
-NOW = datetime(2026, 6, 10, 9, 0, tzinfo=UTC)
+# The real clock, because `sign` reads the real clock and offers no override. A
+# fixed NOW would mint tokens that are already expired by the time sign checks them.
+NOW = datetime.now(UTC)
 _KEY = b"k" * MINIMUM_KEY_BYTES
 
 
@@ -83,7 +85,6 @@ class TestNothingSelfExecutes:
             _clean_item(),
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=_clean_item().digest,
         )
         assert decision.approved
@@ -116,7 +117,6 @@ class TestTheRegulationDrawsTheRoleLine:
                     SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"
                 ),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=_clean_item().digest,
             )
 
@@ -134,14 +134,12 @@ class TestTheRegulationDrawsTheRoleLine:
                 item,
                 officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "d-director", "test-harness"),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
             )
         assert sign(
             item,
             officer_token=_token(SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
         ).approved
 
@@ -165,7 +163,6 @@ class TestAnApprovalBindsToTheBytesReviewed:
                     SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
                 ),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=reviewed,
             )
 
@@ -196,7 +193,6 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
                     SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
                 ),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
             )
 
@@ -211,7 +207,6 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
                     SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
                 ),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
                 overriding=("unsupported right: A-003",),
             )
@@ -224,7 +219,6 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
             item,
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
             overriding=item.blocking_violations,
             note="field measurement supersedes the gage reading",
@@ -240,7 +234,6 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
             item,
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
             approved=False,
         )
@@ -254,7 +247,6 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
             item,
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
         )
         assert not decision.is_override
@@ -298,19 +290,16 @@ class TestAnItemCannotBeMalformed:
                 created_at=datetime(2026, 6, 10, 9, 0),  # noqa: DTZ001
             )
 
-    def test_a_naive_decision_time_is_refused(self) -> None:
-        """The decision time is now the VERIFIED clock, so a naive one is refused by
-        the credential layer before the queue sees it. A caller-chosen timestamp is a
-        caller-chosen fact, which is what this boundary exists to stop."""
-        item = _clean_item()
-        with pytest.raises(CredentialError):
-            sign(
-                item,
-                officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith"),
-                key=_KEY,
-                now=datetime(2026, 6, 10, 9, 0),  # noqa: DTZ001
-                reviewed_digest=item.digest,
-            )
+    def test_the_decision_time_cannot_be_supplied_at_all(self) -> None:
+        """It was, and a review showed what that bought: a token that expired in 2020
+        signed an order when the caller passed a convenient 2020 timestamp, and the
+        record came out BACKDATED to 2020. Expiry evaluated against a caller-chosen
+        clock is not expiry."""
+        import inspect
+
+        params = inspect.signature(sign).parameters
+        for offered in ("now", "clock", "decided_at", "at"):
+            assert offered not in params, f"sign() lets a caller choose {offered!r}"
 
 
 class TestTheOfficerIdentityIsVerifiedNotAsserted:
@@ -356,7 +345,6 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
                 _clean_item(),
                 officer_token="not-a-token",
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=_clean_item().digest,
             )
 
@@ -377,7 +365,6 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
                 item,
                 officer_token=_token(SignatoryRole.BOARD, "clerk"),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
             )
 
@@ -394,7 +381,7 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
             key=b"j" * MINIMUM_KEY_BYTES,
         )
         with pytest.raises(CredentialError):
-            sign(item, officer_token=other, key=_KEY, now=NOW, reviewed_digest=item.digest)
+            sign(item, officer_token=other, key=_KEY, reviewed_digest=item.digest)
 
     def test_an_expired_session_cannot_sign(self) -> None:
         """An approval signed with a stale session is an approval nobody was
@@ -427,11 +414,10 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
             item,
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
         )
         assert decision.officer.authenticated_via == "iap-oidc"
-        assert decision.decided_at == NOW
+        assert abs((decision.decided_at - datetime.now(UTC)).total_seconds()) < 60
 
     def test_no_module_outside_the_boundary_constructs_an_officer(self) -> None:
         """The enforcement that survives the boundary moving.
@@ -496,7 +482,6 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
                 item,
                 officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
                 overriding=("whatever I like",),
             )
@@ -508,7 +493,6 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
                 item,
                 officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
             )
 
@@ -520,7 +504,6 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
             item,
             officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
             key=_KEY,
-            now=NOW,
             reviewed_digest=item.digest,
             approved=False,
         )
@@ -535,7 +518,51 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
                 item,
                 officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 key=_KEY,
-                now=NOW,
                 reviewed_digest=item.digest,
                 overriding=(*item.blocking_violations, "and one I made up"),
             )
+
+
+class TestAnExpiredSessionCannotBeReplayed:
+    """The finding, and it was worse than "trusts a caller-supplied clock".
+
+    With `now` supplied by the caller, a token that expired in 2020 signed a
+    curtailment order the moment the caller passed a 2020 timestamp, and the signed
+    record came out BACKDATED to 2020 as well. So the same parameter defeated expiry
+    and falsified the administrative record's date at once.
+    """
+
+    @staticmethod
+    def _stale_token() -> str:
+        long_ago = datetime(2020, 1, 1, tzinfo=UTC)
+        return issue_officer_token(
+            role=SignatoryRole.DEPUTY_DIRECTOR,
+            officer_id="jchristian-smith",
+            authenticated_via="iap-oidc",
+            issued_at=long_ago,
+            expires_at=long_ago + timedelta(hours=1),
+            key=_KEY,
+        )
+
+    def test_a_token_that_expired_years_ago_cannot_sign(self) -> None:
+        item = _clean_item()
+        with pytest.raises(CredentialError, match="expired"):
+            sign(
+                item,
+                officer_token=self._stale_token(),
+                key=_KEY,
+                reviewed_digest=item.digest,
+            )
+
+    def test_the_record_cannot_be_backdated(self) -> None:
+        """The second half. A signature dated years before the order existed would
+        corrupt every statutory clock measured from it."""
+        item = _clean_item()
+        decision = sign(
+            item,
+            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith"),
+            key=_KEY,
+            reviewed_digest=item.digest,
+        )
+        assert decision.decided_at.year >= 2026
+        assert decision.decided_at.tzinfo is not None
