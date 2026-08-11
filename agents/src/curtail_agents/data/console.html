@@ -326,7 +326,29 @@
   //: Provenance is required PER INPUT. An answer that describes where the rights came
   //: from but not where the reading came from is shown as untrustworthy rather than
   //: rendered, because the gap is exactly what a reader fills in wrongly.
-  const REC_PROVENANCE_REQUIRED = ["reading", "rights"];
+  //: Keyed by the FIELDS the render actually reads, not by the containers holding
+  //: them. Checking that a side is present was a truthy test, so `{reading: {}}`
+  //: satisfied it and the page then printed "Reading: undefined". A validator that
+  //: checks a container rather than its contents proves the shape and not the answer,
+  //: which is the same defect as a guard that walks the wrong set.
+  const REC_PROVENANCE_REQUIRED = {
+    reading: ["source", "note"],
+    rights: ["summary"],
+  };
+
+  //: Likewise the numbers rendered in the fact tiles. Any of these missing printed the
+  //: word "undefined" beside a unit, on the surface whose whole job is to be exact.
+  const REC_FACTS_REQUIRED = [
+    "observed_cfs",
+    "operative_minimum_cfs",
+    "shortfall_cfs",
+    "rights_considered",
+    "rights_reached",
+  ];
+
+  function nonEmptyString(value) {
+    return typeof value === "string" && value.trim() !== "";
+  }
 
   function whyRecUntrustworthy(body) {
     if (!body || typeof body !== "object") return "the service did not return an object";
@@ -335,10 +357,37 @@
     }
     if (!ACTION[body.action]) return `this page cannot render the action ${body.action}`;
     if (!Array.isArray(body.ledger)) return "the ledger is not a list";
-    for (const side of REC_PROVENANCE_REQUIRED) {
-      if (!body.provenance || !body.provenance[side]) {
+    if (!body.provenance || typeof body.provenance !== "object") {
+      return "the answer carries no provenance at all";
+    }
+    for (const [side, fields] of Object.entries(REC_PROVENANCE_REQUIRED)) {
+      const held = body.provenance[side];
+      if (!held || typeof held !== "object") {
         return `the answer does not say where its ${side} came from`;
       }
+      for (const field of fields) {
+        if (!nonEmptyString(held[field])) {
+          return `the ${side} provenance states no ${field}`;
+        }
+      }
+    }
+
+    const facts = body.deterministic_facts;
+    if (!facts || typeof facts !== "object") return "the answer carries no facts";
+    for (const field of REC_FACTS_REQUIRED) {
+      if (typeof facts[field] !== "number" || !Number.isFinite(facts[field])) {
+        return `${field} is not a finite number`;
+      }
+    }
+    // Null is a REAL value here: no extent means curtailment reaches nobody, which is
+    // different from the field being absent, so the two are separated rather than
+    // both treated as missing.
+    if (!("recommended_extent_rank" in facts)) {
+      return "the answer does not say how far curtailment would extend";
+    }
+    const extent = facts.recommended_extent_rank;
+    if (extent !== null && (typeof extent !== "number" || !Number.isFinite(extent))) {
+      return "the recommended extent is neither a rank nor an explicit none";
     }
     return null;
   }
