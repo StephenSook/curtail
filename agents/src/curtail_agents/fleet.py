@@ -83,8 +83,10 @@ from curtail_agents.routing import (
     NODE_TIMEOUT_SECONDS,
 )
 from curtail_agents.sanitize import check_document_size, sanitize_document
-from curtail_agents.sentinel import Observation, evaluate
+from curtail_agents.sentinel import Observation, SentinelError, evaluate
+from curtail_core.allocation import recommend
 from curtail_core.backtest import direction_for
+from curtail_core.rights_record import load_rights
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
 #:
@@ -465,6 +467,8 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
 #:
 #: Recorded because "unresolved tension" was the wrong label for "I did not test
 #: the other option", and the difference between those two is a minute of work.
+RECOMMENDATION = "recommendation"
+RECOMMENDATION_UNAVAILABLE = "recommendation_unavailable"
 RECIPIENTS = "recipients"
 TRANSPORT = "transport"
 SYNTHETIC_TRANSPORT = "synthetic_transport"
@@ -560,16 +564,54 @@ async def _sentinel(
 async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
     """Compute the recommendation. Deterministic, so it does not retry.
 
-    NOT YET WIRED to `curtail_core.allocation.recommend`. It needs a rights
-    table and LCS set that the console will supply, and inventing a source here
-    would be worse than an honest placeholder.
+    Wired now. Its placeholder said it needed a rights table the console would supply,
+    and that reason went stale the moment Attachment A was parsed: `load_rights` reads
+    the Board's own table and the same conversion the local parse used. A stub whose
+    stated blocker has been removed is a claim about the system that is no longer true.
 
-    `node_input` is the one parameter name ADK passes the upstream node's output
-    to directly, so a passthrough declares it and nothing else. A placeholder
-    that quietly dropped the Sentinel's event would make the chain look wired
-    while losing the only real payload moving through it.
+    Refuses for a basin with no ingested table rather than running on an empty list. An
+    empty rights list is a valid input to `recommend` and produces a well-formed
+    recommendation that reaches nobody, which reads exactly like a real answer.
     """
-    return node_input
+    event = node_input.get("event")
+    if event is None:
+        raise SentinelError(
+            "the Core received no gage event. Refusing rather than recommending from "
+            "nothing: a recommendation with no reading behind it is indistinguishable "
+            "from one computed on a real river."
+        )
+
+    loaded = load_rights()
+    in_basin = [r for r in loaded.converted.rights if r.basin is event.basin]
+    if not in_basin:
+        # A STATED GAP, carried forward, not an abort and not an empty recommendation.
+        #
+        # Two failures are available here and they pull in opposite directions.
+        # Recommending from an empty rights list produces a well-formed answer reaching
+        # nobody, which reads exactly like a real one. Aborting the invocation throws
+        # away the Sentinel's classification, which is valid and useful on its own: a
+        # Scott gage crossing a legally operative minimum is a real event whether or not
+        # this system has ingested that basin's rights table yet.
+        #
+        # So the recommendation is None with a reason attached, and every downstream
+        # consumer has to look at the reason rather than at a silence.
+        return {
+            **node_input,
+            RECOMMENDATION: None,
+            RECOMMENDATION_UNAVAILABLE: (
+                f"no rights table has been ingested for the {event.basin.value} basin, so "
+                f"no allocation can be computed. The loaded record is {loaded.document}. "
+                "The gage classification above stands on its own."
+            ),
+        }
+
+    recommendation = recommend(
+        basin=event.basin,
+        when=event.observed_at.date(),
+        observed_cfs=event.observed_cfs,
+        rights=in_basin,
+    )
+    return {**node_input, RECOMMENDATION: recommendation}
 
 
 class UntrustedTextInSessionStateError(RuntimeError):
