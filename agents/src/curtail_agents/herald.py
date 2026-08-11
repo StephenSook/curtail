@@ -35,6 +35,7 @@ from datetime import UTC, datetime
 from curtail_agents.messaging import (
     DELIVERY_ATTEMPTS,
     Channel,
+    ClaimState,
     DedupTable,
     notification_idempotency_key,
 )
@@ -107,6 +108,10 @@ class DeliveryReport:
     attempts: tuple[tuple[str, int], ...]
     escalations: tuple[str, ...] = field(default_factory=tuple)
     skipped_as_duplicate: tuple[str, ...] = field(default_factory=tuple)
+    #: Recipients whose key had a LAPSED prior claim on the legal lane, so this delivery
+    #: may be the second physical one. See `deliver_order` for why this cannot be
+    #: resolved from here and is surfaced instead.
+    possible_duplicate_service: tuple[str, ...] = field(default_factory=tuple)
     #: True when the transport was synthetic. Travels with the result so no surface can
     #: present a demonstration as real delivery.
     synthetic: bool = False
@@ -219,16 +224,38 @@ def deliver_order(
 
     records: list[ServiceRecord] = []
     tries: list[tuple[str, int]] = []
+    possible_duplicates: list[str] = []
     escalations: list[str] = []
     duplicates: list[str] = []
 
     for recipient in recipients:
         key = notification_idempotency_key(recipient.recipient_id, order_id, recipient.channel)
+
+        # Read BEFORE claiming, because claiming overwrites a lapsed claim.
+        #
+        # A lapsed claim means a previous attempt on this key never finished. It does
+        # NOT say whether that attempt reached the recipient: a worker can die after the
+        # courier delivers and before the record is written, and a transport can accept
+        # a delivery and then lose the receipt, which is a records failure rather than a
+        # delivery failure. From here those are indistinguishable.
+        #
+        # Retrying is still the right legal choice. An unserved party makes the order
+        # unenforceable against them, while a duplicate service is untidy rather than
+        # fatal. But a second physical delivery must never be SILENT, because the record
+        # is what a reviewing court reads and it would show one act as two.
+        #
+        # Over-flagging is deliberate: a declined attempt is flagged alongside a
+        # possibly-delivered one, because the word this can honestly use is "possible".
+        # A false flag costs a human a moment; a missed one misstates the record.
+        prior = table.state_of(key)
         if not table.claim(key):
             # Already in flight or already done. A second delivery is not merely waste:
             # on the legal lane it would write a second service record for one act.
             duplicates.append(recipient.recipient_id)
             continue
+
+        if prior is ClaimState.IN_PROGRESS and lane is ServiceLane.LEGAL_SERVICE:
+            possible_duplicates.append(recipient.recipient_id)
 
         result = TransportResult(accepted=False, error="never attempted")
         used = 0
@@ -299,5 +326,6 @@ def deliver_order(
         attempts=tuple(tries),
         escalations=tuple(escalations),
         skipped_as_duplicate=tuple(duplicates),
+        possible_duplicate_service=tuple(possible_duplicates),
         synthetic=synthetic,
     )

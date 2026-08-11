@@ -268,6 +268,60 @@ class TestOneDeliveryPerRecipient:
         )
         assert remedied.may_report_as_served is True
 
+    def test_a_remediation_is_flagged_as_a_possible_second_delivery(self) -> None:
+        """The crash-between-side-effect-and-ack problem, in its legal form.
+
+        A lapsed claim does not say whether the earlier attempt REACHED the recipient. A
+        worker can die after the courier delivers and before the record is written, and a
+        transport can accept a delivery and then lose the receipt, which is a records
+        failure rather than a delivery failure. From inside this function those are
+        indistinguishable.
+
+        Retrying is still right: an unserved party makes the order unenforceable against
+        them, while a duplicate service is untidy rather than fatal. But a second physical
+        delivery must never be SILENT, because the record is what a reviewing court reads
+        and it would show one act as two.
+        """
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+
+        send(
+            "initial_order",
+            [party("holder-1")],
+            transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
+            dedup=table,
+        )
+        ticks[0] = CLAIM_LEASE_SECONDS + 1
+        remedied = send("initial_order", [party("holder-1")], dedup=table)
+
+        assert remedied.legally_served == ("holder-1",)
+        assert remedied.possible_duplicate_service == ("holder-1",), (
+            "the party may have been physically served twice and the report did not say so"
+        )
+
+    def test_a_first_delivery_is_never_flagged(self) -> None:
+        """Non-vacuity. A field that flagged everything would be read as noise and then
+        ignored exactly when it mattered."""
+        report = send("initial_order", [party("holder-1")], dedup=DedupTable())
+        assert report.legally_served == ("holder-1",)
+        assert report.possible_duplicate_service == ()
+
+    def test_the_notification_lane_is_not_flagged(self) -> None:
+        """A duplicate email is not a duplicate legal act, and flagging it would dilute
+        the signal on the lane where the record matters."""
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+
+        send(
+            "drought_update",
+            [diverter("d-1")],
+            transport=synthetic_transport(fail_first=99),
+            dedup=table,
+        )
+        ticks[0] = CLAIM_LEASE_SECONDS + 1
+        again = send("drought_update", [diverter("d-1")], dedup=table)
+        assert again.possible_duplicate_service == ()
+
     def test_a_completed_service_stays_a_no_op_forever(self) -> None:
         """The other half. Once service IS effected, no lease expiry may let it happen
         twice: that would write a second service record for one act."""
