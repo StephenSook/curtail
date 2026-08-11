@@ -364,15 +364,60 @@ class TestTheLoaderRefusesAnInconsistentRecord:
             f"the raw attribute error leaked into the message: {message}"
         )
 
-    def test_a_directory_at_the_record_path_is_refused(self, tmp_path: Path) -> None:
-        """A directory satisfies `exists()` and then fails inside `read_text`, so the
-        check passed and the read raised IsADirectoryError, uncaught."""
+    def test_a_directory_at_the_record_path_says_so(self, tmp_path: Path) -> None:
+        """The TYPE was never the whole promise, and asserting only the type is what
+        let the wrong message through.
+
+        A directory first raised IsADirectoryError uncaught. Switching the check from
+        `exists` to `is_file` fixed that and sent it down the ABSENT branch instead, so
+        the refusal announced the record "is not at" a path where something plainly
+        was. An operator would go looking for a missing file and find a directory. The
+        test only checked the exception type, so it passed through both bugs.
+        """
         from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
 
         target = tmp_path / "record.json"
         target.mkdir()
-        with pytest.raises(RightsRecordUnavailableError):
+        with pytest.raises(RightsRecordUnavailableError) as caught:
             load_rights(target)
+        message = str(caught.value)
+        assert "directory" in message, message
+        assert "is not at" not in message, f"a directory was reported as an absent file: {message}"
+
+    def test_an_absent_record_says_how_to_generate_it(self, tmp_path: Path) -> None:
+        """The counterpart. Each of the three states gets its own sentence, and the
+        pair of tests is what stops them collapsing back into one."""
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        with pytest.raises(RightsRecordUnavailableError) as caught:
+            load_rights(tmp_path / "absent.json")
+        message = str(caught.value)
+        assert "is not at" in message
+        assert "extract_attachment_a" in message
+        assert "directory" not in message
+
+    def test_a_path_that_cannot_even_be_inspected_is_refused(self, tmp_path: Path) -> None:
+        """`exists` and `is_file` themselves raise OSError when a parent directory
+        denies traversal, and they ran BEFORE the read guard, so that escaped it."""
+        import os
+
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        locked = tmp_path / "locked"
+        locked.mkdir()
+        target = locked / "record.json"
+        target.write_text("{}")
+        os.chmod(locked, 0o000)
+        try:
+            if os.access(target, os.R_OK):  # pragma: no cover - running as root
+                pytest.fail(
+                    "this process can traverse a mode-000 directory, so the check "
+                    "cannot run here. Failing rather than skipping."
+                )
+            with pytest.raises(RightsRecordUnavailableError):
+                load_rights(target)
+        finally:
+            os.chmod(locked, 0o700)
 
     def test_an_unreadable_file_is_refused_not_raised_through(self, tmp_path: Path) -> None:
         """The docstring promised an unreadable record becomes this error, and only the

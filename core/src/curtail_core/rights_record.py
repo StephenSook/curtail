@@ -71,6 +71,43 @@ class LoadedRights:
         )
 
 
+def _require_a_readable_file(source: Path) -> None:
+    """Refuse before reading, with a message that says what is actually wrong.
+
+    **Three states, three sentences, and conflating them was the defect.** Switching
+    the check from `exists` to `is_file` stopped a directory raising
+    IsADirectoryError, but sent it down the ABSENT branch, so the refusal announced
+    that the record "is not at" a path where something plainly was. An operator would
+    go looking for a missing file and find a directory sitting there. Reporting the
+    wrong cause is its own failure, distinct from reporting no cause.
+
+    The stat calls are guarded too. `exists` and `is_file` raise OSError when a parent
+    directory denies traversal, which would have escaped the read guard entirely by
+    happening before it.
+    """
+    try:
+        present = source.exists()
+        is_file = source.is_file()
+    except OSError as exc:
+        raise RightsRecordUnavailableError(
+            f"the rights record at {source} could not even be inspected: {exc}"
+        ) from exc
+
+    if not present:
+        raise RightsRecordUnavailableError(
+            f"the rights record is not at {source}. Either it has not been generated "
+            "(scripts/extract_attachment_a.py) or this package was built without it. "
+            "Refusing to continue with no rights: an empty list would produce a "
+            "recommendation that reaches nobody, which reads exactly like a real answer."
+        )
+    if not is_file:
+        raise RightsRecordUnavailableError(
+            f"there is something at {source}, but it is a directory rather than the "
+            "rights record. The file has not been generated over it, and reporting it "
+            "as absent would send a reader looking for something that is present."
+        )
+
+
 def record_path() -> Path:
     if PACKAGED.exists():
         return PACKAGED
@@ -81,21 +118,17 @@ def load_rights(path: Path | None = None) -> LoadedRights:
     """Read the record and re-run the conversion the local parse ran.
 
     Raises:
-        RightsRecordUnavailableError: when the record is missing or unreadable. Loudly,
-            because the alternative is an empty rights list that reads as a valid
-            answer.
+        RightsRecordUnavailableError: for every way this can fail, and each with a
+            message naming which one: absent, a directory, unreadable, uninspectable,
+            unparseable, or internally inconsistent. Loudly, because the alternative is
+            an empty rights list that reads as a valid answer.
+
+            Read as a specification rather than a description. The earlier version said
+            "missing or unreadable" and only guarded the parse, so the case its own
+            second word named was the one that escaped as a 500.
     """
     source = path or record_path()
-    # is_file, not exists. A DIRECTORY at this path satisfies exists() and then fails
-    # inside read_text, which produced an IsADirectoryError rather than the stated
-    # refusal, under a message about the file being absent when it was not.
-    if not source.is_file():
-        raise RightsRecordUnavailableError(
-            f"the rights record is not at {source}. Either it has not been generated "
-            "(scripts/extract_attachment_a.py) or this package was built without it. "
-            "Refusing to continue with no rights: an empty list would produce a "
-            "recommendation that reaches nobody, which reads exactly like a real answer."
-        )
+    _require_a_readable_file(source)
 
     try:
         raw: dict[str, Any] = json.loads(source.read_text())
