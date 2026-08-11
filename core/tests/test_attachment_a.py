@@ -141,6 +141,65 @@ class TestEveryRowIsAccountedFor:
         assert by_id["SG005922"].source_as_printed == "Groundwater"
 
 
+class TestADuplicateReachesExactlyOneBucket:
+    """The accounting invariant under repeated application numbers.
+
+    The duplicate guard was set immediately before appending to `rights`, so it covered
+    the successful path and nothing else. A repeated number that failed to parse twice
+    was appended to `unparsed` twice while the measured total counted it once: 1 seen,
+    2 accounted for. It held in the real document only because no application number
+    repeats in it, which makes it an invariant that was true by luck of the data.
+
+    The Board reissues attachments, so repetition is the expected case, not an exotic
+    one.
+    """
+
+    @pytest.mark.parametrize(
+        ("label", "page"),
+        [
+            (
+                "neither row parseable",
+                "     PLACEHOLDER      SG005440    Groundwater1\n"
+                "     PLACEHOLDER      SG005440    Groundwater1\n",
+            ),
+            (
+                "a range and then a real date",
+                "     PLACEHOLDER      SG005439              1970 to 1981\n"
+                "     PLACEHOLDER      SG005439    UNST      3/4/1962\n",
+            ),
+            (
+                "the same parseable row twice",
+                "     PLACEHOLDER      A031522     UNST      7/30/2003\n"
+                "     PLACEHOLDER      A031522     UNST      7/30/2003\n",
+            ),
+            (
+                "a missing marker and then a date",
+                "     PLACEHOLDER      A031522     UNST      --\n"
+                "     PLACEHOLDER      A031522     UNST      7/30/2003\n",
+            ),
+        ],
+    )
+    def test_one_application_number_reaches_one_bucket(self, label: str, page: str) -> None:
+        report = parse_attachment({6: page})
+        assert report.application_numbers_seen == 1, label
+        assert report.accounted_for == 1, (
+            f"{label}: 1 application number was seen but {report.accounted_for} entries "
+            f"reached a bucket. rights={[r.application_number for r in report.rights]} "
+            f"imprecise={report.imprecise} unparsed={report.unparsed}"
+        )
+
+    def test_the_first_reading_wins_and_the_repeat_is_ignored(self) -> None:
+        """Order matters and is stated rather than incidental: the first occurrence is
+        kept, so a later reissued line cannot silently replace an earlier reading."""
+        page = (
+            "     PLACEHOLDER      A031522     UNST      7/30/2003\n"
+            "     PLACEHOLDER      A031522     UNST      1/1/1900\n"
+        )
+        report = parse_attachment({6: page})
+        assert len(report.rights) == 1
+        assert report.rights[0].priority_date == date(2003, 7, 30)
+
+
 class TestTheShapesThatBreakNaiveParsers:
     def test_a_wrapped_owner_name_does_not_lose_the_row(self, report: AttachmentReport) -> None:
         """The owner wraps to two lines, so the application number sits alone and its
