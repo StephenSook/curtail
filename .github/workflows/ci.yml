@@ -58,6 +58,40 @@ jobs:
       - name: pytest
         run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
 
+  browser:
+    name: Console in a real browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Pin Python from .python-version
+        run: uv python install
+
+      - name: Sync workspace (frozen lockfile)
+        run: uv sync --all-packages --frozen
+
+      # Browsers are not in the lockfile, so this is the step that decides whether
+      # the suite below can run at all. `--with-deps` installs the shared libraries
+      # Chromium needs on a bare runner.
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      # A SEPARATE INVOCATION, and the pyproject comment explains why: one Playwright
+      # test disables pytest-asyncio's auto mode for everything after it, so these
+      # cannot share a session with the rest of the suite.
+      #
+      # Runs BARE, and pytest exits 5 when it collects nothing, so a marker rename
+      # that silently emptied this job would FAIL here rather than pass green on zero
+      # tests. That is the failure mode this job exists to be immune to.
+      - name: pytest -m browser
+        run: uv run pytest -m browser -p no:cacheprovider
+
       # Committed evidence drifts from its generator silently, so the generator is
       # the gate. Bare, so a stale artifact fails the job rather than shipping a
       # judge-facing number the code no longer produces.

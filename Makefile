@@ -37,6 +37,10 @@ types: ## mypy strict
 test: ## pytest with coverage gate
 	uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
 
+test-browser: ## The console's failure paths in a real Chromium
+	@uv run playwright install chromium
+	uv run pytest -m browser -p no:cacheprovider
+
 .PHONY: tone
 tone: ## AI-tone and em-dash gate
 	bash scripts/check-ai-tone.sh
