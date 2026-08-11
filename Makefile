@@ -26,7 +26,12 @@ fmt: ## Apply ruff formatting
 
 .PHONY: types
 types: ## mypy strict
-	uv run mypy core/src agents/src core/tests
+# The path list must match CI exactly. It did not: this target checked
+# core/src agents/src core/tests while CI also checks agents/tests, so `make types`
+# could pass on a change CI would reject. A local gate weaker than the remote one is
+# a false green by construction, and the whole point of running gates locally is to
+# learn the same verdict sooner.
+	uv run mypy core/src agents/src core/tests agents/tests
 
 .PHONY: test
 test: ## pytest with coverage gate
@@ -40,8 +45,19 @@ tone: ## AI-tone and em-dash gate
 secrets: ## Full-history secret scan
 	gitleaks detect --source . --redact --no-banner --exit-code 1
 
+.PHONY: chaos
+chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
+# Bare, like every other target. This one especially: the drill's whole value is that
+# it can go RED, so a pipe swallowing its exit code would turn the demonstration into
+# the exact theatre it exists to disprove.
+	uv run python -m curtail_agents.chaos
+
 .PHONY: verify
-verify: lint types test tone ## The pre-commit triplet plus tone. Run before every commit.
+verify: lint types test tone chaos ## The pre-commit triplet, tone, and the drill.
+# `chaos` belongs here, not beside it. A review pointed out that a standalone target
+# nothing runs can rot silently and still be presented as working on camera, which is
+# the same defect as a guard that is described rather than attached. Its unit tests
+# check the functions; only running the target checks the target.
 	@echo ""
 	@echo "all gates green"
 

@@ -58,6 +58,16 @@ jobs:
       - name: pytest
         run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
 
+      # The chaos drill, run as the COMMAND, not only as its unit tests.
+      #
+      # The drill is demonstrated live on camera, so the thing that must not rot is
+      # the invocation itself: its packaging, its module path, its exit code. Unit
+      # tests calling the scenario functions would keep passing while
+      # `python -m curtail_agents.chaos` failed to start. Bare, so a non-zero exit
+      # fails the job.
+      - name: chaos drill
+        run: uv run python -m curtail_agents.chaos
+
       # Read the log for PASSED, not just the green check. A green job proves a
       # suite RAN; it does not prove any assertion executed.
       # GitHub runs `run:` under `bash -e`, so a failing command aborts the step

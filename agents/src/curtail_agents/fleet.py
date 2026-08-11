@@ -81,6 +81,7 @@ from curtail_agents.routing import (
     MAX_DELAY_SECONDS,
     NODE_TIMEOUT_SECONDS,
 )
+from curtail_agents.sanitize import sanitize_document
 from curtail_agents.sentinel import Observation, evaluate
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
@@ -480,14 +481,115 @@ async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
     return node_input
 
 
-async def _scribe(node_input: dict[str, Any]) -> dict[str, Any]:
-    """Draft the order. NOT YET WIRED to a model.
+#: The key a caller puts untrusted document text under, and the key the Scribe
+#: emits the safe form under. Two different names on purpose: a single key would
+#: let a downstream reader believe it had raw text when it had fenced text, or the
+#: reverse, and the whole point of this node is that those must never be confused.
+#:
+#: **No production caller supplies SOURCE_DOCUMENT yet, and the reason is a design
+#: question rather than an oversight.** A review asked for the ingestion path to be
+#: wired, and attempting it surfaced a genuine tension: ADK's only channel INTO a
+#: graph is session state or the user message, while this node's whole invariant is
+#: that untrusted text must NOT travel in shared state, where nodes that never
+#: crossed the boundary can read it. Resolving that needs one of three decisions,
+#: none of which should be made under review pressure: the Sentinel lifts the text
+#: out of state into the payload and deletes the state key, or the document rides
+#: the user message, or the invariant relaxes and the residual risk is stated.
+#:
+#: What is true today: the guard sits on the node that will receive the text, it is
+#: tested on both channels, and no path around it exists because no path exists.
+#: That is recorded here rather than hidden behind a half-built channel.
+SOURCE_DOCUMENT = "source_document"
+PROMPT_BLOCK = "prompt_block"
+INJECTION_HITS = "injection_hits"
 
-    The only node that will call one, so the only one that can loop rather than
-    fail, which is why the timeout matters here most. The routing guard that
-    checks its output already exists and is tested.
+
+class UntrustedTextInSessionStateError(RuntimeError):
+    """Raw document text was found in shared session state. The node refuses to run.
+
+    **A boundary that only covers one channel is not a boundary**, and a review
+    proved this one did not. Omitting a key from a node's return value removes it
+    from the payload passed downstream; it does NOT remove it from ADK session
+    state, which every later node can read by simply declaring a parameter of that
+    name. A probe confirmed it: a raw document placed in state was read back
+    verbatim by a downstream node while the Scribe, which binds `node_input`, never
+    saw it and reported a clean sanitisation.
+
+    So this fails CLOSED rather than sanitising the copy it can reach and leaving
+    the other readable. Untrusted document text in shared state is a caller design
+    error, and a guard that quietly does half its job is worse than one that stops.
     """
-    return node_input
+
+
+async def _scribe(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
+    """Draft the order. NOT YET WIRED to a model, but the injection guard IS wired.
+
+    The only node that will call a model, so the only one that can loop rather than
+    fail, which is why the timeout matters here most.
+
+    **The sanitizer runs HERE, on the node, not only in the drill.** A review found
+    it implemented, tested, demonstrated, and called by nothing on the fleet path,
+    which is the structure-present-force-absent shape this module has now hit three
+    times. Order text is untrusted input: fetched from a government web server, put
+    through OCR, and destined for a prompt. It is sanitized and fenced at the node
+    boundary, the raw text is dropped from the payload, and session state is checked
+    because dropping it from the payload alone was a boundary with a hole in it.
+
+    Hits travel with the output. A document trying to steer the drafter is evidence
+    a watermaster should see, not something to clean up quietly.
+    """
+    # EVERY reserved key, on BOTH channels.
+    #
+    # The first version of this guard checked one key in state and two in the
+    # payload, and a review found the gap immediately: an attacker-supplied
+    # `prompt_block` sitting in session state was accepted, because the node only
+    # looked for it in the payload, and any downstream node reading state would then
+    # consume a block this sanitizer never touched.
+    #
+    # That is the same defect as the one it had just fixed, one key over, which is
+    # the tell that a per-key check was the wrong shape. Enumerating the keys and
+    # the channels together makes adding a key without guarding it require deleting
+    # a line rather than forgetting one.
+    #
+    # `in` on ADK's State, not dict(...): State implements __contains__ but is not
+    # dict-convertible, and dict() on it raised KeyError inside the guard itself.
+    for reserved in (SOURCE_DOCUMENT, PROMPT_BLOCK, INJECTION_HITS):
+        if reserved in ctx.state:
+            raise UntrustedTextInSessionStateError(
+                f"{reserved!r} is in session state, where every later node can read "
+                "it without this node's involvement. Untrusted document text and the "
+                "sanitized block both travel in the node payload, never in shared "
+                "state, because state is readable by nodes that never crossed this "
+                "boundary."
+            )
+
+    # A pre-populated output key would let a caller hand the model a block of its own
+    # choosing while this node reported success, which is the sanitizer bypassed by
+    # the one route it does not inspect.
+    for reserved in (PROMPT_BLOCK, INJECTION_HITS):
+        if reserved in node_input:
+            raise UntrustedTextInSessionStateError(
+                f"{reserved!r} arrived pre-populated. Only this node may produce it, "
+                "because a caller supplying it directly bypasses sanitisation while "
+                "the output still looks sanitized."
+            )
+
+    if SOURCE_DOCUMENT not in node_input:
+        return node_input
+
+    raw = node_input[SOURCE_DOCUMENT]
+    if not isinstance(raw, str):
+        raise TypeError(
+            f"{SOURCE_DOCUMENT} must be text, got {type(raw).__name__}. A non-string "
+            "here means some caller is passing a parsed object through the untrusted "
+            "channel, and the sanitizer would silently do nothing to it."
+        )
+
+    sanitized = sanitize_document(raw)
+    forwarded = {k: v for k, v in node_input.items() if k != SOURCE_DOCUMENT}
+    forwarded[PROMPT_BLOCK] = sanitized.fenced()
+    forwarded[INJECTION_HITS] = tuple((hit.kind.value, hit.matched) for hit in sanitized.hits)
+    return forwarded
 
 
 async def _herald(node_input: dict[str, Any]) -> dict[str, Any]:
