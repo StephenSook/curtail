@@ -217,6 +217,7 @@ def _service_to_dict(record: ServiceRecord) -> dict[str, Any]:
         "sent_at": record.sent_at.isoformat(),
         "delivered_at": record.delivered_at.isoformat() if record.delivered_at else None,
         "receipt_reference": record.receipt_reference,
+        "possible_duplicate": record.possible_duplicate,
     }
 
 
@@ -230,6 +231,10 @@ def _service_from_dict(raw: dict[str, Any]) -> ServiceRecord:
         sent_at=datetime.fromisoformat(raw["sent_at"]),
         delivered_at=(datetime.fromisoformat(raw["delivered_at"]) if raw["delivered_at"] else None),
         receipt_reference=raw["receipt_reference"],
+        # `.get`, because a record written before this field existed cannot say. That is
+        # accurate rather than convenient today: nothing has been persisted yet, so no
+        # such record exists. It is read as "never assessed", not as "known clean".
+        possible_duplicate=bool(raw.get("possible_duplicate", False)),
     )
 
 

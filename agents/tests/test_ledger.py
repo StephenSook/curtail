@@ -29,7 +29,14 @@ from curtail_agents.ledger import (
     to_state,
     with_final_action,
 )
-from curtail_core.clocks import ClockType, SignatoryRole
+from curtail_core.clocks import (
+    ClockType,
+    RecipientClass,
+    ServiceLane,
+    ServiceMethod,
+    ServiceRecord,
+    SignatoryRole,
+)
 
 ADOPTED = datetime(2026, 6, 5, 17, 30, tzinfo=UTC)
 
@@ -422,3 +429,106 @@ class TestOneBadRecordDoesNotHideTheRestOfTheSeason:
         report no open deadlines for every order in it."""
         with pytest.raises(LedgerIntegrityError):
             from_state({"not": "a list"})
+
+
+class TestEveryFieldSurvivesTheRoundTrip:
+    """A field-by-field check, because the specific bug was a silent DROP.
+
+    `possible_duplicate` was added to ServiceRecord and not to its serializer, so a
+    record went in flagged and came back clean. The warning vanished exactly when the
+    record was persisted, which is the only moment it matters, and nothing failed.
+
+    Comparing values field by field is NOT enough on its own, and a mutation proved it:
+    a field added with a default takes that default on both sides of the round trip, so
+    the comparison passes while the field is silently lost. The structural check below
+    is what actually catches the next one, by asking whether the serializer WRITES every
+    field the dataclass declares.
+    """
+
+    def test_the_serializer_writes_every_field_the_record_declares(self) -> None:
+        """The check that catches a field nobody thought to test.
+
+        A value comparison cannot: a newly added field takes its default on both sides
+        and matches. This asks a structural question instead, so adding anything to
+        ServiceRecord without teaching the serializer fails here.
+        """
+        import dataclasses
+
+        from curtail_agents.ledger import _service_to_dict
+
+        written = set(_service_to_dict(self._record()))
+        declared = {f.name for f in dataclasses.fields(ServiceRecord)}
+        assert declared, "the record has no fields, so this proves nothing"
+        assert declared <= written, (
+            f"{sorted(declared - written)} declared on ServiceRecord but never written "
+            "by its serializer, so those values are dropped on persistence"
+        )
+
+    @staticmethod
+    def _record(**overrides: object) -> ServiceRecord:
+        base = {
+            "order_id": "WR-2024-0006-DWR-A6",
+            "recipient_id": "holder-1",
+            "recipient_class": RecipientClass.PARTY,
+            "lane": ServiceLane.LEGAL_SERVICE,
+            "method": ServiceMethod.CERTIFIED_MAIL,
+            "sent_at": datetime(2026, 6, 16, tzinfo=UTC),
+            "delivered_at": datetime(2026, 6, 17, tzinfo=UTC),
+            "receipt_reference": "receipt-1",
+            "possible_duplicate": True,
+        }
+        base.update(overrides)
+        return ServiceRecord(**base)  # type: ignore[arg-type]
+
+    def test_a_service_record_survives_field_for_field(self) -> None:
+        import dataclasses
+
+        original = self._record()
+        entry = LedgerEntry(
+            order_id="WR-2024-0006-DWR-A6",
+            order_type="reinstatement",
+            adopted_at=datetime(2026, 6, 16, tzinfo=UTC),
+            signatory=SignatoryRole.DEPUTY_DIRECTOR,
+            clocks=(),
+            service_records=(original,),
+        )
+        restored = entry_from_dict(entry_to_dict(entry)).service_records[0]
+
+        names = [f.name for f in dataclasses.fields(ServiceRecord)]
+        assert len(names) >= 9, "the record shrank, so this check covers less than it did"
+        for name in names:
+            assert getattr(restored, name) == getattr(original, name), (
+                f"{name} did not survive serialization. A field added to ServiceRecord "
+                "and not to its serializer is dropped silently, which is how the "
+                "duplicate-service warning was lost."
+            )
+
+    def test_the_duplicate_warning_specifically_survives(self) -> None:
+        """Named on its own as well, because it is the one whose loss misstates a legal
+        record rather than merely losing detail."""
+        entry = LedgerEntry(
+            order_id="WR-2024-0006-DWR-A6",
+            order_type="reinstatement",
+            adopted_at=datetime(2026, 6, 16, tzinfo=UTC),
+            signatory=SignatoryRole.DEPUTY_DIRECTOR,
+            clocks=(),
+            service_records=(self._record(possible_duplicate=True),),
+        )
+        restored = entry_from_dict(entry_to_dict(entry)).service_records[0]
+        assert restored.possible_duplicate is True
+
+    def test_a_record_written_before_the_field_existed_reads_as_unassessed(self) -> None:
+        """Absent is not the same as False-because-we-checked, and the comment in the
+        loader says so. Today no such record exists, which is why the default is
+        accurate rather than merely convenient."""
+        entry = LedgerEntry(
+            order_id="WR-2024-0006-DWR-A6",
+            order_type="reinstatement",
+            adopted_at=datetime(2026, 6, 16, tzinfo=UTC),
+            signatory=SignatoryRole.DEPUTY_DIRECTOR,
+            clocks=(),
+            service_records=(self._record(possible_duplicate=False),),
+        )
+        raw = entry_to_dict(entry)
+        del raw["service_records"][0]["possible_duplicate"]
+        assert entry_from_dict(raw).service_records[0].possible_duplicate is False
