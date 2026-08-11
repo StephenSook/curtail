@@ -328,6 +328,41 @@ class TestOneDeliveryPerRecipient:
             r.recipient_id for r in remedied.records if r.possible_duplicate
         )
 
+    def test_an_unassessed_record_is_neither_flagged_nor_treated_as_clean(self) -> None:
+        """A report assembled from stored records can contain one nobody checked, and it
+        must be visible as its own state rather than folded into either answer."""
+        from curtail_core.clocks import ServiceRecord
+
+        unassessed = ServiceRecord(
+            order_id=ORDER,
+            recipient_id="holder-legacy",
+            recipient_class=RecipientClass.PARTY,
+            lane=ServiceLane.LEGAL_SERVICE,
+            method=ServiceMethod.CERTIFIED_MAIL,
+            sent_at=STAMP,
+            delivered_at=STAMP,
+            receipt_reference="receipt-legacy",
+        )
+        assert unassessed.possible_duplicate is None
+
+        report = DeliveryReport(
+            order_id=ORDER,
+            lane=ServiceLane.LEGAL_SERVICE,
+            records=(unassessed,),
+            attempts=(("holder-legacy", 1),),
+        )
+        assert report.possible_duplicate_service == (), "unknown was reported as a duplicate"
+        assert report.unassessed_for_duplication == ("holder-legacy",)
+        assert report.legally_served == ("holder-legacy",), (
+            "not knowing whether it was a duplicate does not undo the service"
+        )
+
+    def test_herald_always_assesses_what_it_delivers(self) -> None:
+        """So the unknown state only ever arrives from storage, never from a live run."""
+        report = send("initial_order", [party("holder-1")], dedup=DedupTable())
+        assert all(r.possible_duplicate is not None for r in report.records)
+        assert report.unassessed_for_duplication == ()
+
     def test_a_first_delivery_is_never_flagged(self) -> None:
         """Non-vacuity. A field that flagged everything would be read as noise and then
         ignored exactly when it mattered."""

@@ -323,7 +323,18 @@ class ServiceRecord:
     #:
     #: It does NOT affect `constitutes_legal_service`. A duplicate delivery is still
     #: delivery; what it needs is an explanation travelling with it, not invalidation.
-    possible_duplicate: bool = False
+    #:
+    #: THREE STATES, and the third is why this is not a bool. True means a previous
+    #: attempt lapsed and this may be the second physical delivery. False means that was
+    #: checked and it was not. **None means nobody assessed it**, which is what a record
+    #: written before this field existed can honestly say.
+    #:
+    #: Defaulting an unassessed record to False would make it indistinguishable from one
+    #: that was checked and found clean, which is a positive claim about a delivery
+    #: nobody examined. This repository has the same lesson written down about a None
+    #: that meant "in none of the four decrees": a sentinel carrying a meaning is an
+    #: assertion, and "unknown" needs its own representation.
+    possible_duplicate: bool | None = None
 
     @property
     def constitutes_legal_service(self) -> bool:

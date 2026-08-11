@@ -231,10 +231,12 @@ def _service_from_dict(raw: dict[str, Any]) -> ServiceRecord:
         sent_at=datetime.fromisoformat(raw["sent_at"]),
         delivered_at=(datetime.fromisoformat(raw["delivered_at"]) if raw["delivered_at"] else None),
         receipt_reference=raw["receipt_reference"],
-        # `.get`, because a record written before this field existed cannot say. That is
-        # accurate rather than convenient today: nothing has been persisted yet, so no
-        # such record exists. It is read as "never assessed", not as "known clean".
-        possible_duplicate=bool(raw.get("possible_duplicate", False)),
+        # None when absent, NOT False. A record written before this field existed cannot
+        # say whether it was a duplicate, and coercing that to False would make it
+        # indistinguishable from one that was checked and found clean. The comment here
+        # used to claim "never assessed" while the code produced a known-clean value,
+        # which is the drift a review caught.
+        possible_duplicate=raw.get("possible_duplicate"),
     )
 
 
