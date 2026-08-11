@@ -82,6 +82,22 @@ ACTION_DIRECTION: dict[str, Direction] = {
 }
 
 
+def direction_for(observed_cfs: float, minimum_cfs: float) -> Direction:
+    """Which way a reading points, in the one vocabulary both sides share.
+
+    **This exists because an eval set once expected a direction while the agent
+    answered with a classification, so nothing it contained could ever match.** The
+    Board ACTS (reinstate, suspend) and the Sentinel CLASSIFIES (near threshold,
+    below minimum); direction is the vocabulary those two can be compared in, and it
+    has to be derived in exactly one place or the comparison drifts.
+
+    Strictly below, matching `is_below_minimum`. A reading exactly at the minimum is
+    not under it, and the regulation's obligation is to keep flows from falling
+    below rather than to reach some margin above.
+    """
+    return Direction.RESTRICT if observed_cfs < minimum_cfs else Direction.RELIEVE
+
+
 class Outcome(StrEnum):
     MATCH = "match"
     #: The engine and the Board pointed different ways. Not automatically an
@@ -201,7 +217,9 @@ def score_case(case: dict[str, Any], *, earliest_scorable: date) -> CaseResult:
 
     below = is_below_minimum(basin, decision_date, reading)
     near = is_near_threshold(basin, decision_date, reading)
-    engine_direction = Direction.RESTRICT if below else Direction.RELIEVE
+    # Derived by the shared helper, so the backtest and the fleet cannot disagree
+    # about which way the same reading points.
+    engine_direction = direction_for(reading, float(minimum))
 
     matched = engine_direction is board_direction
     comparison = "below" if below else "at or above"

@@ -118,7 +118,19 @@ def build_eval_set() -> dict[str, Any]:
                         "observation": {
                             "basin": case["basin"],
                             "observed_cfs": case["reading_cfs"],
-                            "observed_at": case["decision_date"],
+                            # A timezone-aware timestamp, not the bare date the case record carries.
+                            #
+                            # The Sentinel refuses a naive timestamp, correctly: a
+                            # legal deadline or a flow period boundary read in the
+                            # wrong zone is off by a day. An eval artifact holding a
+                            # value the agent will not accept cannot be replayed,
+                            # which is a second way for an eval set to be
+                            # unusable while looking complete.
+                            #
+                            # Midnight UTC preserves the date component exactly, and
+                            # the flow schedule is resolved by date, so this cannot
+                            # shift a reading across a period boundary.
+                            "observed_at": f"{case['decision_date']}T00:00:00+00:00",
                             "provenance": "board_document",
                         },
                         "correlation_id": case["id"],

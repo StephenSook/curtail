@@ -146,42 +146,55 @@ class TestTheExpectationIsSomethingTheAgentCanActuallyAnswer:
             Path(__file__).resolve().parents[2] / "scripts" / "export_evals.py"
         ).read_text().count("ACTION_DIRECTION") >= 2
 
-    async def test_the_agent_output_reaches_the_same_vocabulary(self) -> None:
-        """The half that proves the comparison is defined rather than merely tidy.
+    async def test_the_agent_answers_every_case_in_the_expected_vocabulary(
+        self, eval_set: dict[str, Any]
+    ) -> None:
+        """The decisive test, and the one whose absence let this ship twice.
 
-        Runs the real fleet on a real case and shows its classification maps into
-        the same direction space the expectation is written in. Without this, both
-        sides could be internally consistent and still incomparable.
+        Runs the REAL fleet on EVERY case in the eval set and compares the direction
+        the agent itself emits against the direction the case expects. The earlier
+        version of this test mapped the agent's classification to a direction inside
+        the test, which proved the test's own arithmetic rather than the agent's
+        answer, and left the artifact still comparing two vocabularies.
         """
-        from datetime import UTC, datetime
+        from datetime import datetime
 
         from google.adk.sessions import InMemorySessionService
 
-        from curtail_agents.app import APP_NAME, build_fleet_runner, evaluate_reading
-        from curtail_agents.events import EventType, Provenance
+        from curtail_agents.app import APP_NAME, build_fleet_runner, evaluate_direction
+        from curtail_agents.events import Provenance
         from curtail_agents.sentinel import Observation
-        from curtail_core.backtest import Direction
         from curtail_core.basins import Basin
 
         sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
         runner = build_fleet_runner(sessions)
-        await sessions.create_session(
-            app_name=APP_NAME, user_id="watermaster", session_id="eval-vocab"
-        )
-        event = await evaluate_reading(
-            Observation(
-                Basin.SCOTT, 48.7, datetime(2025, 7, 20, 21, 30, tzinfo=UTC), Provenance.USGS_LIVE
-            ),
-            runner=runner,
-            correlation_id="eval-vocab",
-            user_id="watermaster",
-            session_id="eval-vocab",
-            deadline=30.0,
-        )
 
-        # The Sentinel's own vocabulary, which is NOT the Board's.
-        assert event.event_type in set(EventType)
-        # And it lands on the restrict side, which is what the case expects.
-        restricting = {EventType.FLOW_BELOW_MINIMUM, EventType.READING_NEAR_THRESHOLD}
-        assert event.event_type in restricting
-        assert Direction.RESTRICT.value == "restrict"
+        compared = 0
+        for index, case in enumerate(eval_set["eval_cases"]):
+            observation_state = case["session_input"]["state"]["observation"]
+            expected = case["conversation"][0]["final_response"]["parts"][0]["text"]
+            session_id = f"eval-{index}"
+            await sessions.create_session(
+                app_name=APP_NAME, user_id="watermaster", session_id=session_id
+            )
+            answered = await evaluate_direction(
+                Observation(
+                    Basin(observation_state["basin"]),
+                    observation_state["observed_cfs"],
+                    datetime.fromisoformat(observation_state["observed_at"]),
+                    Provenance.BOARD_DOCUMENT,
+                ),
+                runner=runner,
+                correlation_id=case["eval_id"],
+                user_id="watermaster",
+                session_id=session_id,
+                deadline=30.0,
+            )
+            assert answered == expected, (
+                f"{case['eval_id']}: the Board's record points {expected!r} and the "
+                f"agent answered {answered!r}"
+            )
+            compared += 1
+
+        assert compared == len(eval_set["eval_cases"]), "some cases were never compared"
+        assert compared > 0, "an empty eval set compares nothing and proves nothing"

@@ -83,6 +83,7 @@ from curtail_agents.routing import (
 )
 from curtail_agents.sanitize import check_document_size, sanitize_document
 from curtail_agents.sentinel import Observation, evaluate
+from curtail_core.backtest import direction_for
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
 #:
@@ -532,7 +533,19 @@ async def _sentinel(
     ADK coerces it to `Observation` here through the annotation.
     """
     event = evaluate(observation, correlation_id=correlation_id, recent=tuple(recent))
-    carried: dict[str, Any] = {"event": event, "correlation_id": correlation_id}
+    # The DIRECTION travels with the classification, and that is not cosmetic.
+    #
+    # A review found the eval set expecting a direction while this node answered
+    # only with a classification, so no case it contained could ever match: the
+    # artifact would have scored zero the moment a judge model ran, and a zero from
+    # a category error is indistinguishable from a zero from a broken agent. The
+    # classification is what the Sentinel is FOR; the direction is what it can be
+    # compared against, and both belong in the answer.
+    carried: dict[str, Any] = {
+        "event": event,
+        "correlation_id": correlation_id,
+        "direction": direction_for(event.observed_cfs, event.minimum_cfs).value,
+    }
     document = _document_from_message(node_input)
     if document is not None:
         carried[SOURCE_DOCUMENT] = document

@@ -33,7 +33,7 @@
           "observation": {
             "basin": "scott",
             "observed_cfs": 48.7,
-            "observed_at": "2025-07-20",
+            "observed_at": "2025-07-20T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "scott_2024/addenda/7"
@@ -70,7 +70,7 @@
           "observation": {
             "basin": "scott",
             "observed_cfs": 78.4,
-            "observed_at": "2025-07-22",
+            "observed_at": "2025-07-22T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "scott_2024/addenda/8"
@@ -107,7 +107,7 @@
           "observation": {
             "basin": "shasta",
             "observed_cfs": 126.0,
-            "observed_at": "2024-10-25",
+            "observed_at": "2024-10-25T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "shasta_2024/addenda/2"
@@ -144,7 +144,7 @@
           "observation": {
             "basin": "shasta",
             "observed_cfs": 140.0,
-            "observed_at": "2024-10-31",
+            "observed_at": "2024-10-31T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "shasta_2024/addenda/3"
@@ -181,7 +181,7 @@
           "observation": {
             "basin": "shasta",
             "observed_cfs": 145.0,
-            "observed_at": "2025-10-13",
+            "observed_at": "2025-10-13T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "shasta_2024/addenda/5"
@@ -218,7 +218,7 @@
           "observation": {
             "basin": "shasta",
             "observed_cfs": 46.5,
-            "observed_at": "2026-06-15",
+            "observed_at": "2026-06-15T00:00:00+00:00",
             "provenance": "board_document"
           },
           "correlation_id": "shasta_2024/addenda/6"

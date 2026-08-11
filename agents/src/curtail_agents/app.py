@@ -30,6 +30,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from google.adk.events import Event
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService
 from google.genai import types
@@ -110,6 +111,84 @@ def _message_parts(observation: Observation, source_document: str | None) -> lis
     return parts
 
 
+async def _run(
+    observation: Observation,
+    *,
+    runner: Runner,
+    correlation_id: str,
+    user_id: str,
+    session_id: str,
+    recent: Sequence[Observation] = (),
+    source_document: str | None = None,
+    deadline: float = INVOCATION_DEADLINE_SECONDS,
+) -> list[Event]:
+    """One invocation, shared by both entrypoints.
+
+    Factored out so the two answers a caller can ask for come from the SAME run
+    rather than from two code paths that could drift into disagreeing about one
+    reading.
+    """
+    if not correlation_id.strip():
+        raise ValueError(
+            "a correlation id is required. It is what ties a dead-lettered "
+            "message back to the poll that produced it, and an empty one makes a "
+            "failure untraceable at exactly the moment tracing matters."
+        )
+    state_delta: dict[str, Any] = {
+        "observation": _as_state(observation),
+        "correlation_id": correlation_id,
+        "recent": [_as_state(o) for o in recent],
+    }
+    return await run_invocation(
+        runner,
+        user_id=user_id,
+        session_id=session_id,
+        new_message=types.Content(role="user", parts=_message_parts(observation, source_document)),
+        state_delta=state_delta,
+        deadline=deadline,
+    )
+
+
+async def evaluate_direction(
+    observation: Observation,
+    *,
+    runner: Runner,
+    correlation_id: str,
+    user_id: str,
+    session_id: str,
+    recent: Sequence[Observation] = (),
+    deadline: float = INVOCATION_DEADLINE_SECONDS,
+) -> str:
+    """The agent's answer in the vocabulary an eval case is written in.
+
+    `evaluate_reading` returns the Sentinel's CLASSIFICATION, which is what the
+    Sentinel is for. This returns the DIRECTION that classification points, which is
+    what the Board's own record can be compared against, and it comes from the
+    fleet's own output rather than being computed by the caller. That distinction is
+    the whole point: a test that mapped the classification itself would be proving
+    its own arithmetic, not the agent's answer.
+    """
+    events = await _run(
+        observation,
+        runner=runner,
+        correlation_id=correlation_id,
+        user_id=user_id,
+        session_id=session_id,
+        recent=recent,
+        deadline=deadline,
+    )
+    for event in reversed(events):
+        output = event.output
+        if isinstance(output, dict):
+            direction = output.get("direction")
+            if isinstance(direction, str):
+                return direction
+    raise NoClassificationError(
+        f"the fleet produced no direction for {observation.basin.value} at "
+        f"{observation.observed_at.isoformat()}."
+    )
+
+
 async def evaluate_reading(
     observation: Observation,
     *,
@@ -140,25 +219,14 @@ async def evaluate_reading(
     needs exactly that. State is the dangerous place, because state is what nodes
     bind parameters from by name.
     """
-    if not correlation_id.strip():
-        raise ValueError(
-            "a correlation id is required. It is what ties a dead-lettered "
-            "message back to the poll that produced it, and an empty one makes a "
-            "failure untraceable at exactly the moment tracing matters."
-        )
-
-    state_delta: dict[str, Any] = {
-        "observation": _as_state(observation),
-        "correlation_id": correlation_id,
-        "recent": [_as_state(o) for o in recent],
-    }
-
-    events = await run_invocation(
-        runner,
+    events = await _run(
+        observation,
+        runner=runner,
+        correlation_id=correlation_id,
         user_id=user_id,
         session_id=session_id,
-        new_message=types.Content(role="user", parts=_message_parts(observation, source_document)),
-        state_delta=state_delta,
+        recent=recent,
+        source_document=source_document,
         deadline=deadline,
     )
 
