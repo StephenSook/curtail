@@ -269,13 +269,34 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
         },
         "judgment_inputs": list(dict.fromkeys(result.judgment_inputs)),
         "data_quality_flags": list(dict.fromkeys(result.data_quality_flags)),
+        # PER INPUT, and that restructuring is the point rather than tidiness.
+        #
+        # This block used to describe the rights only. A recommendation rests on two
+        # inputs, and the other one is a number the CALLER typed. Carrying a document
+        # name and a SHA-256 for one input while saying nothing about the other does
+        # not merely omit a fact: it implies the reading is sourced too, because a
+        # reader who sees that much rigour on one side assumes it applies to both.
+        # The classify endpoint already had to be corrected once for labelling
+        # caller input as live USGS data, and silence here reproduces the same claim
+        # by leaving it to be inferred.
         "provenance": {
-            "document": loaded.document,
-            "issued": loaded.issued.isoformat(),
-            "source_sha256": loaded.source_sha256,
-            "summary": loaded.provenance,
-            "not_placed": list(loaded.converted.unplaceable),
-            "open_questions": list(loaded.converted.open_questions),
+            "reading": {
+                "source": Provenance.UNSOURCED.value,
+                "note": (
+                    "The discharge came from the caller, not from USGS. This endpoint "
+                    "classifies and allocates against a value you supply; it does not "
+                    "fetch or verify one, and no part of this recommendation is "
+                    "evidence about what the river was doing."
+                ),
+            },
+            "rights": {
+                "document": loaded.document,
+                "issued": loaded.issued.isoformat(),
+                "source_sha256": loaded.source_sha256,
+                "summary": loaded.provenance,
+                "not_placed": list(loaded.converted.unplaceable),
+                "open_questions": list(loaded.converted.open_questions),
+            },
         },
         "ledger": [
             {
