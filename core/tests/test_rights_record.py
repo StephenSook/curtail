@@ -190,7 +190,7 @@ class TestTheLoaderRefusesAnInconsistentRecord:
             (
                 "a refusal category deleted outright",
                 lambda raw: raw["not_read"].pop("ambiguous"),
-                "no 'ambiguous' refusal category",
+                "no 'ambiguous' section",
             ),
             (
                 "the issue date removed",
@@ -232,6 +232,137 @@ class TestTheLoaderRefusesAnInconsistentRecord:
         target = self._write(tmp_path, mutate)
         with pytest.raises(RightsRecordUnavailableError, match=re.escape(expected)):
             load_rights(target)
+
+    @pytest.mark.parametrize("section", ["source", "accounting", "not_read", "rights"])
+    @pytest.mark.parametrize(("shape", "bad"), [("null", None), ("a string", "x"), ("a list", [1])])
+    def test_a_section_of_the_wrong_type_is_refused_not_raised_through(
+        self, tmp_path: Path, section: str, shape: str, bad: Any
+    ) -> None:
+        """`raw["source"]` being JSON null made `.get(...)` raise AttributeError, which
+        the caller did not translate, so a corrupt file surfaced as a 500 rather than a
+        refusal. The escape was found by a review after the validation itself landed:
+        the first fix validated CONTENTS and assumed the containers."""
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = self._write(tmp_path, lambda raw: raw.__setitem__(section, bad))
+        with pytest.raises(RightsRecordUnavailableError):
+            load_rights(target)
+
+    @pytest.mark.parametrize(
+        "category",
+        [
+            "imprecise",
+            "ambiguous",
+            "unparsed",
+            "blank_source",
+            "recovered_from_neighbour",
+            "unrecoverable",
+        ],
+    )
+    @pytest.mark.parametrize(
+        ("shape", "bad"),
+        [
+            ("a string", "X"),
+            ("an object", {"a": 1}),
+            ("a number", 7),
+            ("null", None),
+            ("a list of objects", [{"x": 1}]),
+            ("a list of numbers", [1]),
+        ],
+    )
+    def test_a_refusal_list_must_be_a_list_of_text(
+        self, tmp_path: Path, category: str, shape: str, bad: Any
+    ) -> None:
+        """Counting one is not the same as reading one.
+
+        `len` answers for a string and for an object, so the string "X" satisfied a
+        declared count of one and a one-key dict did too, after which `tuple(...)` turned
+        the string into its characters. A list holding a non-string raised inside a join
+        that ran AFTER the guard, and escaped as a 500.
+        """
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = self._write(tmp_path, lambda raw: raw["not_read"].__setitem__(category, bad))
+        with pytest.raises(RightsRecordUnavailableError):
+            load_rights(target)
+
+    @pytest.mark.parametrize("document", ["null", "5", '"text"', "[1, 2]"])
+    def test_a_record_that_is_not_an_object_is_refused(self, tmp_path: Path, document: str) -> None:
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = tmp_path / "record.json"
+        target.write_text(document)
+        with pytest.raises(RightsRecordUnavailableError):
+            load_rights(target)
+
+    def test_nothing_escapes_as_anything_other_than_the_stated_error(self, tmp_path: Path) -> None:
+        """The property behind every case above, asserted directly.
+
+        A caller catches RightsRecordUnavailableError and returns 503. Anything else
+        reaching it is a 500, which tells a judge the service is broken rather than
+        that its data is.
+        """
+        from curtail_core.rights_record import PACKAGED, RightsRecordUnavailableError, load_rights
+
+        raw = json.loads(PACKAGED.read_text())
+        shapes: list[Any] = [None, 5, "text", [1]]
+        mutations: list[Any] = []
+        for section in ("source", "accounting", "not_read", "rights"):
+            for bad in shapes:
+                mutations.append({**raw, section: bad})
+        mutations.append({k: v for k, v in raw.items() if k != "source"})
+        mutations.append({**raw, "rights": [None]})
+        mutations.append({**raw, "rights": [{"application_number": None}]})
+
+        # Refusal categories too. These are counted with `len` and joined into text, and
+        # both operations succeed on shapes that are not lists of strings.
+        categories = [
+            "imprecise",
+            "ambiguous",
+            "unparsed",
+            "blank_source",
+            "recovered_from_neighbour",
+            "unrecoverable",
+        ]
+        for category in categories:
+            for bad in ["X", {"a": 1}, 7, None, [{"x": 1}], [1]]:
+                mutations.append({**raw, "not_read": {**raw["not_read"], category: bad}})
+
+        assert len(mutations) >= 50, "too few shapes tried for this to mean anything"
+        for index, document in enumerate(mutations):
+            target = tmp_path / f"record_{index}.json"
+            target.write_text(json.dumps(document))
+            try:
+                load_rights(target)
+            except RightsRecordUnavailableError:
+                continue
+            except Exception as exc:
+                pytest.fail(f"shape {index} escaped as {type(exc).__name__}: {exc}")
+            else:
+                pytest.fail(f"shape {index} was accepted")
+
+    @pytest.mark.parametrize("section", ["source", "accounting"])
+    def test_a_null_section_names_itself_rather_than_leaking_an_attribute_error(
+        self, tmp_path: Path, section: str
+    ) -> None:
+        """Two layers stop this, and they are not interchangeable.
+
+        The widened catch turns the AttributeError into the right EXCEPTION TYPE, so
+        the escape test above passes with the type checks removed. It cannot turn it
+        into a usable message: an operator would read "'NoneType' object has no
+        attribute 'get'" and learn nothing about which section of which file is wrong.
+        This pins the structural layer independently of its backstop.
+        """
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = self._write(tmp_path, lambda raw: raw.__setitem__(section, None))
+        with pytest.raises(RightsRecordUnavailableError) as caught:
+            load_rights(target)
+        message = str(caught.value)
+        assert f"{section!r} section" in message, message
+        assert "NoneType' object has no attribute" not in message, (
+            f"the raw attribute error leaked into the message: {message}"
+        )
 
     def test_corrupt_metadata_raises_the_stated_error_not_a_bare_keyerror(
         self, tmp_path: Path
