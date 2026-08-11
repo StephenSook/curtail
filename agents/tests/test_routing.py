@@ -562,3 +562,45 @@ class TestTheStatesOwnCitationStyleIsRecognised:
         ):
             _, stripped = scrub_citations(body)
             assert stripped == (), f"verified authority stripped: {list(stripped)}"
+
+
+class TestAVerifiedAuthorityIsNotStrippedByPunctuation:
+    """Found by wiring the Scribe: the first real drafted order came back with its own
+    lawful citation replaced by a removal notice, mid-sentence.
+
+    The shape matcher used `[\\d.]+`, which is greedy over a trailing full stop, so a
+    citation ending a sentence produced the candidate "23 CCR 875." while the allowlist
+    matches "23 CCR 875". Full coverage then failed by one character.
+
+    This fires on ORDINARY CORRECT OUTPUT, not on anything adversarial: a drafted order
+    ends sentences with citations constantly. Third time a boundary disagreement between
+    the shape matcher and the allowlist has deleted a real authority from a lawful draft.
+    """
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Issued under 23 CCR 875. The following rights are curtailed.",
+            "per 23 CCR 875.5(b)(1)(A). Next sentence.",
+            "see 23 CCR 875.5 and 23 CCR 875.9(b).",
+            "Authority: 23 CCR 875.",
+        ],
+    )
+    def test_a_citation_ending_a_sentence_survives(self, text: str) -> None:
+        cleaned, stripped = scrub_citations(text)
+        assert cleaned == text, f"a verified authority was removed: {cleaned}"
+        assert stripped == ()
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "under 23 CCR 999. fabricated",
+            "under 23 CCR 999.9(z). fabricated",
+        ],
+    )
+    def test_it_still_strips_an_unverified_section_ending_a_sentence(self, text: str) -> None:
+        """Non-vacuity. Loosening a shape until nothing matches would satisfy every test
+        above and disarm the guard completely."""
+        cleaned, stripped = scrub_citations(text)
+        assert "CITATION REMOVED" in cleaned
+        assert stripped
