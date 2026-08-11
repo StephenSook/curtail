@@ -1,0 +1,46 @@
+name: Uptime
+
+# The service is judged between Sept 1 and Oct 1 with this repository frozen. A URL
+# that dies quietly in that window scores exactly as it would if it had never been
+# deployed, and nobody would be touching the code to notice.
+#
+# OFFSET MINUTES, not `*/20` and not `:00`. GitHub deprioritises schedules on the
+# hour and on round intervals: a `*/10` keepalive on a previous project actually
+# fired every 65 to 80 minutes while every run reported success. Offsetting moves
+# this off the contended slots.
+#
+# Judging a monitor by its green runs is the trap that hid that. The thing to read
+# is the NEWEST RUN'S AGE against the intended cadence, because a schedule that has
+# stopped firing has no failing runs at all.
+#
+# A failed scheduled run triggers GitHub's own failure email to the repository
+# owner, which is the notification path. There is nothing else to configure.
+
+on:
+  schedule:
+    - cron: "7,27,47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  answering:
+    name: The judge-facing URL still answers correctly
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      # A DATA-PLANE check, not a liveness ping. A 200 from a process that has lost
+      # its logic is worse than a 500, because it looks like health. The script
+      # asserts the engine's answer to a real reading, the refusals it must keep
+      # making, and that the fact sheet is still served from inside the image.
+      #
+      # Runs BARE. A pipeline reports its LAST command's status, so piping this
+      # anywhere would convert a failed check into a passing step.
+      #
+      # No untrusted input reaches this workflow: the URL is a literal, and nothing
+      # from an event payload is interpolated anywhere.
+      - name: Check the deployed service
+        run: python3 scripts/uptime_check.py --base https://curtail-console-api-672785135387.us-central1.run.app
