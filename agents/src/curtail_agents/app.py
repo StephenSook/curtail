@@ -36,10 +36,12 @@ from google.genai import types
 
 from curtail_agents.events import GageEvent
 from curtail_agents.fleet import (
+    DOCUMENT_PART_PREFIX,
     INVOCATION_DEADLINE_SECONDS,
     build_curtailment_graph,
     run_invocation,
 )
+from curtail_agents.sanitize import check_document_size
 from curtail_agents.sentinel import Observation
 
 #: Named once so the session, the runner and the console cannot disagree.
@@ -91,6 +93,23 @@ def _as_state(observation: Observation) -> dict[str, Any]:
     }
 
 
+def _message_parts(observation: Observation, source_document: str | None) -> list[types.Part]:
+    """The instruction part, and the untrusted document part if there is one.
+
+    Separate parts, and the document one carries an explicit prefix, so the Sentinel
+    identifies it by marker rather than by position. A re-hydrated or reordered
+    message would otherwise be able to turn the instruction into the document, which
+    would feed the sanitizer the wrong text and leave the real document unscanned.
+    """
+    parts = [types.Part(text=f"evaluate {observation.basin.value}")]
+    if source_document is not None:
+        # Before the text enters the message, because once it is in the message it
+        # is in the session event log and the storage cost is already paid.
+        check_document_size(source_document)
+        parts.append(types.Part(text=f"{DOCUMENT_PART_PREFIX}{source_document}"))
+    return parts
+
+
 async def evaluate_reading(
     observation: Observation,
     *,
@@ -99,6 +118,7 @@ async def evaluate_reading(
     user_id: str,
     session_id: str,
     recent: Sequence[Observation] = (),
+    source_document: str | None = None,
     deadline: float = INVOCATION_DEADLINE_SECONDS,
 ) -> GageEvent:
     """Run the fleet over one gage reading and return the classification.
@@ -106,6 +126,19 @@ async def evaluate_reading(
     Goes through `run_invocation`, so the deadline applies to the real path and
     not merely to a helper. That is the sanctioned way to execute this graph, and
     a test in `test_fleet.py` fails on the commit that adds any other.
+
+    **`source_document` is untrusted order text, and it travels in the MESSAGE, not
+    in session state.** That distinction was recorded in `fleet.py` as an unresolved
+    design tension: ADK offers two ways into a graph, and the Scribe's invariant
+    forbids one of them. The second was never tested, and a probe settled it in a
+    minute: the user message arrives at the first node as `node_input`, parts intact.
+
+    So the text rides the message, the Sentinel lifts it into the payload, the
+    Scribe sanitizes and fences it, and session state never holds it. The raw text
+    does enter the session EVENT log, which is where it belongs: that log is the
+    immutable record of what actually arrived, and auditing a poisoned document
+    needs exactly that. State is the dangerous place, because state is what nodes
+    bind parameters from by name.
     """
     if not correlation_id.strip():
         raise ValueError(
@@ -124,9 +157,7 @@ async def evaluate_reading(
         runner,
         user_id=user_id,
         session_id=session_id,
-        new_message=types.Content(
-            role="user", parts=[types.Part(text=f"evaluate {observation.basin.value}")]
-        ),
+        new_message=types.Content(role="user", parts=_message_parts(observation, source_document)),
         state_delta=state_delta,
         deadline=deadline,
     )

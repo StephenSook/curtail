@@ -217,3 +217,53 @@ class TestOverlappingMatchesCannotCorruptTheDocument:
         result = sanitize_document("")
         assert result.text == ""
         assert result.is_clean
+
+
+class TestAnOversizedDocumentIsRefusedNotTruncated:
+    """The bound a review found missing entirely.
+
+    The text is persisted in the session event log and copied again by the
+    normaliser and the sanitizer, so an oversized or repeatedly retried input could
+    exhaust a worker or slow the session service for every other invocation.
+    """
+
+    def test_the_limit_is_derived_from_measured_corpus_documents(self) -> None:
+        """101 real Board PDFs measured: max 110,878 characters. The limit is a
+        multiple of that rather than a round number somebody liked."""
+        from curtail_agents.sanitize import (
+            LARGEST_OBSERVED_DOCUMENT_CHARS,
+            MAX_DOCUMENT_CHARS,
+        )
+
+        assert MAX_DOCUMENT_CHARS == LARGEST_OBSERVED_DOCUMENT_CHARS * 4
+        assert MAX_DOCUMENT_CHARS > LARGEST_OBSERVED_DOCUMENT_CHARS
+
+    def test_a_real_sized_order_is_accepted(self) -> None:
+        """Non-vacuity. A limit below the largest real order would refuse the
+        corpus this system exists to read."""
+        from curtail_agents.sanitize import LARGEST_OBSERVED_DOCUMENT_CHARS, check_document_size
+
+        check_document_size("x" * LARGEST_OBSERVED_DOCUMENT_CHARS)
+
+    def test_an_oversized_document_raises(self) -> None:
+        from curtail_agents.sanitize import (
+            MAX_DOCUMENT_CHARS,
+            DocumentTooLargeError,
+            check_document_size,
+        )
+
+        with pytest.raises(DocumentTooLargeError):
+            check_document_size("x" * (MAX_DOCUMENT_CHARS + 1))
+
+    def test_the_error_says_why_it_is_not_truncated(self) -> None:
+        """A truncated order is one with findings missing, which is how the wrong
+        rights get curtailed. The reason belongs where the failure is read."""
+        from curtail_agents.sanitize import (
+            MAX_DOCUMENT_CHARS,
+            DocumentTooLargeError,
+            check_document_size,
+        )
+
+        with pytest.raises(DocumentTooLargeError) as caught:
+            check_document_size("x" * (MAX_DOCUMENT_CHARS + 1))
+        assert "truncated" in str(caught.value)

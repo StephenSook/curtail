@@ -59,6 +59,51 @@ FENCE_CLOSE = "<<<END_CURTAIL_UNTRUSTED_DOCUMENT>>>"
 NEUTRALISED = "[NEUTRALISED:{kind}]"
 
 
+#: The largest order text in the corpus, measured rather than assumed.
+#:
+#: 101 real Board PDFs were run through `pdftotext`: median 22,534 characters, p95
+#: 110,601, maximum 110,878 (Scott 2021 Addendum 37). The number is in the constant
+#: name so a later reader can tell a measurement from a guess, which is the
+#: distinction a padded timeout margin in this repo already got wrong once.
+LARGEST_OBSERVED_DOCUMENT_CHARS = 110_878
+
+#: What this system will accept as one order document.
+#:
+#: Four times the largest real one, which leaves generous room for a longer future
+#: order while refusing anything that is plainly not an order. A review pointed out
+#: that the document channel had no bound at all: the text is persisted in the
+#: session event log and copied again by the normaliser and the sanitizer, so an
+#: oversized or repeatedly retried input could exhaust a worker or slow the session
+#: service for every other invocation.
+#:
+#: Rejecting is right rather than truncating. A truncated curtailment order is a
+#: document missing findings, and the whole premise here is that a missing finding
+#: is how the wrong set of rights gets curtailed.
+MAX_DOCUMENT_CHARS = LARGEST_OBSERVED_DOCUMENT_CHARS * 4
+
+
+class DocumentTooLargeError(ValueError):
+    """A document exceeded the accepted size and was refused, not truncated."""
+
+
+def check_document_size(text: str) -> None:
+    """Refuse an oversized document before anything copies or persists it.
+
+    Called at the entrypoint, before the text is placed in a message, because once
+    it is in the message it is in the session event log and the cost is already
+    paid. Also called at the node, since a guard that only runs at one of two
+    possible entry points is the shape this module has already been bitten by.
+    """
+    if len(text) > MAX_DOCUMENT_CHARS:
+        raise DocumentTooLargeError(
+            f"document is {len(text):,} characters, over the {MAX_DOCUMENT_CHARS:,} "
+            f"limit. The largest of 101 real Board orders is "
+            f"{LARGEST_OBSERVED_DOCUMENT_CHARS:,}, so this is not an order. It is "
+            "refused rather than truncated, because a truncated order is one with "
+            "findings missing and that is how the wrong rights get curtailed."
+        )
+
+
 class InjectionKind(StrEnum):
     """What sort of steering the document attempted.
 

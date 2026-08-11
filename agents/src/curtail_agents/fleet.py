@@ -81,7 +81,7 @@ from curtail_agents.routing import (
     MAX_DELAY_SECONDS,
     NODE_TIMEOUT_SECONDS,
 )
-from curtail_agents.sanitize import sanitize_document
+from curtail_agents.sanitize import check_document_size, sanitize_document
 from curtail_agents.sentinel import Observation, evaluate
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
@@ -441,12 +441,76 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
     )
 
 
+#: The key a caller puts untrusted document text under, and the key the Scribe
+#: emits the safe form under. Two different names on purpose: a single key would
+#: let a downstream reader believe it had raw text when it had fenced text, or the
+#: reverse, and the whole point of this node is that those must never be confused.
+#:
+#: **The production path supplies this, and the route it takes was the whole
+#: question.** A note here previously called it an unresolved design tension: ADK
+#: offers two channels into a graph, session state and the user message, and this
+#: node's invariant forbids the first. What it did not say is that the second had
+#: never been tried. It took one probe. The user message arrives at the first node
+#: as `node_input` with its parts intact, so `app.evaluate_reading` puts the
+#: document in a marked message part, the Sentinel lifts it into the payload, and
+#: session state never holds it.
+#:
+#: The raw text does land in the session EVENT log, and that is correct rather than
+#: a leak: the event log is the immutable record of what actually arrived, which is
+#: precisely what auditing a poisoned document requires. State is the dangerous
+#: store because nodes bind parameters from it BY NAME, so a node can read state by
+#: accident and cannot read the event log by accident.
+#:
+#: Recorded because "unresolved tension" was the wrong label for "I did not test
+#: the other option", and the difference between those two is a minute of work.
+SOURCE_DOCUMENT = "source_document"
+PROMPT_BLOCK = "prompt_block"
+INJECTION_HITS = "injection_hits"
+
+
+#: Marks the message part carrying untrusted document text.
+#:
+#: **This is how a document enters the graph without entering session state**, and
+#: finding it dissolved a design tension recorded here as unresolved. The claim was
+#: that ADK offers only two ways in, session state or the user message, and that
+#: state was forbidden by the Scribe's invariant. True, but the second option was
+#: never tested. A probe settled it: `run_async(new_message=...)` delivers the
+#: `Content` to the first node as `node_input`, parts intact.
+#:
+#: The raw text does land in session EVENTS, and that is the right place for it. The
+#: event log is the immutable record of what actually arrived, which is exactly what
+#: an audit of a poisoned document needs. What matters is that it is not in session
+#: STATE, because state is what nodes bind parameters from by name, so a node can
+#: read state by accident and cannot read the event log by accident.
+DOCUMENT_PART_PREFIX = "SOURCE_DOCUMENT:\n"
+
+
+def _document_from_message(node_input: Any) -> str | None:
+    """Pull untrusted document text out of the user message, if it carried any.
+
+    Identified by an explicit prefix rather than by part position, so a reordered
+    or re-hydrated message cannot silently turn the instruction part into the
+    document part, which would feed the wrong text to the sanitizer and leave the
+    real document unscanned.
+    """
+    parts = getattr(node_input, "parts", None)
+    if not parts:
+        return None
+    carried = [
+        part.text.removeprefix(DOCUMENT_PART_PREFIX)
+        for part in parts
+        if getattr(part, "text", None) and part.text.startswith(DOCUMENT_PART_PREFIX)
+    ]
+    return "\n".join(carried) if carried else None
+
+
 async def _sentinel(
     observation: Observation,
     correlation_id: str = "",
     recent: tuple[Observation, ...] = (),
+    node_input: Any = None,
 ) -> dict[str, Any]:
-    """Classify a gage reading using the real Sentinel.
+    """Classify a gage reading using the real Sentinel, and carry any document.
 
     **Parameters are named for the session-state keys they bind to, which is
     ADK's actual contract and not a style choice.** `FunctionNode._bind_parameters`
@@ -458,12 +522,21 @@ async def _sentinel(
     is guards that are attached rather than described. It was found by trying to
     run it, which is the only thing that could have found it.
 
+    `node_input` is the one parameter name ADK fills with the message rather than
+    from state, which is what makes it the channel for untrusted document text: the
+    document rides the message into the payload and never touches session state, so
+    the Scribe's invariant holds all the way from the entrypoint.
+
     The type hints are load-bearing too. Session state has to survive a real
     session service, so the entrypoint puts a plain JSON-safe dict in state and
     ADK coerces it to `Observation` here through the annotation.
     """
     event = evaluate(observation, correlation_id=correlation_id, recent=tuple(recent))
-    return {"event": event, "correlation_id": correlation_id}
+    carried: dict[str, Any] = {"event": event, "correlation_id": correlation_id}
+    document = _document_from_message(node_input)
+    if document is not None:
+        carried[SOURCE_DOCUMENT] = document
+    return carried
 
 
 async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
@@ -479,29 +552,6 @@ async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
     while losing the only real payload moving through it.
     """
     return node_input
-
-
-#: The key a caller puts untrusted document text under, and the key the Scribe
-#: emits the safe form under. Two different names on purpose: a single key would
-#: let a downstream reader believe it had raw text when it had fenced text, or the
-#: reverse, and the whole point of this node is that those must never be confused.
-#:
-#: **No production caller supplies SOURCE_DOCUMENT yet, and the reason is a design
-#: question rather than an oversight.** A review asked for the ingestion path to be
-#: wired, and attempting it surfaced a genuine tension: ADK's only channel INTO a
-#: graph is session state or the user message, while this node's whole invariant is
-#: that untrusted text must NOT travel in shared state, where nodes that never
-#: crossed the boundary can read it. Resolving that needs one of three decisions,
-#: none of which should be made under review pressure: the Sentinel lifts the text
-#: out of state into the payload and deletes the state key, or the document rides
-#: the user message, or the invariant relaxes and the residual risk is stated.
-#:
-#: What is true today: the guard sits on the node that will receive the text, it is
-#: tested on both channels, and no path around it exists because no path exists.
-#: That is recorded here rather than hidden behind a half-built channel.
-SOURCE_DOCUMENT = "source_document"
-PROMPT_BLOCK = "prompt_block"
-INJECTION_HITS = "injection_hits"
 
 
 class UntrustedTextInSessionStateError(RuntimeError):
@@ -585,6 +635,7 @@ async def _scribe(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
             "channel, and the sanitizer would silently do nothing to it."
         )
 
+    check_document_size(raw)
     sanitized = sanitize_document(raw)
     forwarded = {k: v for k, v in node_input.items() if k != SOURCE_DOCUMENT}
     forwarded[PROMPT_BLOCK] = sanitized.fenced()
