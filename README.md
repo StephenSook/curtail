@@ -40,9 +40,9 @@ The Fortified Enterprise Fleet track names seven platform components. This proje
 
 | Component | Status |
 |---|---|
-| Agent Registry | Native. Verified provisioning on a non-organization account ([ADR 0001](docs/adr/0001-governance-platform.md)) |
+| Agent Registry | **Reachable, not yet populated.** The API is enabled and `agents.list` returns 200 on a non-organization account ([ADR 0001](docs/adr/0001-governance-platform.md)). The only entry is the registry's own system agent; no Curtail agent is registered yet |
 | Agent Identity | Native. API confirmed, write path scheduled |
-| Model Armor | Native. Template provisioned |
+| Model Armor | Native. Template `curtail-scribe-spike` provisioned in us-central1, verified against the live project |
 | Agent Runtime / Memory Bank | **Partial.** Weeks-long session state is implemented and persists across a process restart via ADK `DatabaseSessionService` ([ledger.py](agents/src/curtail_agents/ledger.py)). Vertex AI Agent Engine hosting *(not built yet)* |
 | Agent Observability | OpenTelemetry to Cloud Trace, Logging, Monitoring *(not built yet)* |
 | Agent Gateway | **Substituted.** No first-party API is exposed to a non-organization account. Its role is covered by per-agent least-privilege service accounts, API Gateway, egress allowlisting, and Model Armor called inline. Reasoning in [ADR 0001](docs/adr/0001-governance-platform.md) |
