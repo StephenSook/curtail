@@ -29,6 +29,7 @@ from typing import Any
 
 import structlog
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 
 from curtail_agents.events import Provenance
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
@@ -55,6 +56,7 @@ log = structlog.get_logger("curtail.api")
 #: well, and `--check` verifies both copies, so serving the packaged one cannot
 #: hand a judge a figure the repository no longer supports. The repository path
 #: stays as a development fallback rather than as the primary.
+CONSOLE = Path(__file__).resolve().parent / "data" / "console.html"
 _PACKAGED = Path(__file__).resolve().parent / "data" / "FACTS.md"
 _IN_REPO = Path(__file__).resolve().parents[3] / "docs" / "FACTS.md"
 FACTS = _PACKAGED if _PACKAGED.exists() else _IN_REPO
@@ -67,6 +69,27 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+
+@app.get("/", response_class=HTMLResponse)
+def console() -> str:
+    """The console, server-rendered from the package.
+
+    One page, no build step, no second deployment. The constitution's own cut-line
+    says the metric, the governance wiring and the demo carry the score, and a
+    console exists to make the demo possible rather than to be admired: a previous
+    cycle shipped the best-looking entry at its event and placed nowhere, while a
+    track was won on one plain screen driving a complete loop.
+
+    Inside the package for the same reason the fact sheet is: a container has no
+    repository, and an asset resolved from one 503s in every deployment.
+    """
+    if not CONSOLE.exists():
+        raise HTTPException(
+            status_code=503,
+            detail=f"the console page is not at {CONSOLE}, so this image was built without it",
+        )
+    return CONSOLE.read_text()
 
 
 @app.get("/api/healthz")
