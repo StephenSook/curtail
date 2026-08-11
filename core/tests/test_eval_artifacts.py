@@ -93,3 +93,95 @@ class TestTheArtifactsCannotGoStale:
             cwd=REPO,
         )
         assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestTheExpectationIsSomethingTheAgentCanActuallyAnswer:
+    """The defect a review caught, and the one that makes an eval set worthless.
+
+    The first export put the Board's verb ("reinstate", "suspend") in
+    `final_response` while the fleet answers with the Sentinel's classification
+    ("reading_near_threshold", "flow_below_minimum"). Two vocabularies, so no case
+    could ever match. The artifact would have scored zero across the board the
+    moment credentials arrived, or invited somebody to loosen the metric until it
+    passed, and a zero produced by a category error looks exactly like a zero
+    produced by a broken agent.
+
+    The expectation is now the DIRECTION both sides can be expressed in, through the
+    mapping the backtest already owns.
+    """
+
+    def test_every_expected_response_is_a_direction(self, eval_set: dict[str, Any]) -> None:
+        from curtail_core.backtest import Direction
+
+        allowed = {d.value for d in Direction}
+        for case in eval_set["eval_cases"]:
+            answer = case["conversation"][0]["final_response"]["parts"][0]["text"]
+            assert answer in allowed, f"{case['eval_id']} expects {answer!r}, not a direction"
+
+    def test_no_expectation_is_left_in_the_boards_verb_vocabulary(
+        self, eval_set: dict[str, Any]
+    ) -> None:
+        """Named explicitly, because the two vocabularies are both plausible strings
+        and only one of them is answerable."""
+        from curtail_core.backtest import ACTION_DIRECTION
+
+        verbs = set(ACTION_DIRECTION)
+        for case in eval_set["eval_cases"]:
+            answer = case["conversation"][0]["final_response"]["parts"][0]["text"]
+            assert answer not in verbs, (
+                f"{case['eval_id']} expects the Board's verb {answer!r}. The agent "
+                "answers with a classification, so this can never match."
+            )
+
+    def test_the_direction_bridge_is_shared_with_the_backtest(self) -> None:
+        """One mapping, not two. A second copy is a second thing to keep correct,
+        and the drift would be invisible until a metric ran."""
+        import inspect
+
+        from curtail_core import backtest
+
+        source = inspect.getsource(backtest)
+        assert "ACTION_DIRECTION" in source
+        assert (
+            Path(__file__).resolve().parents[2] / "scripts" / "export_evals.py"
+        ).read_text().count("ACTION_DIRECTION") >= 2
+
+    async def test_the_agent_output_reaches_the_same_vocabulary(self) -> None:
+        """The half that proves the comparison is defined rather than merely tidy.
+
+        Runs the real fleet on a real case and shows its classification maps into
+        the same direction space the expectation is written in. Without this, both
+        sides could be internally consistent and still incomparable.
+        """
+        from datetime import UTC, datetime
+
+        from google.adk.sessions import InMemorySessionService
+
+        from curtail_agents.app import APP_NAME, build_fleet_runner, evaluate_reading
+        from curtail_agents.events import EventType, Provenance
+        from curtail_agents.sentinel import Observation
+        from curtail_core.backtest import Direction
+        from curtail_core.basins import Basin
+
+        sessions = InMemorySessionService()  # type: ignore[no-untyped-call]
+        runner = build_fleet_runner(sessions)
+        await sessions.create_session(
+            app_name=APP_NAME, user_id="watermaster", session_id="eval-vocab"
+        )
+        event = await evaluate_reading(
+            Observation(
+                Basin.SCOTT, 48.7, datetime(2025, 7, 20, 21, 30, tzinfo=UTC), Provenance.USGS_LIVE
+            ),
+            runner=runner,
+            correlation_id="eval-vocab",
+            user_id="watermaster",
+            session_id="eval-vocab",
+            deadline=30.0,
+        )
+
+        # The Sentinel's own vocabulary, which is NOT the Board's.
+        assert event.event_type in set(EventType)
+        # And it lands on the restrict side, which is what the case expects.
+        restricting = {EventType.FLOW_BELOW_MINIMUM, EventType.READING_NEAR_THRESHOLD}
+        assert event.event_type in restricting
+        assert Direction.RESTRICT.value == "restrict"

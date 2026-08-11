@@ -21,6 +21,19 @@ PENDING with the reason, rather than emitting a placeholder score that would rea
 like evidence. A number nobody produced is worse than an absent one, because the
 absence is visibly incomplete and the placeholder is confidently wrong.
 
+**The expectation is stated in a vocabulary the agent can actually answer in**, and
+the first version was not. It put the Board's verb ("reinstate", "suspend") in
+`final_response` while the fleet answers with the Sentinel's classification
+("reading_near_threshold", "flow_below_minimum"). Two different vocabularies, so
+nothing could ever match: the artifact would have scored zero on every case the
+moment credentials arrived, or invited somebody to loosen the metric until it
+passed. A review caught it before either happened.
+
+They are different because they measure different things. The Board ACTS; the
+Sentinel CLASSIFIES a reading. `curtail_core.backtest` already bridges them through
+DIRECTION, restrict or relieve, and that mapping is deterministic and tested, so the
+export imports it rather than restating it. One bridge, not two.
+
 **The trajectory metric is also reported honestly.** Curtail's fleet is an ADK Graph
 whose stages are NODES, not tools, so an agent that calls no tools has an empty
 trajectory and would score a perfect 1.0 against an empty expectation. That is a
@@ -34,6 +47,8 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
+
+from curtail_core.backtest import ACTION_DIRECTION
 
 REPO = Path(__file__).resolve().parents[1]
 BACKTEST_CASES = REPO / "data" / "backtest_cases.json"
@@ -60,13 +75,25 @@ def build_eval_set() -> dict[str, Any]:
     silently altering what was exported.
     """
     cases = _load_cases()
+    unmappable = [c["id"] for c in cases if c["board_action"] not in ACTION_DIRECTION]
+    if unmappable:
+        raise SystemExit(
+            f"these cases have a Board action with no direction: {unmappable}. An "
+            "eval case whose expectation cannot be expressed in the agent's own "
+            "vocabulary can never be satisfied, which is the defect this export "
+            "was corrected for."
+        )
     return {
         "eval_set_id": "curtail_sentinel",
         "name": "Gage Sentinel against the Board's own record",
         "description": (
             "Every case is a reading the State Water Board acted on, with the "
             "action it took. Sourced from data/backtest_cases.json, which is built "
-            "from the order PDFs themselves."
+            "from the order PDFs themselves. The expected response is the DIRECTION "
+            "the Board's verb points, restrict or relieve, because that is the "
+            "vocabulary the agent's classification can be compared in. The mapping "
+            "is curtail_core.backtest.ACTION_DIRECTION, shared with the backtest "
+            "rather than restated here."
         ),
         "eval_cases": [
             {
@@ -80,7 +107,7 @@ def build_eval_set() -> dict[str, Any]:
                         },
                         "final_response": {
                             "role": "model",
-                            "parts": [{"text": case["board_action"]}],
+                            "parts": [{"text": ACTION_DIRECTION[case["board_action"]].value}],
                         },
                     }
                 ],

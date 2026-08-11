@@ -1,7 +1,7 @@
 {
   "eval_set_id": "curtail_sentinel",
   "name": "Gage Sentinel against the Board's own record",
-  "description": "Every case is a reading the State Water Board acted on, with the action it took. Sourced from data/backtest_cases.json, which is built from the order PDFs themselves.",
+  "description": "Every case is a reading the State Water Board acted on, with the action it took. Sourced from data/backtest_cases.json, which is built from the order PDFs themselves. The expected response is the DIRECTION the Board's verb points, restrict or relieve, because that is the vocabulary the agent's classification can be compared in. The mapping is curtail_core.backtest.ACTION_DIRECTION, shared with the backtest rather than restated here.",
   "eval_cases": [
     {
       "eval_id": "scott_2024/addenda/7",
@@ -20,7 +20,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "reinstate"
+                "text": "restrict"
               }
             ]
           }
@@ -57,7 +57,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "suspend"
+                "text": "relieve"
               }
             ]
           }
@@ -94,7 +94,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "suspend"
+                "text": "relieve"
               }
             ]
           }
@@ -131,7 +131,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "suspend"
+                "text": "relieve"
               }
             ]
           }
@@ -168,7 +168,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "suspend"
+                "text": "relieve"
               }
             ]
           }
@@ -205,7 +205,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "reinstate"
+                "text": "restrict"
               }
             ]
           }

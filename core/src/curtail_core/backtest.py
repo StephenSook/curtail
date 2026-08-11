@@ -69,7 +69,12 @@ class Direction(StrEnum):
 
 
 #: The Board's verbs, mapped to the direction each one points.
-_ACTION_DIRECTION: dict[str, Direction] = {
+#:
+#: PUBLIC, because the eval export needs the same bridge and a second copy of it
+#: would be a second thing to keep correct. The eval set previously stated its
+#: expectations in the Board's vocabulary while the agent answers in the Sentinel's,
+#: so nothing could ever match; the fix is one shared mapping, not two.
+ACTION_DIRECTION: dict[str, Direction] = {
     "impose": Direction.RESTRICT,
     "reinstate": Direction.RESTRICT,
     "suspend": Direction.RELIEVE,
@@ -181,7 +186,7 @@ def score_case(case: dict[str, Any], *, earliest_scorable: date) -> CaseResult:
             "the rule then in force."
         )
 
-    board_direction = _ACTION_DIRECTION.get(case["board_action"])
+    board_direction = ACTION_DIRECTION.get(case["board_action"])
     if board_direction is None:
         return refuse(
             f"Board action {case['board_action']!r} does not map to a direction, "
