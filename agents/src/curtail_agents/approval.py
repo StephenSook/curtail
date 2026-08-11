@@ -26,15 +26,14 @@ only affordance is an approve button measures nothing but their confidence.
    violations being overridden. Clicking through an unverified legal order should
    cost more keystrokes than clicking through a verified one.
 
-**This module is NOT authentication, and says so rather than implying otherwise.**
-A review pointed out that a function called `sign` minting a `SignedDecision` from
-caller-supplied strings looks like a trust boundary and is not one. In-process
-forgery cannot be prevented from inside a domain module: whoever can call this can
-construct its inputs. What CAN be prevented is the boundary arriving quietly, so the
-officer is a typed `Officer` that must record HOW it was authenticated, placeholder
-values are refused, and a guard test fails on any module outside this one that
-constructs an Officer. The console must build it from an authenticated session and
-never from user-supplied input.
+**The officer identity is VERIFIED, not asserted.** A review said twice that this
+function minted a signed record from caller-supplied strings, so the role gate
+protected nothing. The first answer was that a domain module cannot authenticate
+anybody and the honest move was to label the gap. That was half right, and the wrong
+half mattered: the boundary was declared unbuildable without anyone trying to build
+it. `Officer` now comes only from `credentials.verify_officer_token`, which checks
+an HMAC over the exact claim bytes with a key this layer does not hold, so forging
+an approval requires the signing key rather than a function call.
 
 **Approval produces a RECORD, never an action.** Nothing here sends, files, or
 serves anything. That is hard rule 3 of the build constitution expressed as a type:
@@ -49,6 +48,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
+from curtail_agents.credentials import Officer
 from curtail_agents.routing import GuardResult, Verdict
 from curtail_core.clocks import SignatoryRole
 
@@ -81,41 +81,6 @@ def digest_of(draft_text: str) -> str:
     """
     payload = f"{len(draft_text)}:{draft_text}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
-
-
-@dataclass(frozen=True, slots=True)
-class Officer:
-    """The human the authentication layer says is acting, and how it knows.
-
-    A distinct type rather than two strings, because the two strings look
-    innocuous at a call site and this value decides whether a curtailment order is
-    lawfully signed. `authenticated_via` is required and refuses placeholders: a
-    record that cannot say how identity was established is not an audit trail, and
-    "unknown" in that field is worse than an empty queue.
-    """
-
-    role: SignatoryRole
-    officer_id: str
-    authenticated_via: str
-
-    def __post_init__(self) -> None:
-        if not self.officer_id.strip():
-            raise ApprovalError(
-                "a signature needs an identified officer. An administrative record "
-                "naming only a role cannot be audited."
-            )
-        if not self.authenticated_via.strip():
-            raise ApprovalError(
-                f"{self.officer_id} has no authentication method recorded. This "
-                "module does not authenticate anybody; it records what an "
-                "authenticated layer asserts, and a record that cannot say how "
-                "identity was established is not evidence."
-            )
-        if self.authenticated_via.strip().lower() in {"unknown", "none", "n/a", "todo"}:
-            raise ApprovalError(
-                f"{self.officer_id}: {self.authenticated_via!r} is a placeholder, "
-                "not an authentication method."
-            )
 
 
 @dataclass(frozen=True, slots=True)

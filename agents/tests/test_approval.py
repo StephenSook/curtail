@@ -8,22 +8,45 @@ that matters is the one nobody exercised.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from curtail_agents.approval import (
     ApprovalError,
-    Officer,
     QueueItem,
     QueueState,
     digest_of,
     sign,
 )
+from curtail_agents.credentials import (
+    MINIMUM_KEY_BYTES,
+    CredentialError,
+    Officer,
+    issue_officer_token,
+    verify_officer_token,
+)
 from curtail_agents.routing import GuardResult, Verdict
 from curtail_core.clocks import SignatoryRole
 
 NOW = datetime(2026, 6, 10, 9, 0, tzinfo=UTC)
+_KEY = b"k" * MINIMUM_KEY_BYTES
+
+
+def _officer(role: SignatoryRole, officer_id: str, method: str = "iap-oidc") -> Officer:
+    """A VERIFIED officer, minted the way the console would and checked the way the
+    domain layer does. Tests cannot conjure one, which is the whole point."""
+    token = issue_officer_token(
+        role=role,
+        officer_id=officer_id,
+        authenticated_via=method,
+        issued_at=NOW - timedelta(minutes=1),
+        expires_at=NOW + timedelta(hours=8),
+        key=_KEY,
+    )
+    return verify_officer_token(token, key=_KEY, now=NOW)
+
+
 DRAFT = "ORDER WR 2026-0009-DWR\nCurtailment extends to Priority Group 4.\n"
 
 
@@ -59,7 +82,7 @@ class TestNothingSelfExecutes:
         """Hard rule 3 as a type. The output is evidence; no method on it acts."""
         decision = sign(
             _clean_item(),
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             reviewed_digest=_clean_item().digest,
             decided_at=NOW,
         )
@@ -68,14 +91,17 @@ class TestNothingSelfExecutes:
         actions = [n for n in dir(decision) if n in {"send", "serve", "execute", "issue", "file"}]
         assert actions == [], f"a signed decision must not be able to act: {actions}"
 
-    def test_the_record_names_the_officer_not_just_the_role(self) -> None:
-        """An administrative record naming only a role cannot be audited."""
-        with pytest.raises(ApprovalError):
-            sign(
-                _clean_item(),
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "   ", "test-harness"),
-                reviewed_digest=_clean_item().digest,
-                decided_at=NOW,
+    def test_an_unnamed_officer_never_gets_a_token(self) -> None:
+        """An administrative record naming only a role cannot be audited, and that
+        is now refused at issuance rather than at signature."""
+        with pytest.raises(CredentialError):
+            issue_officer_token(
+                role=SignatoryRole.DEPUTY_DIRECTOR,
+                officer_id="   ",
+                authenticated_via="iap-oidc",
+                issued_at=NOW,
+                expires_at=NOW + timedelta(hours=1),
+                key=_KEY,
             )
 
 
@@ -86,7 +112,7 @@ class TestTheRegulationDrawsTheRoleLine:
         with pytest.raises(ApprovalError, match="875"):
             sign(
                 _clean_item(),
-                officer=Officer(SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"),
+                officer=_officer(SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"),
                 reviewed_digest=_clean_item().digest,
                 decided_at=NOW,
             )
@@ -103,13 +129,13 @@ class TestTheRegulationDrawsTheRoleLine:
         with pytest.raises(ApprovalError):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "d-director", "test-harness"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "d-director", "test-harness"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
             )
         assert sign(
             item,
-            officer=Officer(SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"),
+            officer=_officer(SignatoryRole.EXECUTIVE_DIRECTOR, "e-director", "test-harness"),
             reviewed_digest=item.digest,
             decided_at=NOW,
         ).approved
@@ -130,7 +156,7 @@ class TestAnApprovalBindsToTheBytesReviewed:
         with pytest.raises(ApprovalError, match="changed after it was reviewed"):
             sign(
                 redrafted,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
                 reviewed_digest=reviewed,
                 decided_at=NOW,
             )
@@ -158,7 +184,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         with pytest.raises(ApprovalError, match="naming what is being overridden"):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
             )
@@ -170,7 +196,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         with pytest.raises(ApprovalError, match="not acknowledged"):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
                 overriding=("unsupported right: A-003",),
@@ -182,7 +208,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _flagged_item()
         decision = sign(
             item,
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             reviewed_digest=item.digest,
             decided_at=NOW,
             overriding=item.blocking_violations,
@@ -197,7 +223,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _flagged_item()
         decision = sign(
             item,
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             reviewed_digest=item.digest,
             decided_at=NOW,
             approved=False,
@@ -210,7 +236,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _clean_item()
         decision = sign(
             item,
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
             reviewed_digest=item.digest,
             decided_at=NOW,
         )
@@ -260,49 +286,78 @@ class TestAnItemCannotBeMalformed:
         with pytest.raises(ApprovalError):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
                 reviewed_digest=item.digest,
                 decided_at=datetime(2026, 6, 10, 9, 0),  # noqa: DTZ001
             )
 
 
-class TestTheOfficerIsNotAuthenticatedHereAndSaysSo:
-    """A review's finding, answered honestly rather than papered over.
+class TestTheOfficerIdentityIsVerifiedNotAsserted:
+    """The boundary moved, and these tests moved with it.
 
-    A function called `sign` minting a `SignedDecision` from caller-supplied strings
-    looks like a trust boundary and is not one. In-process forgery cannot be
-    prevented from inside a domain module: whoever can call this can construct its
-    inputs. What is preventable is the boundary arriving quietly.
+    A review said twice that `sign` minted a record from caller-supplied identity
+    strings. The first answer labelled the gap; the second built the boundary.
+    `Officer` now exists only downstream of an HMAC check in `credentials.py`, so
+    forging an approval requires the signing key. The attacks against that check
+    live in `test_credentials.py`; what belongs here is that this module cannot
+    accept anything else.
     """
 
-    def test_an_officer_must_record_how_identity_was_established(self) -> None:
-        with pytest.raises(ApprovalError, match="authentication method"):
-            Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "")
+    def test_a_conjured_officer_cannot_reach_sign(self) -> None:
+        """The end-to-end statement of the finding: an identity assembled from
+        strings never gets as far as a signature."""
+        with pytest.raises(CredentialError):
+            Officer(
+                role=SignatoryRole.DEPUTY_DIRECTOR,
+                officer_id="impostor",
+                authenticated_via="i said so",
+                issued_at=NOW,
+                expires_at=NOW,
+            )
 
-    @pytest.mark.parametrize("placeholder", ["unknown", "none", "N/A", "TODO"])
-    def test_a_placeholder_authentication_method_is_refused(self, placeholder: str) -> None:
-        """ "unknown" in that field is worse than an empty queue: it is a record that
-        looks like evidence and asserts nothing."""
-        with pytest.raises(ApprovalError, match="placeholder"):
-            Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", placeholder)
+    def test_an_expired_session_cannot_sign(self) -> None:
+        """An approval signed with a stale session is an approval nobody was
+        present for, and the check happens before this module ever sees it."""
+        token = issue_officer_token(
+            role=SignatoryRole.DEPUTY_DIRECTOR,
+            officer_id="jchristian-smith",
+            authenticated_via="iap-oidc",
+            issued_at=NOW - timedelta(hours=9),
+            expires_at=NOW - timedelta(hours=1),
+            key=_KEY,
+        )
+        with pytest.raises(CredentialError, match="expired"):
+            verify_officer_token(token, key=_KEY, now=NOW)
 
-    def test_the_decision_carries_the_authentication_method(self) -> None:
+    def test_a_placeholder_authentication_method_never_becomes_a_token(self) -> None:
+        with pytest.raises(CredentialError, match="placeholder"):
+            issue_officer_token(
+                role=SignatoryRole.DEPUTY_DIRECTOR,
+                officer_id="jchristian-smith",
+                authenticated_via="unknown",
+                issued_at=NOW,
+                expires_at=NOW + timedelta(hours=1),
+                key=_KEY,
+            )
+
+    def test_the_decision_records_how_identity_was_established(self) -> None:
         item = _clean_item()
         decision = sign(
             item,
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
             reviewed_digest=item.digest,
             decided_at=NOW,
         )
         assert decision.officer.authenticated_via == "iap-oidc"
 
     def test_no_module_outside_the_boundary_constructs_an_officer(self) -> None:
-        """The enforcement available before an auth layer exists.
+        """The enforcement that survives the boundary moving.
 
-        Same shape as the run_async guard: it cannot stop forgery, but it fails on
-        the commit that adds a caller minting its own officer, which is how the gap
-        would actually arrive. Untracked files included, because a guard that cannot
-        see the file about to ship is a false green this repo has already paid for.
+        Only the credential module may build one. It cannot stop somebody editing
+        that file, but it fails on the commit that adds a caller minting its own
+        identity, which is how the gap would actually arrive. Untracked files
+        included, because a guard that cannot see the file about to ship is a false
+        green this repo has already paid for.
         """
         import subprocess
         from pathlib import Path
@@ -316,7 +371,7 @@ class TestTheOfficerIsNotAuthenticatedHereAndSaysSo:
             check=True,
         ).stdout.split()
 
-        sanctioned = {"agents/src/curtail_agents/approval.py"}
+        sanctioned = {"agents/src/curtail_agents/credentials.py"}
         offenders = [
             rel
             for rel in listed
@@ -327,9 +382,8 @@ class TestTheOfficerIsNotAuthenticatedHereAndSaysSo:
             and "Officer(" in (root / rel).read_text(errors="ignore")
         ]
         assert not offenders, (
-            f"these construct an Officer outside the authentication boundary: "
-            f"{offenders}. It must come from an authenticated session, never from "
-            "user-supplied input."
+            f"these construct an Officer outside the credential boundary: "
+            f"{offenders}. It must come from verify_officer_token."
         )
 
 
@@ -357,7 +411,7 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError, match="named no "):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
                 overriding=("whatever I like",),
@@ -368,7 +422,7 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
             )
@@ -379,7 +433,7 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         item = self._findingless()
         decision = sign(
             item,
-            officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+            officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
             reviewed_digest=item.digest,
             decided_at=NOW,
             approved=False,
@@ -393,7 +447,7 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError, match="not findings the guard made"):
             sign(
                 item,
-                officer=Officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer=_officer(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
                 reviewed_digest=item.digest,
                 decided_at=NOW,
                 overriding=(*item.blocking_violations, "and one I made up"),
