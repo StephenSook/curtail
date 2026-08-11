@@ -410,3 +410,118 @@ class TestTheMetricDenominatorCannotBeInflated:
         """
         joined = " ".join(manifest["open_items"])
         assert "not individually enumerated" in joined
+
+
+class TestProseBesideDataNeverRestatesIt:
+    """The drift that let a provenance note contradict its own fields four times.
+
+    The extraction note claimed 102 documents declared, 33 enumerated, 24 fetched,
+    and 4 refused for having no text layer. The fields beside it said 100, 98, 98
+    and 0. It was a snapshot from an earlier stage of the corpus work, left in place
+    while every number around it moved on, and it sat in the provenance record that
+    the headline metric rests on.
+
+    Prose cannot be diffed against data by review alone, so the separation is
+    enforced instead: the note explains WHY, the fields carry WHAT. A note holding
+    no counts cannot go numerically stale. Years are permitted because a year names
+    a regulatory era rather than restating a measurement.
+    """
+
+    @staticmethod
+    def _counts_in(text: str) -> list[int]:
+        """Numbers a reader would take as a COUNT, which is narrower than digits.
+
+        Two exemptions, both found by running the guard rather than by imagining it.
+        A four-digit year names a regulatory era instead of restating a measurement.
+        And a number inside a token that also contains letters is part of an
+        IDENTIFIER: the stray-file note lists `addendum6-shasta-attach-a` by name,
+        which is the useful half of that note and not a count that can drift.
+
+        **Number WORDS count too**, and leaving them out was a real hole rather
+        than a documented limitation. The first version said so in a docstring and
+        called it an honest limit, while the manifest it guarded already contained
+        "four separate places" and "three documents". A test named "states no
+        counts" that passes a note stating counts is a false green wearing a
+        disclaimer, and a disclaimer does not make an assertion true.
+        """
+        import re
+
+        words = {
+            "one",
+            "two",
+            "three",
+            "four",
+            "five",
+            "six",
+            "seven",
+            "eight",
+            "nine",
+            "ten",
+            "eleven",
+            "twelve",
+            "thirteen",
+            "fourteen",
+            "fifteen",
+            "sixteen",
+            "seventeen",
+            "eighteen",
+            "nineteen",
+            "twenty",
+            "thirty",
+            "forty",
+            "fifty",
+            "sixty",
+            "seventy",
+            "eighty",
+            "ninety",
+            "hundred",
+            "thousand",
+            "dozen",
+        }
+        counts: list[int] = []
+        for token in re.split(r"[\s,;:()]+", text):
+            if token.lower().strip(".") in words:
+                counts.append(-1)  # a spelled count, reported without a value
+                continue
+            if any(ch.isalpha() for ch in token):
+                continue  # an identifier, not a measurement
+            for n in re.findall(r"\d+", token):
+                if len(n) == 4 and 1850 <= int(n) <= 2100:
+                    continue  # a year names an era
+                counts.append(int(n))
+        return counts
+
+    def test_the_extraction_note_states_no_counts(self, manifest: dict[str, Any]) -> None:
+        note = manifest["extraction_status"]["note"]
+        assert self._counts_in(note) == [], (
+            "the extraction note restates counts in prose. Every number here has to "
+            "be maintained in two places, and the last time that happened the note "
+            f"contradicted its own fields four times over: {self._counts_in(note)}"
+        )
+
+    def test_the_stray_file_note_states_no_counts_either(self, manifest: dict[str, Any]) -> None:
+        """Same rule, same object. A guard covering one of two adjacent notes is the
+        per-key check this project has already been bitten by."""
+        note = manifest["extraction_status"].get("stray_file_note", "")
+        assert self._counts_in(note) == [], self._counts_in(note)
+
+    def test_the_guard_would_catch_a_restated_count(self) -> None:
+        """Non-vacuity. A detector that found nothing in any string would pass both
+        tests above while enforcing nothing."""
+        assert self._counts_in("102 documents, of which 33 were enumerated") == [102, 33]
+        assert self._counts_in("addendum6-shasta-attach-a was fetched by hand") == []
+        # The regression cases a review named. Both were live in the manifest while
+        # the tests claimed the notes stated no counts.
+        assert self._counts_in("it went stale in four separate places") != []
+        assert self._counts_in("three documents were downloaded by hand") != []
+        assert self._counts_in("the note explains why and the fields carry what") == []
+        assert self._counts_in("the 2021 series and the 2024 series") == []
+
+    def test_the_note_still_says_which_field_is_the_denominator(
+        self, manifest: dict[str, Any]
+    ) -> None:
+        """Removing the numbers must not remove the meaning. The one thing this note
+        exists to say is that M is the scorable count, not the declared total."""
+        note = manifest["extraction_status"]["note"]
+        assert "scorable" in note
+        assert "declared" in note

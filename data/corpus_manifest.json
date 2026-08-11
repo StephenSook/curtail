@@ -3189,11 +3189,11 @@
     "read_via_text_layer": 91,
     "scorable": 95,
     "refused_no_text_layer": 0,
-    "note": "The denominator of the headline metric is the scorable count, not the declared total. 102 is the number of documents the Board's index pages show exist. Only 33 are individually enumerated here: the 2021 series carry addenda counts of 51 and 16 without per-document entries, because those index pages publish no per-addendum URLs. Of the 24 PDFs fetched, 4 have no text layer at all and are refused rather than guessed. Any claim of the form 'N of M' must use the scorable count as M.",
+    "note": "The denominator of the headline metric is the scorable count, not the declared total. Any claim of the form 'N of M' must use the scorable count as M. Documents with no usable text layer are read by vision and counted separately; anything still unreadable is refused rather than guessed. COUNTS LIVE IN THE FIELDS BESIDE THIS NOTE AND NEVER INSIDE IT. An earlier version restated them in prose and went stale against the fields it sat beside while they moved on around it, so this note explains why and the fields carry what. A guard in the test suite enforces that separation, against digits and against number words alike.",
     "read_via_vision": 4,
     "unscorable_with_reason": 3,
     "files_on_disk": 101,
     "files_not_matching_a_record": 3,
-    "stray_file_note": "Files on disk exceed fetched records because three documents were downloaded by hand early on, before the fetcher existed, under names that do not follow the record key scheme: addendum6-shasta-attach-a, addendum8-scottriver-7-22-2025, order-wr-0005-dwr-scott-sws-curtailment. They are duplicates of records already counted, so counting them as fetched would have inflated the numerator. The manifest guard caught this when pdfs_fetched exceeded the enumerated record count."
+    "stray_file_note": "Files on disk exceed fetched records because some documents were downloaded by hand early on, before the fetcher existed, under names that do not follow the record key scheme: addendum6-shasta-attach-a, addendum8-scottriver-7-22-2025, order-wr-0005-dwr-scott-sws-curtailment. They duplicate records already counted, so counting them as fetched would have inflated the numerator. The manifest guard caught it when pdfs_fetched exceeded the enumerated record count. The exact figures live in the fields beside this note."
   }
 }
