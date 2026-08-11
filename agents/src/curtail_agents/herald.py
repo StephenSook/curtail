@@ -121,7 +121,17 @@ class DeliveryReport:
         disagree about the same delivery, and only the records persist. Deriving it
         removes that possibility rather than documenting it.
         """
-        return tuple(r.recipient_id for r in self.records if r.possible_duplicate)
+        return tuple(r.recipient_id for r in self.records if r.possible_duplicate is True)
+
+    @property
+    def unassessed_for_duplication(self) -> tuple[str, ...]:
+        """Records nobody checked. Distinct from records checked and found clean.
+
+        Herald always assesses what it delivers, so this is empty for anything it
+        produced. It exists because a report can be assembled from stored records, and a
+        record written before the field existed genuinely cannot say.
+        """
+        return tuple(r.recipient_id for r in self.records if r.possible_duplicate is None)
 
     @property
     def legally_served(self) -> tuple[str, ...]:

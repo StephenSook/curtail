@@ -517,10 +517,28 @@ class TestEveryFieldSurvivesTheRoundTrip:
         restored = entry_from_dict(entry_to_dict(entry)).service_records[0]
         assert restored.possible_duplicate is True
 
+    @pytest.mark.parametrize("assessed", [True, False])
+    def test_both_assessed_states_survive_and_stay_distinct(self, assessed: bool) -> None:
+        """True and False are different findings, not a flag and its absence."""
+        entry = LedgerEntry(
+            order_id="WR-2024-0006-DWR-A6",
+            order_type="reinstatement",
+            adopted_at=datetime(2026, 6, 16, tzinfo=UTC),
+            signatory=SignatoryRole.DEPUTY_DIRECTOR,
+            clocks=(),
+            service_records=(self._record(possible_duplicate=assessed),),
+        )
+        restored = entry_from_dict(entry_to_dict(entry)).service_records[0]
+        assert restored.possible_duplicate is assessed
+
     def test_a_record_written_before_the_field_existed_reads_as_unassessed(self) -> None:
-        """Absent is not the same as False-because-we-checked, and the comment in the
-        loader says so. Today no such record exists, which is why the default is
-        accurate rather than merely convenient."""
+        """None, NOT False.
+
+        The loader's comment used to say "never assessed" while the code produced False,
+        which is a positive claim: it makes a delivery nobody examined indistinguishable
+        from one that was checked and found clean. This repository has the same lesson
+        written down about a None that meant "in none of the four decrees".
+        """
         entry = LedgerEntry(
             order_id="WR-2024-0006-DWR-A6",
             order_type="reinstatement",
@@ -531,4 +549,6 @@ class TestEveryFieldSurvivesTheRoundTrip:
         )
         raw = entry_to_dict(entry)
         del raw["service_records"][0]["possible_duplicate"]
-        assert entry_from_dict(raw).service_records[0].possible_duplicate is False
+        restored = entry_from_dict(raw).service_records[0]
+        assert restored.possible_duplicate is None, "an unassessed record was read as known-clean"
+        assert restored.possible_duplicate is not False
