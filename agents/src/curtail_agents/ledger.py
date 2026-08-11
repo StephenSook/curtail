@@ -138,6 +138,29 @@ class LedgerEntry:
                 "window."
             )
 
+        # ONE CLOCK PER TYPE, enforced at construction rather than at the one call
+        # site that got it wrong.
+        #
+        # A review found `with_final_action` appending a second judicial-review
+        # clock to a Board order, which already carries one from adoption because a
+        # non-delegated order IS its own final action. Two writ windows opening ten
+        # days apart is not a question of which is right; it is a record that
+        # contradicts itself, and `open_clocks` would have shown a watermaster both.
+        #
+        # Fixing only that function would leave the next path free to do it again,
+        # so the invariant lives on the type. Any construction that duplicates a
+        # clock type now fails immediately, including one nobody has written yet.
+        seen: set[ClockType] = set()
+        for clock in self.clocks:
+            if clock.clock_type in seen:
+                raise LedgerIntegrityError(
+                    f"{self.order_id} carries two {clock.clock_type.value} clocks. "
+                    "A single order cannot have two versions of one statutory "
+                    "deadline: whichever a reader picked, the other would be a "
+                    "deadline nobody was watching."
+                )
+            seen.add(clock.clock_type)
+
     def open_clocks(self, at: datetime) -> tuple[Clock, ...]:
         return tuple(c for c in self.clocks if c.is_open(at))
 
@@ -303,12 +326,24 @@ def with_final_action(entry: LedgerEntry, final_action_at: datetime) -> LedgerEn
     from the wrong event told a party their right to review had expired before it
     opened.
 
+    Refuses on an order that already has a writ window, which for a non-delegated
+    order means one it has carried since adoption: with no exhaustion required the
+    order IS its own final action, so there is no separate later event to record and
+    asking to record one means the caller has the wrong model of the order.
+
     Refuses to move a final action already recorded, for the same reason the ledger
     refuses to replace an entry: the date a window opened is not something a later
     write should be able to change.
     """
     if final_action_at.tzinfo is None:
         raise ValueError("final_action_at must be timezone aware; a legal deadline cannot be naive")
+    if any(c.clock_type is ClockType.JUDICIAL_REVIEW for c in entry.clocks):
+        raise LedgerIntegrityError(
+            f"{entry.order_id} already carries a judicial-review window. A "
+            f"{entry.signatory.value} order that required no exhaustion is its own "
+            "final action, so its writ window opened at adoption and there is no "
+            "separate later event to record."
+        )
     if entry.final_action_at is not None:
         raise LedgerIntegrityError(
             f"{entry.order_id} already records final action at "
@@ -338,17 +373,76 @@ def to_state(entries: Iterable[LedgerEntry]) -> list[dict[str, Any]]:
     return [entry_to_dict(e) for e in entries]
 
 
-def from_state(raw: Any) -> tuple[LedgerEntry, ...]:
-    """Read the ledger back out of session state.
+@dataclass(frozen=True, slots=True)
+class QuarantinedEntry:
+    """A stored entry that could not be read, kept with the reason it could not."""
+
+    raw: dict[str, Any]
+    reason: str
+
+    @property
+    def order_id(self) -> str:
+        """Whatever the record claims to be, for a human to go and look at."""
+        claimed = self.raw.get("order_id")
+        return str(claimed) if claimed else "<no order_id in the stored record>"
+
+
+@dataclass(frozen=True, slots=True)
+class LoadedLedger:
+    """What came back, and what could not be read.
+
+    Two fields rather than one, because the alternative designs are both wrong.
+    Raising on the first bad entry takes the WHOLE season offline: nineteen sound
+    records with running deadlines become invisible because the twentieth is
+    malformed, which is the same harm as reading the ledger as empty. Silently
+    skipping the bad one is worse still, since the deadline it carried then goes
+    unwatched with nothing to show a human.
+
+    So the load succeeds, the damage is itemised, and `is_complete` makes the
+    difference impossible to pass over by accident.
+    """
+
+    entries: tuple[LedgerEntry, ...]
+    quarantined: tuple[QuarantinedEntry, ...] = field(default_factory=tuple)
+
+    @property
+    def is_complete(self) -> bool:
+        return not self.quarantined
+
+    def summary(self) -> str:
+        """One line for an operator, naming every record that needs a human."""
+        if self.is_complete:
+            return f"{len(self.entries)} orders, all readable"
+        damaged = ", ".join(f"{q.order_id} ({q.reason})" for q in self.quarantined)
+        return (
+            f"{len(self.entries)} orders readable, {len(self.quarantined)} QUARANTINED "
+            f"and their deadlines are NOT being tracked: {damaged}"
+        )
+
+
+def from_state(raw: Any) -> LoadedLedger:
+    """Read the ledger back out of session state, quarantining what will not load.
 
     Tolerates absence, because a season that has recorded nothing yet is a valid
-    state and not an error. Does NOT tolerate a corrupt shape: a ledger that
-    silently reads back empty because its stored form changed would report "no
-    open deadlines" for an order whose reconsideration window is running, which is
-    the most dangerous wrong answer this system can give.
+    state and not an error. Does NOT tolerate a corrupt CONTAINER: a ledger that
+    silently reads back empty because its stored form changed would report "no open
+    deadlines" for an order whose reconsideration window is running, which is the
+    most dangerous wrong answer this system can give.
+
+    **Per ENTRY, though, it quarantines rather than aborting**, and a review is why.
+    The constructor now rejects duplicate clock types, and an eager tuple
+    comprehension meant one such record would abort the whole read: every sound
+    order in the same season would vanish along with it. Turning a fix for deadline
+    tracking into a deadline-tracking outage is a poor trade.
+
+    On legacy data specifically: there is none. This ledger has never been wired to
+    an order-adoption path and has never been deployed, so no stored record can
+    predate the invariant, and a versioned migration would be machinery for zero
+    rows. Quarantine is the recovery path that generalises anyway: a record from any
+    cause that will not load is surfaced with its reason rather than dropped.
     """
     if raw is None:
-        return ()
+        return LoadedLedger(entries=())
     if isinstance(raw, str):
         # A session service may round-trip the value as JSON text.
         raw = json.loads(raw)
@@ -358,7 +452,20 @@ def from_state(raw: Any) -> tuple[LedgerEntry, ...]:
             "Reading it as empty would report no open deadlines for orders whose "
             "clocks are running."
         )
-    return tuple(entry_from_dict(item) for item in raw)
+
+    entries: list[LedgerEntry] = []
+    damaged: list[QuarantinedEntry] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            damaged.append(
+                QuarantinedEntry(raw={}, reason=f"stored as {type(item).__name__}, not an object")
+            )
+            continue
+        try:
+            entries.append(entry_from_dict(item))
+        except (LedgerIntegrityError, ValueError, KeyError, TypeError) as exc:
+            damaged.append(QuarantinedEntry(raw=item, reason=f"{type(exc).__name__}: {exc}"))
+    return LoadedLedger(entries=tuple(entries), quarantined=tuple(damaged))
 
 
 def open_clocks(

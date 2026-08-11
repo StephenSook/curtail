@@ -96,18 +96,19 @@ class TestItSurvivesTheTripThroughSessionState:
 
     def test_the_whole_ledger_round_trips(self) -> None:
         entries = append(append((), _order()), _order("WR 2026-0006-DWR"))
-        assert from_state(to_state(entries)) == entries
+        assert from_state(to_state(entries)).entries == entries
 
     def test_an_absent_ledger_reads_as_empty_rather_than_failing(self) -> None:
         """A season that has recorded nothing yet is a valid state."""
-        assert from_state(None) == ()
+        assert from_state(None).entries == ()
+        assert from_state(None).is_complete
 
     def test_a_json_encoded_ledger_is_accepted(self) -> None:
         """Some session services round-trip values as JSON text."""
         import json
 
         entries = append((), _order())
-        assert from_state(json.dumps(to_state(entries))) == entries
+        assert from_state(json.dumps(to_state(entries))).entries == entries
 
     def test_a_corrupt_ledger_raises_rather_than_reading_as_empty(self) -> None:
         """The most dangerous wrong answer this system can give is "no open
@@ -221,7 +222,9 @@ class TestTheLedgerOutlivesTheProcess:
             app_name="curtail", user_id="watermaster", session_id="season-2026"
         )
         assert session is not None
-        recovered = from_state(session.state.get(LEDGER_STATE_KEY))
+        loaded = from_state(session.state.get(LEDGER_STATE_KEY))
+        assert loaded.is_complete, loaded.summary()
+        recovered = loaded.entries
 
         assert recovered == entries
         assert recovered[0].adopted_at == ADOPTED
@@ -248,7 +251,9 @@ class TestTheLedgerOutlivesTheProcess:
             app_name="curtail", user_id="watermaster", session_id="season-2026"
         )
         assert session is not None
-        recovered = from_state(session.state.get(LEDGER_STATE_KEY))
+        loaded = from_state(session.state.get(LEDGER_STATE_KEY))
+        assert loaded.is_complete, loaded.summary()
+        recovered = loaded.entries
 
         # Day 20: the petition window is still open. Day 40: it has closed and the
         # Board's 90-day response window is still running.
@@ -323,3 +328,97 @@ class TestFinalActionOpensTheWritWindow:
         acted = with_final_action(_order(), ADOPTED + timedelta(days=88))
         assert entry_from_dict(entry_to_dict(acted)) == acted
         assert drift_for(acted) == ()
+
+    def test_a_board_order_refuses_a_separate_final_action(self) -> None:
+        """The duplicate a review caught. A non-delegated order is its own final
+        action, so its writ window opened at adoption and recording a later one
+        produced TWO windows opening ten days apart: not a question of which is
+        right, a record that contradicts itself."""
+        board = record_order(
+            ADOPTED,
+            order_id="WR 2026-BOARD-1",
+            order_type="initial_order",
+            signatory=SignatoryRole.BOARD,
+        )
+        with pytest.raises(LedgerIntegrityError) as caught:
+            with_final_action(board, ADOPTED + timedelta(days=10))
+        # The message, not just the type. The one-clock-per-type invariant would
+        # also refuse this, so asserting only the exception let a mutation removing
+        # THIS check pass: the test could not tell which guard had fired. The
+        # domain-specific wording is the whole reason this check exists on top of
+        # the structural one, and a reader who sees "two judicial_review clocks"
+        # learns less than one who is told a Board order is its own final action.
+        assert "its own" in str(caught.value)
+        assert "final action" in str(caught.value)
+
+    def test_an_entry_can_never_carry_two_clocks_of_one_type(self) -> None:
+        """Enforced on the TYPE, not at the one call site that got it wrong, so a
+        path nobody has written yet cannot reintroduce it."""
+        import dataclasses
+
+        entry = _order()
+        with pytest.raises(LedgerIntegrityError):
+            dataclasses.replace(entry, clocks=(*entry.clocks, entry.clocks[0]))
+
+
+class TestOneBadRecordDoesNotHideTheRestOfTheSeason:
+    """A review's second half, and it is real independently of the first.
+
+    Enforcing the duplicate-clock invariant in the constructor meant an eager read
+    would abort on the first record that violated it, taking every sound order in
+    the same season down with it. A watermaster would see zero deadlines instead of
+    the nineteen that were fine, which is the same harm as reading the ledger empty.
+
+    On legacy data specifically there is none: this ledger has never been wired to
+    an adoption path or deployed, so nothing stored can predate the invariant. The
+    quarantine is the recovery path that generalises to any cause anyway.
+    """
+
+    @staticmethod
+    def _stored_with_one_damaged() -> list[dict[str, object]]:
+        good = to_state(append(append((), _order("WR-GOOD-1")), _order("WR-GOOD-2")))
+        damaged = entry_to_dict(_order("WR-LEGACY-DUP"))
+        # The exact shape the old `with_final_action` could write: two writ clocks.
+        writ = dict(damaged["clocks"][0])
+        writ["clock_type"] = "judicial_review"
+        damaged["clocks"] = [*damaged["clocks"], writ, writ]
+        return [*good, damaged]
+
+    def test_the_sound_orders_still_load(self) -> None:
+        loaded = from_state(self._stored_with_one_damaged())
+        assert [e.order_id for e in loaded.entries] == ["WR-GOOD-1", "WR-GOOD-2"]
+
+    def test_the_damaged_one_is_quarantined_rather_than_dropped(self) -> None:
+        """Silently skipping it would leave its deadlines unwatched with nothing to
+        show a human, which is worse than refusing to load at all."""
+        loaded = from_state(self._stored_with_one_damaged())
+        assert not loaded.is_complete
+        assert [q.order_id for q in loaded.quarantined] == ["WR-LEGACY-DUP"]
+        assert "judicial_review" in loaded.quarantined[0].reason
+
+    def test_the_summary_says_the_deadlines_are_not_being_tracked(self) -> None:
+        """The one line an operator reads. If it did not say so plainly, a partial
+        load would pass for a complete one."""
+        summary = from_state(self._stored_with_one_damaged()).summary()
+        assert "QUARANTINED" in summary
+        assert "NOT being tracked" in summary
+        assert "WR-LEGACY-DUP" in summary
+
+    def test_a_non_object_record_is_quarantined_too(self) -> None:
+        loaded = from_state([entry_to_dict(_order()), "not an object"])
+        assert len(loaded.entries) == 1
+        assert not loaded.is_complete
+
+    def test_a_clean_ledger_reports_complete(self) -> None:
+        """Non-vacuity. A loader that always reported damage would pass every test
+        above and be useless."""
+        loaded = from_state(to_state(append((), _order())))
+        assert loaded.is_complete
+        assert "all readable" in loaded.summary()
+
+    def test_a_corrupt_container_still_raises(self) -> None:
+        """Per-entry tolerance is not per-store tolerance. A ledger that is not a
+        list at all is a store problem, and reading it as an empty season would
+        report no open deadlines for every order in it."""
+        with pytest.raises(LedgerIntegrityError):
+            from_state({"not": "a list"})
