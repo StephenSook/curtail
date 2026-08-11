@@ -295,3 +295,65 @@ class TestCallerSuppliedReadingsAreLabelledAsSuch:
             "the API labels a caller-supplied reading as live USGS data. It never "
             "contacts USGS, so that provenance is false."
         )
+
+
+class TestTheFactSheetSurvivesPackaging:
+    """The endpoint a review found broken in every packaged deployment.
+
+    It resolved the fact sheet relative to the repository, and a wheel contains only
+    the package, so an installed service would 503 forever while importing cleanly.
+    The first answer was a more diagnostic 503, which is documenting a hole rather
+    than closing it, and this project has that written down as a rule.
+    """
+
+    def test_the_served_copy_is_inside_the_package(self) -> None:
+        from curtail_agents.api import FACTS
+
+        package_root = _package_root()
+        assert package_root in FACTS.parents, (
+            f"the API serves {FACTS}, which is outside the package and therefore "
+            "absent from a wheel."
+        )
+
+    def test_the_packaged_copy_matches_the_judge_facing_one(self) -> None:
+        """Two copies is two places to drift, handled the way everything else here
+        is: one generator writes both and --check verifies both."""
+        packaged = _package_root() / "data" / "FACTS.md"
+        assert packaged.read_text() == (REPO / "docs" / "FACTS.md").read_text()
+
+    def test_a_built_wheel_actually_contains_it(self) -> None:
+        """Built, not assumed. The previous packaging attempt in this project passed
+        every reasoning check and then failed to build, so the wheel is inspected."""
+        import subprocess
+        import tempfile
+        import zipfile
+
+        with tempfile.TemporaryDirectory() as out:
+            result = subprocess.run(
+                ["uv", "build", "--package", "curtail-agents", "--wheel", "--out-dir", out],
+                cwd=REPO,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 0, result.stdout + result.stderr
+            wheels = list(Path(out).glob("*.whl"))
+            assert wheels, "no wheel was produced"
+            names = zipfile.ZipFile(wheels[0]).namelist()
+            assert "curtail_agents/data/FACTS.md" in names, (
+                f"the wheel does not carry the fact sheet: {sorted(names)[:12]}"
+            )
+            assert "curtail_agents/data/citations.json" in names
+
+
+def _package_root() -> Path:
+    """Where curtail_agents is installed, typed rather than assumed.
+
+    `module.__file__` is `str | None`, and a namespace package would make it None.
+    Asserting instead of ignoring the type keeps the failure legible if that ever
+    happens, rather than turning into an obscure Path error.
+    """
+    import curtail_agents
+
+    located = curtail_agents.__file__
+    assert located is not None, "curtail_agents has no __file__, so it is not installed normally"
+    return Path(located).parent

@@ -47,7 +47,17 @@ structlog.configure(
 )
 log = structlog.get_logger("curtail.api")
 
-FACTS = Path(__file__).resolve().parents[3] / "docs" / "FACTS.md"
+#: The packaged copy first, because that is the one that exists when installed.
+#:
+#: A review found this endpoint broken in any wheel: the path resolved relative to
+#: the repository and a wheel contains only the package, so an installed service
+#: would 503 forever. The generator now writes the fact sheet into the package as
+#: well, and `--check` verifies both copies, so serving the packaged one cannot
+#: hand a judge a figure the repository no longer supports. The repository path
+#: stays as a development fallback rather than as the primary.
+_PACKAGED = Path(__file__).resolve().parent / "data" / "FACTS.md"
+_IN_REPO = Path(__file__).resolve().parents[3] / "docs" / "FACTS.md"
+FACTS = _PACKAGED if _PACKAGED.exists() else _IN_REPO
 
 app = FastAPI(
     title="Curtail console API",

@@ -35,6 +35,20 @@ from curtail_core.flow_minimums import (  # noqa: E402
 )
 
 OUT = REPO / "docs" / "FACTS.md"
+
+#: The SAME content, inside the package, because the API serves it at runtime.
+#:
+#: A review found `/api/facts` broken in any packaged deployment: the endpoint
+#: resolved the path relative to the repository, and a wheel contains only the
+#: package, so an installed service would 503 forever. The first response was a
+#: diagnostic 503 message, which is documenting a hole rather than closing it.
+#:
+#: Two copies would normally be two places to drift, and that is handled the way
+#: everything else here is: ONE generator writes both and `--check` verifies both,
+#: so a stale copy fails CI. Moving the file into the package is also the fix this
+#: project already used for the citation allowlist, after a cross-root
+#: force-include failed to build because uv builds from an sdist.
+PACKAGED = REPO / "agents" / "src" / "curtail_agents" / "data" / "FACTS.md"
 MANIFEST = REPO / "data" / "corpus_manifest.json"
 
 
@@ -285,6 +299,19 @@ def main() -> int:
     content = build()
 
     if args.check:
+        if not PACKAGED.exists():
+            print(
+                f"{PACKAGED.relative_to(REPO)} does not exist, so the API would serve "
+                "a 503 in every packaged deployment. Run without --check to generate."
+            )
+            return 1
+        if PACKAGED.read_text() != content:
+            print(
+                f"{PACKAGED.relative_to(REPO)} is STALE. The API serves this copy, so "
+                "it would hand a judge a figure the repository no longer supports.\n"
+                "Regenerate with:\n  uv run python scripts/generate_facts.py"
+            )
+            return 1
         if not OUT.exists():
             print("docs/FACTS.md does not exist. Run without --check to generate it.")
             return 1
@@ -296,12 +323,13 @@ def main() -> int:
                 "  uv run python scripts/generate_facts.py"
             )
             return 1
-        print("docs/FACTS.md is current.")
+        print("docs/FACTS.md and the packaged copy are current.")
         return 0
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(content)
-    print(f"wrote {OUT.relative_to(REPO)} ({len(content.splitlines())} lines)")
+    for target in (OUT, PACKAGED):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+        print(f"wrote {target.relative_to(REPO)} ({len(content.splitlines())} lines)")
     return 0
 
 
