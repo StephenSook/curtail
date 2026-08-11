@@ -299,12 +299,42 @@ class TestOneDeliveryPerRecipient:
             "the party may have been physically served twice and the report did not say so"
         )
 
+        # ON THE RECORD, which is the point. A report is transient: it lives for one
+        # distribution run and then nothing carries its warning forward. The record is
+        # what persists and what a reviewing court reads, and two service acts with no
+        # note attached to either is the misstatement this exists to prevent.
+        served_record = next(r for r in remedied.records if r.recipient_id == "holder-1")
+        assert served_record.possible_duplicate is True
+        assert served_record.constitutes_legal_service is True, (
+            "a duplicate delivery is still delivery; it needs an explanation travelling "
+            "with it, not invalidation"
+        )
+
+    def test_the_report_derives_its_view_from_the_records(self) -> None:
+        """Held as a separate list, the report and the records could disagree about the
+        same delivery, and only the records persist."""
+        ticks = [0.0]
+        table = DedupTable(_clock=lambda: ticks[0])
+        send(
+            "initial_order",
+            [party("holder-1")],
+            transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
+            dedup=table,
+        )
+        ticks[0] = CLAIM_LEASE_SECONDS + 1
+        remedied = send("initial_order", [party("holder-1")], dedup=table)
+
+        assert remedied.possible_duplicate_service == tuple(
+            r.recipient_id for r in remedied.records if r.possible_duplicate
+        )
+
     def test_a_first_delivery_is_never_flagged(self) -> None:
         """Non-vacuity. A field that flagged everything would be read as noise and then
         ignored exactly when it mattered."""
         report = send("initial_order", [party("holder-1")], dedup=DedupTable())
         assert report.legally_served == ("holder-1",)
         assert report.possible_duplicate_service == ()
+        assert all(not r.possible_duplicate for r in report.records)
 
     def test_the_notification_lane_is_not_flagged(self) -> None:
         """A duplicate email is not a duplicate legal act, and flagging it would dilute

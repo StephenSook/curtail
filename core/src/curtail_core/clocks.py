@@ -312,6 +312,18 @@ class ServiceRecord:
     sent_at: datetime
     delivered_at: datetime | None = None
     receipt_reference: str | None = None
+    #: True when a previous attempt on this recipient never completed, so this delivery
+    #: may be the SECOND physical one.
+    #:
+    #: It lives here rather than only on a delivery report because this is the durable
+    #: artifact. A report is transient: it exists for the length of one distribution run
+    #: and then nothing carries its warning forward. The record is what is persisted and
+    #: what a reviewing court reads, and two service acts with no note attached to either
+    #: is exactly the misstatement the warning was written to prevent.
+    #:
+    #: It does NOT affect `constitutes_legal_service`. A duplicate delivery is still
+    #: delivery; what it needs is an explanation travelling with it, not invalidation.
+    possible_duplicate: bool = False
 
     @property
     def constitutes_legal_service(self) -> bool:
