@@ -24,6 +24,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from stat import S_ISDIR, S_ISREG
 from typing import Any
 
 from curtail_core.attachment_a import (
@@ -74,7 +75,7 @@ class LoadedRights:
 def _require_a_readable_file(source: Path) -> None:
     """Refuse before reading, with a message that says what is actually wrong.
 
-    **Three states, three sentences, and conflating them was the defect.** Switching
+    **Four states, four sentences, and conflating them was the defect.** Switching
     the check from `exists` to `is_file` stopped a directory raising
     IsADirectoryError, but sent it down the ABSENT branch, so the refusal announced
     that the record "is not at" a path where something plainly was. An operator would
@@ -85,26 +86,44 @@ def _require_a_readable_file(source: Path) -> None:
     directory denies traversal, which would have escaped the read guard entirely by
     happening before it.
     """
+    # ONE stat, branched on its own exception, rather than exists() and is_file().
+    #
+    # Those two suppress OSError and return False on some Python versions and propagate
+    # it on others: 3.12 swallows a PermissionError, this project's pinned 3.13.13
+    # raises it. A review flagged this code as misreporting an untraversable parent as
+    # absent, which was NOT true here, precisely because the pinned interpreter
+    # propagates. It would have been true on 3.12, and a guard whose correctness depends
+    # on which minor version is running is not a guard anyone can reason about.
+    #
+    # `stat` has one behaviour everywhere: it raises, and the exception says which
+    # failure it was.
     try:
-        present = source.exists()
-        is_file = source.is_file()
-    except OSError as exc:
-        raise RightsRecordUnavailableError(
-            f"the rights record at {source} could not even be inspected: {exc}"
-        ) from exc
-
-    if not present:
+        info = source.stat()
+    except FileNotFoundError as exc:
         raise RightsRecordUnavailableError(
             f"the rights record is not at {source}. Either it has not been generated "
             "(scripts/extract_attachment_a.py) or this package was built without it. "
             "Refusing to continue with no rights: an empty list would produce a "
             "recommendation that reaches nobody, which reads exactly like a real answer."
-        )
-    if not is_file:
+        ) from exc
+    except OSError as exc:
         raise RightsRecordUnavailableError(
-            f"there is something at {source}, but it is a directory rather than the "
-            "rights record. The file has not been generated over it, and reporting it "
-            "as absent would send a reader looking for something that is present."
+            f"the rights record at {source} could not even be inspected: {exc}. "
+            "This is not the same as the file being absent, and saying so would send a "
+            "reader looking for something that may well be present."
+        ) from exc
+
+    # REGULAR FILE, and this is a liveness check as much as a diagnostic one. Removing
+    # it to see what the test caught HUNG the suite for ten minutes: opening a named
+    # pipe blocks until a writer appears, and there is none, so a path of the wrong type
+    # does not fail here, it stops the process. The message matters; not blocking
+    # matters more.
+    if not S_ISREG(info.st_mode):
+        what = "a directory" if S_ISDIR(info.st_mode) else "not a regular file"
+        raise RightsRecordUnavailableError(
+            f"there is something at {source}, but it is {what} rather than the rights "
+            "record. The file has not been generated over it, and reporting it as "
+            "absent would send a reader looking for something that is present."
         )
 
 

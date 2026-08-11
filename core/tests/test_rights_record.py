@@ -414,8 +414,19 @@ class TestTheLoaderRefusesAnInconsistentRecord:
                     "this process can traverse a mode-000 directory, so the check "
                     "cannot run here. Failing rather than skipping."
                 )
-            with pytest.raises(RightsRecordUnavailableError):
+            with pytest.raises(RightsRecordUnavailableError) as caught:
                 load_rights(target)
+            message = str(caught.value)
+            # The MESSAGE, not just the type. A review claimed this path misreported as
+            # absent. It did not on the pinned interpreter, because 3.13 propagates the
+            # PermissionError out of exists(); on 3.12 it would have, because 3.12
+            # suppresses it and returns False. The loader now uses stat directly so it
+            # does not depend on which, and this assertion is what would catch it if the
+            # dependency ever came back.
+            assert "could not even be inspected" in message, message
+            assert "is not at" not in message, (
+                f"an untraversable parent was reported as an absent file: {message}"
+            )
         finally:
             os.chmod(locked, 0o700)
 
@@ -441,6 +452,26 @@ class TestTheLoaderRefusesAnInconsistentRecord:
                 load_rights(target)
         finally:
             os.chmod(target, 0o600)
+
+    def test_a_path_that_is_neither_file_nor_directory_says_so(self, tmp_path: Path) -> None:
+        """A named pipe is neither, and this check is liveness as much as diagnosis.
+
+        Removing it to see what this test caught HUNG the suite for ten minutes:
+        opening a fifo blocks until a writer appears and there is none, so a path of
+        the wrong type does not fail, it stops the process. Reporting the right cause
+        matters; not blocking matters more.
+        """
+        import os
+
+        from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+
+        target = tmp_path / "record.json"
+        os.mkfifo(target)
+        with pytest.raises(RightsRecordUnavailableError) as caught:
+            load_rights(target)
+        message = str(caught.value)
+        assert "not a regular file" in message, message
+        assert "is not at" not in message
 
     def test_corrupt_metadata_raises_the_stated_error_not_a_bare_keyerror(
         self, tmp_path: Path
