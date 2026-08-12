@@ -21,8 +21,11 @@ from fastapi.testclient import TestClient
 from curtail_agents.api import app
 from curtail_agents.approval import ApprovalError, QueueItem
 from curtail_agents.approval_queue import (
+    DEMO_PASSPHRASE_ENV,
+    DEMO_ROSTER,
     SIGNING_KEY_ENV,
     ApprovalQueue,
+    DemoLoginRefusedError,
     SigningUnavailableError,
     demo_token,
     signing_key,
@@ -31,12 +34,14 @@ from curtail_agents.routing import GuardResult, Verdict
 from curtail_core.clocks import SignatoryRole
 
 KEY = "k" * 48
+PASSPHRASE = "open-sesame-for-judges"
 NOW = datetime(2026, 6, 16, 12, tzinfo=UTC)
 
 
 @pytest.fixture
 def keyed(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv(SIGNING_KEY_ENV, KEY)
+    monkeypatch.setenv(DEMO_PASSPHRASE_ENV, PASSPHRASE)
     yield
 
 
@@ -89,8 +94,14 @@ class TestNoKeyMeansNoSignature:
     def test_the_session_endpoint_refuses_rather_than_defaulting(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # The passphrase IS set, so the request gets past the login gate and reaches the
+        # key check. Without this the endpoint 403s first and the test proves nothing
+        # about defaulting.
+        monkeypatch.setenv(DEMO_PASSPHRASE_ENV, PASSPHRASE)
         monkeypatch.delenv(SIGNING_KEY_ENV, raising=False)
-        response = TestClient(app).post("/api/session?role=deputy_director&officer_id=x")
+        response = TestClient(app).post(
+            f"/api/session?role=deputy_director&passphrase={PASSPHRASE}"
+        )
         assert response.status_code == 503
         assert SIGNING_KEY_ENV in response.json()["detail"]
 
@@ -101,7 +112,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
 
     def test_the_wrong_officer_cannot_sign(self, keyed: None, clean_queue: ApprovalQueue) -> None:
         queued = clean_queue.add(item())
-        wrong = demo_token(role="executive_director", officer_id="e.director")
+        wrong = demo_token(role="executive_director", passphrase=PASSPHRASE)
         with pytest.raises(ApprovalError, match="requires the deputy_director"):
             clean_queue.decide(queued.order_id, officer_token=wrong, reviewed_digest=queued.digest)
 
@@ -110,7 +121,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
     ) -> None:
         """An approval is bound to the bytes it was given."""
         queued = clean_queue.add(item())
-        token = demo_token(role="deputy_director", officer_id="j.officer")
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
         with pytest.raises(ApprovalError, match="changed after it was reviewed"):
             clean_queue.decide(queued.order_id, officer_token=token, reviewed_digest="0" * 64)
 
@@ -118,7 +129,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
         self, keyed: None, clean_queue: ApprovalQueue
     ) -> None:
         queued = clean_queue.add(item("DRAFT-SHASTA-2026-06-15-escalate", passing=False))
-        token = demo_token(role="deputy_director", officer_id="j.officer")
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
         with pytest.raises(ApprovalError, match="naming what is being overridden"):
             clean_queue.decide(queued.order_id, officer_token=token, reviewed_digest=queued.digest)
 
@@ -128,7 +139,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
         """Non-vacuity. A queue that refused every override would be safe and useless,
         and 875(b)(3) preserves exactly this discretion."""
         queued = clean_queue.add(item("DRAFT-SHASTA-2026-06-15-escalate", passing=False))
-        token = demo_token(role="deputy_director", officer_id="j.officer")
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
         decision = clean_queue.decide(
             queued.order_id,
             officer_token=token,
@@ -141,7 +152,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
 
     def test_one_order_gets_one_signature(self, keyed: None, clean_queue: ApprovalQueue) -> None:
         queued = clean_queue.add(item())
-        token = demo_token(role="deputy_director", officer_id="j.officer")
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
         clean_queue.decide(queued.order_id, officer_token=token, reviewed_digest=queued.digest)
         with pytest.raises(ApprovalError, match="already decided"):
             clean_queue.decide(queued.order_id, officer_token=token, reviewed_digest=queued.digest)
@@ -152,7 +163,7 @@ class TestTheQueueIsNotARouteAroundTheLaw:
         """Overwriting the bytes under a recorded signature would leave that record
         pointing at a document nobody approved."""
         queued = clean_queue.add(item())
-        token = demo_token(role="deputy_director", officer_id="j.officer")
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
         clean_queue.decide(queued.order_id, officer_token=token, reviewed_digest=queued.digest)
         with pytest.raises(ApprovalError, match="cannot be replaced"):
             clean_queue.add(item())
@@ -166,7 +177,7 @@ class TestTheApiCarriesTheDecisionRatherThanMakingIt:
         placeholders like "unknown" so a record can always say how it knew who signed."""
         client = TestClient(app)
         queued = clean_queue.add(item())
-        token = client.post("/api/session?role=deputy_director&officer_id=j.officer").json()[
+        token = client.post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}").json()[
             "officer_token"
         ]
 
@@ -175,7 +186,7 @@ class TestTheApiCarriesTheDecisionRatherThanMakingIt:
             json={"officer_token": token, "reviewed_digest": queued.digest},
         )
         assert response.status_code == 200
-        assert response.json()["authenticated_via"] == "demo console login"
+        assert response.json()["authenticated_via"] == "demo console login, shared passphrase"
 
     @pytest.mark.parametrize(
         ("body", "expected"),
@@ -196,7 +207,7 @@ class TestTheApiCarriesTheDecisionRatherThanMakingIt:
         """These are decisions the domain layer made, not failures of the service."""
         client = TestClient(app)
         queued = clean_queue.add(item())
-        wrong = client.post("/api/session?role=executive_director&officer_id=e.director").json()[
+        wrong = client.post(f"/api/session?role=executive_director&passphrase={PASSPHRASE}").json()[
             "officer_token"
         ]
         response = client.post(
@@ -251,3 +262,81 @@ class TestTheDraftIsNotDressedAsAStateOrder:
         body = TestClient(app).get(f"/api/queue/{queued.order_id}").json()
         assert "Nothing here is in force" in body["disclaimer"]
         assert "875(b)" in body["disclaimer"]
+
+
+class TestTheDemoLoginIsNotAnOpenDoor:
+    """The worst defect in this project, caught by a review after it had shipped.
+
+    `/api/session` took a role and a free-text officer id and minted a token for anyone
+    who asked, on a public URL with unauthenticated ingress. The signing path verifies a
+    MAC, which proves the SERVER issued a token and nothing about who asked for it, so
+    the identity behind every signature was whatever a stranger had typed.
+
+    That is not a weaker administrative record than none. It is a fabricated one.
+    """
+
+    def test_no_passphrase_configured_means_no_login(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv(SIGNING_KEY_ENV, KEY)
+        monkeypatch.delenv(DEMO_PASSPHRASE_ENV, raising=False)
+        with pytest.raises(DemoLoginRefusedError, match="Refusing rather than letting"):
+            demo_token(role="deputy_director", passphrase="anything")
+
+    @pytest.mark.parametrize(
+        "attempt", ["", "guess", "OPEN-SESAME-FOR-JUDGES", " open-sesame-for-judges "]
+    )
+    def test_the_wrong_passphrase_mints_nothing(self, keyed: None, attempt: str) -> None:
+        with pytest.raises(DemoLoginRefusedError, match="not correct"):
+            demo_token(role="deputy_director", passphrase=attempt)
+
+    def test_the_endpoint_returns_403_and_no_token(self, keyed: None) -> None:
+        response = TestClient(app).post("/api/session?role=deputy_director&passphrase=guess")
+        assert response.status_code == 403
+        assert "officer_token" not in response.json()
+
+    def test_the_identity_in_the_signed_record_comes_from_the_roster(
+        self, keyed: None, clean_queue: ApprovalQueue
+    ) -> None:
+        """Asserted on the SIGNATURE, not on the session response.
+
+        The first version checked the id the endpoint echoed back, and a mutation putting
+        the caller's own string into the TOKEN passed it: the response was rendering the
+        roster value independently of what the token carried. The only identity that
+        matters is the one inside the verified token, because that is what reaches the
+        record.
+        """
+        queued = clean_queue.add(item())
+        token = demo_token(role="deputy_director", passphrase=PASSPHRASE)
+        decision = clean_queue.decide(
+            queued.order_id, officer_token=token, reviewed_digest=queued.digest
+        )
+        assert decision.officer.officer_id == DEMO_ROSTER[SignatoryRole.DEPUTY_DIRECTOR]
+        assert decision.officer.officer_id.startswith("demo-")
+
+    def test_the_session_response_agrees_with_the_token(self, keyed: None) -> None:
+        """The echoed value and the token must not be able to disagree, since a reader
+        sees the first and the record keeps the second."""
+        body = (
+            TestClient(app)
+            .post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}")
+            .json()
+        )
+        assert body["officer_id"] == DEMO_ROSTER[SignatoryRole.DEPUTY_DIRECTOR]
+        assert body["officer_id"].startswith("demo-")
+
+    def test_no_roster_identity_is_a_real_person(self) -> None:
+        """The first version used the name of the actual sitting Deputy Director, which
+        would have produced fabricated orders signed in a real official's name."""
+        for officer_id in DEMO_ROSTER.values():
+            assert officer_id.startswith("demo-"), officer_id
+            assert "christian" not in officer_id.lower()
+
+    def test_the_record_says_only_what_was_established(self, keyed: None) -> None:
+        """A passphrase, not a person. The disclaimer has to match what actually
+        happened, or it is decoration on a fabricated record."""
+        body = (
+            TestClient(app)
+            .post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}")
+            .json()
+        )
+        assert "shared passphrase" in body["authenticated_via"]
+        assert "NOT who they are" in body["disclaimer"]

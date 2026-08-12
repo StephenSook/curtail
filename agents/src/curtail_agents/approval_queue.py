@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from hmac import compare_digest
 
 from curtail_agents.approval import ApprovalError, QueueItem, SignedDecision, sign
 from curtail_agents.credentials import issue_officer_token
@@ -38,6 +39,35 @@ PERSISTENCE = (
 
 #: The environment variable holding the officer-token signing key.
 SIGNING_KEY_ENV = "CURTAIL_SIGNING_KEY"
+
+#: The shared secret a caller must present before any token is minted.
+DEMO_PASSPHRASE_ENV = "CURTAIL_DEMO_PASSPHRASE"
+
+#: The ONLY officer identities the demo login will issue, keyed by role.
+#:
+#: Caller-supplied ids were the defect. The endpoint took `officer_id` as free text on a
+#: public URL, so anyone could mint a Deputy Director token and the resulting record would
+#: name whoever they typed. A signature is only worth what the identity behind it is
+#: worth, and a self-asserted string is worth nothing.
+#:
+#: These ids are obviously not real people ON PURPOSE. The first version used the name of
+#: the actual sitting Deputy Director, which would have produced fabricated orders signed
+#: in a real official's name: impersonation, and precisely what the no-government-
+#: impersonation rule exists to stop. What this demo can honestly establish is that
+#: SOMEBODY holding the passphrase acted in a role, so that is exactly what it records.
+DEMO_ROSTER: dict[SignatoryRole, str] = {
+    SignatoryRole.DEPUTY_DIRECTOR: "demo-deputy-director",
+    SignatoryRole.EXECUTIVE_DIRECTOR: "demo-executive-director",
+}
+
+
+class DemoLoginRefusedError(RuntimeError):
+    """Raised when the caller did not present the demo passphrase.
+
+    Separate from SigningUnavailableError because the causes differ and so do the fixes:
+    one is a deployment that has no secret configured, the other is a caller who does not
+    hold it.
+    """
 
 
 class SigningUnavailableError(RuntimeError):
@@ -159,20 +189,45 @@ class ApprovalQueue:
 QUEUE = ApprovalQueue()
 
 
-def demo_token(*, role: str, officer_id: str, minutes: int = 30) -> str:
-    """Mint a short-lived token for the demo console.
+def demo_token(*, role: str, passphrase: str, minutes: int = 30) -> str:
+    """Mint a short-lived token, and only for a caller who holds the passphrase.
 
-    The constitution allows an authenticated console via IAP or a demo login so judges
-    can reach it. This is the demo login, and it records itself as one:
-    `authenticated_via` carries the word "demo", so every signature made through it says
-    on its face how identity was established. `issue_officer_token` refuses placeholder
-    values like "unknown" precisely so that field cannot become decoration.
+    **This endpoint was the worst defect in the project.** It took a role and a free-text
+    officer id and minted a token for anyone who asked, on a public URL with
+    unauthenticated ingress. A MAC proves the SERVER issued a token; it proves nothing
+    about who asked for it. So the signing path was sound and the identity behind every
+    signature was whatever a stranger had typed, which is not a weaker record than none.
+    It is a fabricated one.
+
+    Two changes close it. A shared passphrase, with no default, gates minting at all. And
+    the identity is no longer supplied by the caller: it comes from a fixed roster of
+    ids that are plainly not real people, because what this demo can honestly establish
+    is that SOMEBODY holding the passphrase acted in a role.
+
+    A real deployment replaces this with IAP or another identity provider and drops the
+    roster. That is the seam; this is not it pretending to be one.
     """
+    expected = os.environ.get(DEMO_PASSPHRASE_ENV, "")
+    if not expected:
+        raise DemoLoginRefusedError(
+            f"{DEMO_PASSPHRASE_ENV} is not set, so no demo login can be granted. "
+            "Refusing rather than letting an ungated endpoint mint officer tokens: a "
+            "signature is worth exactly what the identity behind it is worth."
+        )
+    if not compare_digest(passphrase.encode(), expected.encode()):
+        raise DemoLoginRefusedError("the demo passphrase is not correct")
+
+    chosen = SignatoryRole(role)
+    officer_id = DEMO_ROSTER.get(chosen)
+    if officer_id is None:
+        raise DemoLoginRefusedError(f"the demo login issues no identity for the {chosen.value}")
+
     now = datetime.now(UTC)
     return issue_officer_token(
-        role=SignatoryRole(role),
+        role=chosen,
         officer_id=officer_id,
-        authenticated_via="demo console login",
+        # Says exactly what was established and no more: a passphrase, not a person.
+        authenticated_via="demo console login, shared passphrase",
         issued_at=now,
         expires_at=now + timedelta(minutes=minutes),
         key=signing_key(),

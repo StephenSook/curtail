@@ -83,7 +83,9 @@ class TestNothingSelfExecutes:
         """Hard rule 3 as a type. The output is evidence; no method on it acts."""
         decision = sign(
             _clean_item(),
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer_token=_token(
+                SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
+            ),
             key=_KEY,
             reviewed_digest=_clean_item().digest,
         )
@@ -160,7 +162,7 @@ class TestAnApprovalBindsToTheBytesReviewed:
             sign(
                 redrafted,
                 officer_token=_token(
-                    SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
                 ),
                 key=_KEY,
                 reviewed_digest=reviewed,
@@ -190,7 +192,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
             sign(
                 item,
                 officer_token=_token(
-                    SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
                 ),
                 key=_KEY,
                 reviewed_digest=item.digest,
@@ -204,7 +206,7 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
             sign(
                 item,
                 officer_token=_token(
-                    SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
                 ),
                 key=_KEY,
                 reviewed_digest=item.digest,
@@ -217,7 +219,9 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _flagged_item()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer_token=_token(
+                SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
+            ),
             key=_KEY,
             reviewed_digest=item.digest,
             overriding=item.blocking_violations,
@@ -232,7 +236,9 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _flagged_item()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer_token=_token(
+                SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
+            ),
             key=_KEY,
             reviewed_digest=item.digest,
             approved=False,
@@ -245,7 +251,9 @@ class TestAnUnverifiedDraftCostsMoreToApprove:
         item = _clean_item()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "test-harness"),
+            officer_token=_token(
+                SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "test-harness"
+            ),
             key=_KEY,
             reviewed_digest=item.digest,
         )
@@ -388,7 +396,7 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
         present for, and the check happens before this module ever sees it."""
         token = issue_officer_token(
             role=SignatoryRole.DEPUTY_DIRECTOR,
-            officer_id="jchristian-smith",
+            officer_id="demo-deputy-director",
             authenticated_via="iap-oidc",
             issued_at=NOW - timedelta(hours=9),
             expires_at=NOW - timedelta(hours=1),
@@ -401,7 +409,7 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
         with pytest.raises(CredentialError, match="placeholder"):
             issue_officer_token(
                 role=SignatoryRole.DEPUTY_DIRECTOR,
-                officer_id="jchristian-smith",
+                officer_id="demo-deputy-director",
                 authenticated_via="unknown",
                 issued_at=NOW,
                 expires_at=NOW + timedelta(hours=1),
@@ -412,7 +420,7 @@ class TestTheOfficerIdentityIsVerifiedNotAsserted:
         item = _clean_item()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "iap-oidc"),
             key=_KEY,
             reviewed_digest=item.digest,
         )
@@ -480,7 +488,9 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError, match="named no "):
             sign(
                 item,
-                officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer_token=_token(
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "iap-oidc"
+                ),
                 key=_KEY,
                 reviewed_digest=item.digest,
                 overriding=("whatever I like",),
@@ -491,7 +501,9 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError):
             sign(
                 item,
-                officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer_token=_token(
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "iap-oidc"
+                ),
                 key=_KEY,
                 reviewed_digest=item.digest,
             )
@@ -502,7 +514,7 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         item = self._findingless()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "iap-oidc"),
             key=_KEY,
             reviewed_digest=item.digest,
             approved=False,
@@ -516,7 +528,9 @@ class TestAGuardThatRejectsWithoutSayingWhyCannotBeOverridden:
         with pytest.raises(ApprovalError, match="not findings the guard made"):
             sign(
                 item,
-                officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith", "iap-oidc"),
+                officer_token=_token(
+                    SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director", "iap-oidc"
+                ),
                 key=_KEY,
                 reviewed_digest=item.digest,
                 overriding=(*item.blocking_violations, "and one I made up"),
@@ -537,7 +551,7 @@ class TestAnExpiredSessionCannotBeReplayed:
         long_ago = datetime(2020, 1, 1, tzinfo=UTC)
         return issue_officer_token(
             role=SignatoryRole.DEPUTY_DIRECTOR,
-            officer_id="jchristian-smith",
+            officer_id="demo-deputy-director",
             authenticated_via="iap-oidc",
             issued_at=long_ago,
             expires_at=long_ago + timedelta(hours=1),
@@ -560,7 +574,7 @@ class TestAnExpiredSessionCannotBeReplayed:
         item = _clean_item()
         decision = sign(
             item,
-            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "jchristian-smith"),
+            officer_token=_token(SignatoryRole.DEPUTY_DIRECTOR, "demo-deputy-director"),
             key=_KEY,
             reviewed_digest=item.digest,
         )

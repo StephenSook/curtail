@@ -142,8 +142,8 @@
     <h2>Approval queue, signed by a named officer</h2>
     <div class="row" style="margin-bottom:14px">
       <div>
-        <label for="officer">Officer</label>
-        <input id="officer" value="j.christian-smith" style="width:190px">
+        <label for="passphrase">Demo passphrase</label>
+        <input id="passphrase" type="password" placeholder="required to sign" style="width:190px">
       </div>
       <div>
         <label for="role">Role</label>
@@ -620,6 +620,9 @@
   // It is short lived and it is authority: putting it in localStorage would leave it
   // sitting on a shared machine after the tab closed.
   const queueBox = document.getElementById("queue");
+  //: Held in memory for the life of the page and never written to storage. The token IS
+  //: authority; the passphrase that obtains it is read from the field at the moment of
+  //: signing and is never copied anywhere else.
   let officerToken = null;
 
   const QUEUE_STATE = {
@@ -774,7 +777,7 @@
     const signButton = queueBox.querySelector("#do-sign");
     signButton.textContent = overriding.length
       ? `Sign, overriding ${overriding.length} finding(s)`
-      : "Sign as the named officer";
+      : "Sign in the selected role";
     signButton.addEventListener("click", () => confirmSign(item, overriding));
     queueBox.querySelector("#cancel-sign").addEventListener("click", loadQueue);
     stamp(queueBox, mine);
@@ -786,7 +789,7 @@
       if (!officerToken) {
         const session = await ask(
           `/api/session?role=${encodeURIComponent(document.getElementById("role").value)}`
-          + `&officer_id=${encodeURIComponent(document.getElementById("officer").value)}`,
+          + `&passphrase=${encodeURIComponent(document.getElementById("passphrase").value)}`,
           { method: "POST" });
         officerToken = session.officer_token;
       }

@@ -33,8 +33,10 @@ from fastapi.responses import HTMLResponse
 
 from curtail_agents.approval import ApprovalError, QueueItem
 from curtail_agents.approval_queue import (
+    DEMO_ROSTER,
     PERSISTENCE,
     QUEUE,
+    DemoLoginRefusedError,
     SigningUnavailableError,
     demo_token,
 )
@@ -331,19 +333,27 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
 
 
 @app.post("/api/session")
-def session(role: str, officer_id: str) -> dict[str, Any]:
-    """The demo login. Converts an identity into a token the domain layer can verify.
+def session(role: str, passphrase: str) -> dict[str, Any]:
+    """The demo login. Gated, and honest about what it establishes.
 
-    The constitution allows an authenticated console via IAP or a demo login so judges
-    can reach it, and this is the demo login. It records itself as one: every token it
-    mints carries `authenticated_via = "demo console login"`, so a signature made through
-    it says on its face how identity was established. `issue_officer_token` refuses
-    placeholder values like "unknown" precisely so that field cannot become decoration.
+    **This endpoint was the worst defect in the project and a review caught it.** It took
+    a role and a free-text officer id and minted a token for anyone who asked, on a public
+    URL with unauthenticated ingress. The signing path verifies a MAC, which proves the
+    SERVER issued the token and nothing about who asked, so the identity behind every
+    signature was whatever a stranger had typed. That is not a weaker administrative
+    record than none; it is a fabricated one.
 
-    Refuses when no signing key is configured rather than falling back to a built-in one.
+    A shared passphrase now gates it, and the identity comes from a fixed roster of ids
+    that are plainly not real people. What this can honestly establish is that somebody
+    holding the passphrase acted in a role, so that is what the record says.
+
+    A real deployment replaces this with IAP and drops the roster.
     """
     try:
-        token = demo_token(role=role, officer_id=officer_id)
+        token = demo_token(role=role, passphrase=passphrase)
+    except DemoLoginRefusedError as exc:
+        # 403, not 401: there is no credential to re-present and no realm to challenge.
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except SigningUnavailableError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (ValueError, CredentialError) as exc:
@@ -351,11 +361,12 @@ def session(role: str, officer_id: str) -> dict[str, Any]:
     return {
         "officer_token": token,
         "role": role,
-        "officer_id": officer_id,
-        "authenticated_via": "demo console login",
+        "officer_id": DEMO_ROSTER[SignatoryRole(role)],
+        "authenticated_via": "demo console login, shared passphrase",
         "disclaimer": (
-            "A demonstration login. It establishes no real authority and every "
-            "signature it produces records that it came from a demo console."
+            "A demonstration login. It establishes that the caller holds a shared "
+            "passphrase and acted in a role, NOT who they are. It confers no real "
+            "authority, and every signature it produces records exactly that."
         ),
     }
 
