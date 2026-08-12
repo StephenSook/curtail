@@ -271,3 +271,97 @@ class TestPlaceholderLabelsAreUnique:
         sample = "| Thing | *(not built yet)* |\n| Thing | *(not built yet)* |\n"
         found = TestAPlaceholderCannotBeOvertakenByReality._placeholders_in(sample)
         assert len(found) == 2, f"discovery collapsed duplicates: {found}"
+
+
+class TestTheFleetClaimIsComputedNotWritten:
+    """The specific drift this file failed to catch.
+
+    The README described the Core, Scribe and Herald as placeholders for a while after
+    they had stopped being placeholders. The existing guards could not see it: they check
+    a `not built yet` MARKER against a registry of file paths, and this was free prose.
+    A stale disclaimer understates the project to a judge, which is the same defect as
+    overclaiming and just as wrong.
+
+    The fix is to make the claim computable. FACTS section 0 inspects each node's source
+    and reports whether it returns its input unchanged, and these tests bind the README
+    and the fact sheet to that computation.
+    """
+
+    @staticmethod
+    def _passthrough_nodes() -> set[str]:
+        import ast
+
+        source = (REPO / "agents" / "src" / "curtail_agents" / "fleet.py").read_text()
+        found: set[str] = set()
+        for node in ast.walk(ast.parse(source)):
+            if not isinstance(node, ast.AsyncFunctionDef):
+                continue
+            if node.name not in {"_sentinel", "_core", "_scribe", "_herald"}:
+                continue
+            body = list(node.body)
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+                body = body[1:]
+            if (
+                len(body) == 1
+                and isinstance(body[0], ast.Return)
+                and isinstance(body[0].value, ast.Name)
+                and body[0].value.id == "node_input"
+            ):
+                found.add(node.name.lstrip("_"))
+        return found
+
+    def test_the_fact_sheet_reports_every_node(self) -> None:
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        assert "## 0. What is wired" in facts
+        for node in ("sentinel", "core", "scribe", "herald"):
+            assert f"`{node}`" in facts, f"{node} is missing from the wired section"
+
+    def test_the_fact_sheet_agrees_with_the_source(self) -> None:
+        """The generated table must match what the AST says, or the generator has
+        drifted from the thing it claims to inspect."""
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        passthrough = self._passthrough_nodes()
+        for node in ("sentinel", "core", "scribe", "herald"):
+            line = _line_containing(facts, f"| `{node}` |")
+            if node in passthrough:
+                assert "pass-through" in line, f"{node} IS a pass-through and the table denies it"
+            else:
+                assert "| yes |" in line, f"{node} acts and the table says otherwise"
+
+    def test_the_readme_calls_no_acting_node_a_placeholder(self, readme: str) -> None:
+        """The exact sentence that went stale. A node that acts must not be described as
+        a placeholder anywhere in the README."""
+        import re
+
+        acting = {"sentinel", "core", "scribe", "herald"} - self._passthrough_nodes()
+        for paragraph in readme.split("\n\n"):
+            lowered = paragraph.lower()
+            if "placeholder" not in lowered:
+                continue
+            # WORD boundaries. A substring test matched "core" inside "score" and
+            # "record", so the Evidence paragraph tripped a guard about the fleet. A
+            # checker that cries wolf is the one nobody reads when it is right.
+            named = {node for node in acting if re.search(rf"\b{node}\b", lowered)}
+            assert not named, (
+                f"the README calls {sorted(named)} a placeholder, and the source says "
+                "they act on their input. A stale disclaimer understates the project to "
+                "a judge."
+            )
+
+    def test_the_readme_points_at_the_generated_section(self, readme: str) -> None:
+        """Non-vacuity for the pair above: if the README stopped citing the computed
+        source, the two could agree by coincidence rather than by construction."""
+        assert "FACTS section 0" in readme
+
+    def test_no_row_claims_a_component_the_code_never_calls(self, readme: str) -> None:
+        """Model Armor was listed as `Native` while nothing in the shipped code called
+        it. A governance table is read as a list of what is running."""
+        import re
+
+        source = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+        armor_line = _line_containing(readme, "| Model Armor |")
+        calls_armor = bool(re.search(r"model[_-]?armor", source, re.IGNORECASE))
+        if not calls_armor:
+            assert "NOT called" in armor_line, (
+                "nothing in the shipped code calls Model Armor and the table does not say so"
+            )

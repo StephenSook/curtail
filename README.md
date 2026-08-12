@@ -42,7 +42,7 @@ The Fortified Enterprise Fleet track names seven platform components. This proje
 |---|---|
 | Agent Registry | **Reachable, not yet populated.** The API is enabled and `agents.list` returns 200 on a non-organization account ([ADR 0001](docs/adr/0001-governance-platform.md)). The only entry is the registry's own system agent; no Curtail agent is registered yet |
 | Agent Identity | Native. API confirmed, write path scheduled |
-| Model Armor | Native. Template `curtail-scribe-spike` provisioned in us-central1, verified against the live project |
+| Model Armor | **Provisioned during the spike, NOT called by the shipped Scribe.** A template was created in us-central1 and confirmed at the time; the drafting path does not invoke it, and `gcloud model-armor templates list` now returns PERMISSION_DENIED on this account, so the template cannot be re-verified either. The injection defence that IS wired is application-side: untrusted order text is normalised, matched against injection patterns, fenced and stripped from the payload before it can reach a prompt ([sanitize.py](agents/src/curtail_agents/sanitize.py)), and every drafted citation is checked against a verified allowlist ([routing.py](agents/src/curtail_agents/routing.py)). Google's own guidance is never to rely on a single layer; what this row must not do is imply a layer that is not running |
 | Agent Runtime / Memory Bank | **Partial.** Weeks-long session state is implemented and persists across a process restart via ADK `DatabaseSessionService` ([ledger.py](agents/src/curtail_agents/ledger.py)). Vertex AI Agent Engine hosting *(not built yet)* |
 | Agent Observability | OpenTelemetry to Cloud Trace, Logging, Monitoring *(not built yet)* |
 | Agent Gateway | **Substituted.** No first-party API is exposed to a non-organization account. Its role is covered by per-agent least-privilege service accounts, API Gateway, egress allowlisting, and Model Armor called inline. Reasoning in [ADR 0001](docs/adr/0001-governance-platform.md) |
@@ -79,9 +79,36 @@ been read.
 
 **The fleet.** An ADK `Workflow` graph, Gage Sentinel to Allocation Core to Order
 Scribe to Herald, with the edges enforcing that no drafted order exists without a
-computed recommendation behind it. The Sentinel is wired to real logic and
-classifies real readings; the Core, Scribe and Herald are labelled placeholders in
-their own docstrings, because their guards exist and their handlers do not.
+computed recommendation behind it. **All four nodes act on their input**, and that
+sentence is generated rather than written: [FACTS section 0](docs/FACTS.md) inspects
+each node's source and reports whether it returns its input unchanged.
+
+That check exists because this section went stale in the understating direction and no
+guard could see it. The claim was prose, the guards checked markers, and a description
+outlived the thing it described. A stale disclaimer misleads a judge exactly as much as
+an inflated claim does.
+
+The Sentinel classifies real readings against the operative minimum. The Core runs
+the deterministic allocation on the Board's own rights table and emits a per-right
+justification ledger. The Scribe drafts the order through Gemini 3.5 on Vertex and is
+never trusted for a fact: it states its claims separately and they are checked against
+the Core's ledger, retried once with the violation fed back, then escalated flagged
+UNVERIFIED. Herald routes legal service and notification as two state machines,
+because an email a provider calls delivered is not service under Water Code 1121.
+
+**The rights table.** 87 application numbers read out of the attachment to Shasta
+Addendum 6; 85 parsed, 71 placed on the priority ladder, and 14 refused placement
+because the record states no priority precise enough to establish decree membership.
+Owner names are never read, let alone stored: the rows anchor on the application
+number, which is also the more correct anchor because the printed table blanks the
+owner cell on continuation rows. Counts and the source hash in
+[FACTS section 0](docs/FACTS.md).
+
+**The signature.** A drafted order lands in an approval queue and is signed by a named
+officer, server side. The wrong officer's signature is none, an approval binds to the
+digest of the exact bytes reviewed, and an unverified draft cannot be approved without
+naming every finding being overridden. The queue lives in the serving process and says
+so on every response, because no database is wired.
 
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
@@ -106,6 +133,15 @@ the exact draft reviewed, the officer identity comes from an HMAC-verified token
 rather than a caller-supplied string, the clock is read at the point of decision so
 an expired session cannot sign, and an unverified draft cannot be approved without
 naming every finding being overridden.
+
+**The demo login establishes a role, not a person, and says so on every record.** It
+is gated by a shared passphrase with no default, and the identity comes from a fixed
+roster of obviously synthetic ids. It shipped ungated for one revision: a review found
+that any caller could mint a Deputy Director token with a name of their choosing, which
+makes every signature behind it a fabricated record rather than a weak one. A real
+deployment replaces this with IAP and drops the roster. No real official's name appears
+anywhere in this system's demo data, because a fabricated order signed in a real
+person's name is impersonation whatever disclaimer sits beside it.
 
 **Evidence.** [docs/evals/](docs/evals/) carries an ADK eval set built from the
 Board's own record, and an eval result that names which metrics were measured and
