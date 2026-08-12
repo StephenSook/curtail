@@ -65,6 +65,15 @@ def _schedule_rows(basin: Basin) -> list[str]:
 #: The fleet nodes, in the order the graph runs them.
 FLEET_NODES = ("_sentinel", "_core", "_scribe", "_herald")
 
+#: The domain function each node wraps. The nodes are ADK plumbing; these hold the logic,
+#: and the HTTP surface calls them directly rather than running the graph.
+NODE_LOGIC = {
+    "_sentinel": "evaluate",
+    "_core": "recommend",
+    "_scribe": "draft_order",
+    "_herald": "deliver_order",
+}
+
 
 def _is_passthrough(fn: ast.AST) -> bool:
     """Whether a node returns its input unchanged, ignoring its docstring.
@@ -82,6 +91,23 @@ def _is_passthrough(fn: ast.AST) -> bool:
         and isinstance(body[0].value, ast.Name)
         and body[0].value.id == "node_input"
     )
+
+
+def _http_reaches() -> set[str]:
+    """Which node's logic the deployed HTTP surface actually invokes.
+
+    Computed, because the hand-written version of this sentence was wrong twice over: it
+    said the surface calls "the four node functions", and it calls THREE domain functions
+    that the nodes wrap, while `deliver_order` has no call site at all. A count written by
+    hand in a generated file is the one line nothing checks.
+    """
+    tree = ast.parse((REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text())
+    called = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    return {node for node, fn in NODE_LOGIC.items() if fn in called}
 
 
 def _fleet_status() -> list[tuple[str, bool]]:
@@ -145,13 +171,21 @@ def build() -> str:
     add("Computed from the source, not described. Each node is inspected for whether it")
     add("returns its input unchanged.")
     add("")
-    add("| Fleet node | Acts on its input |")
-    add("|---|---|")
+    reached = _http_reaches()
+    add("| Fleet node | Acts on its input | Its logic runs on the HTTP surface |")
+    add("|---|---|---|")
     for name, passthrough in fleet:
-        add(f"| `{name.lstrip('_')}` | {'no, it is a pass-through' if passthrough else 'yes'} |")
+        acts = "no, it is a pass-through" if passthrough else "yes"
+        via = NODE_LOGIC[name]
+        http = f"yes, via `{via}`" if name in reached else f"**no**, `{via}` is never called"
+        add(f"| `{name.lstrip('_')}` | {acts} | {http} |")
     add("")
     acting = sum(1 for _, p in fleet if not p)
-    add(f"{acting} of {len(fleet)} nodes act on their input.")
+    add(
+        f"{acting} of {len(fleet)} nodes act on their input, and "
+        f"{len(reached)} of {len(fleet)} have their logic reached by the deployed HTTP"
+    )
+    add("surface.")
     add("")
     add(
         "**The rights table.** Read from the Board's own attachment to "
@@ -178,9 +212,21 @@ def build() -> str:
     add("")
     add("**Not wired in the DEPLOYED service, named so it cannot be implied away.**")
     add("")
-    add("- The HTTP surface calls the four node functions directly and does not construct")
-    add("  the ADK runner, so the graph is exercised by the test suite rather than by the")
+    unreached = sorted(n.lstrip("_") for n in NODE_LOGIC if n not in reached)
+    reached_fns = sorted(NODE_LOGIC[n] for n in NODE_LOGIC if n in reached)
+    add(
+        f"- The HTTP surface calls {len(reached_fns)} domain functions directly "
+        f"({', '.join(f'`{f}`' for f in reached_fns)}) plus the approval queue, and does"
+    )
+    add("  not construct the ADK runner. Those are the functions the nodes WRAP, not the")
+    add("  node functions, so the graph is exercised by the test suite rather than by the")
     add("  console. Wiring the HTTP path through the graph is the next build task.")
+    if unreached:
+        add(
+            f"- {', '.join(f'`{n}`' for n in unreached)} is not reachable through the "
+            "console at all, so its"
+        )
+        add("  behaviour is demonstrable only by the test suite and the chaos drill.")
     add("- No session service is constructed anywhere in `agents/src`, so no season state")
     add("  persists in production. A test injects a real `DatabaseSessionService` and")
     add("  proves the ledger round-trips across a restart, which is a different claim.")

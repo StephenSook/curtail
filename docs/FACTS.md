@@ -17,14 +17,15 @@ published artifact ends up contradicting its own repository.
 Computed from the source, not described. Each node is inspected for whether it
 returns its input unchanged.
 
-| Fleet node | Acts on its input |
-|---|---|
-| `sentinel` | yes |
-| `core` | yes |
-| `scribe` | yes |
-| `herald` | yes |
+| Fleet node | Acts on its input | Its logic runs on the HTTP surface |
+|---|---|---|
+| `sentinel` | yes | yes, via `evaluate` |
+| `core` | yes | yes, via `recommend` |
+| `scribe` | yes | yes, via `draft_order` |
+| `herald` | yes | **no**, `deliver_order` is never called |
 
-4 of 4 nodes act on their input.
+4 of 4 nodes act on their input, and 3 of 4 have their logic reached by the deployed HTTP
+surface.
 
 **The rights table.** Read from the Board's own attachment to Order WR 2024-0006-DWR, Addendum 6, Updated Attachment, issued 2026-06-16, sha256 `e65b1e5dc5474d22...`.
 
@@ -35,9 +36,12 @@ returns its input unchanged.
 
 **Not wired in the DEPLOYED service, named so it cannot be implied away.**
 
-- The HTTP surface calls the four node functions directly and does not construct
-  the ADK runner, so the graph is exercised by the test suite rather than by the
+- The HTTP surface calls 3 domain functions directly (`draft_order`, `evaluate`, `recommend`) plus the approval queue, and does
+  not construct the ADK runner. Those are the functions the nodes WRAP, not the
+  node functions, so the graph is exercised by the test suite rather than by the
   console. Wiring the HTTP path through the graph is the next build task.
+- `herald` is not reachable through the console at all, so its
+  behaviour is demonstrable only by the test suite and the chaos drill.
 - No session service is constructed anywhere in `agents/src`, so no season state
   persists in production. A test injects a real `DatabaseSessionService` and
   proves the ledger round-trips across a restart, which is a different claim.
