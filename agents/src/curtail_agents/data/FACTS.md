@@ -12,6 +12,32 @@ published artifact ends up contradicting its own repository.
 
 ---
 
+## 0. What is wired
+
+Computed from the source, not described. Each node is inspected for whether it
+returns its input unchanged.
+
+| Fleet node | Acts on its input |
+|---|---|
+| `sentinel` | yes |
+| `core` | yes |
+| `scribe` | yes |
+| `herald` | yes |
+
+4 of 4 nodes act on their input.
+
+**The rights table.** Read from the Board's own attachment to Order WR 2024-0006-DWR, Addendum 6, Updated Attachment, issued 2026-06-16, sha256 `e65b1e5dc5474d22...`.
+
+- 87 application numbers seen
+- 85 rows parsed, 1 imprecise, 0 ambiguous, 1 unparsed
+- 71 placed on the priority ladder (Tier A: 65, Tier B: 6), 14 refused placement because the record
+  states no priority precise enough to establish decree membership
+
+**Not wired, and named so it cannot be implied away:** no database (the approval
+queue lives in the serving process), no Pub/Sub broker, no delivery vendor (the
+transport is explicitly synthetic and every report says so), no OpenTelemetry
+export, and no Curtail agent registered in Agent Registry.
+
 ## 1. The backtest
 
 > Curtail reproduces the direction of 6 of 6 scored historical curtailment decisions (0 refused, 5 excluded before scoring).

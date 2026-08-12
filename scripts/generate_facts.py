@@ -18,6 +18,7 @@ Check without writing:  uv run python scripts/generate_facts.py --check
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import sys
 from pathlib import Path
@@ -61,6 +62,37 @@ def _schedule_rows(basin: Basin) -> list[str]:
     return rows
 
 
+#: The fleet nodes, in the order the graph runs them.
+FLEET_NODES = ("_sentinel", "_core", "_scribe", "_herald")
+
+
+def _is_passthrough(fn: ast.AST) -> bool:
+    """Whether a node returns its input unchanged, ignoring its docstring.
+
+    Computed rather than described. The README said three of these were placeholders
+    for a while after they stopped being placeholders, and prose is the one thing no
+    guard could check. A statement about the code that IS the code cannot drift.
+    """
+    body = list(fn.body)  # type: ignore[attr-defined]
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        body = body[1:]
+    return (
+        len(body) == 1
+        and isinstance(body[0], ast.Return)
+        and isinstance(body[0].value, ast.Name)
+        and body[0].value.id == "node_input"
+    )
+
+
+def _fleet_status() -> list[tuple[str, bool]]:
+    tree = ast.parse((REPO / "agents" / "src" / "curtail_agents" / "fleet.py").read_text())
+    found: dict[str, bool] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AsyncFunctionDef) and node.name in FLEET_NODES:
+            found[node.name] = _is_passthrough(node)
+    return [(name, found[name]) for name in FLEET_NODES if name in found]
+
+
 def build() -> str:
     manifest: dict[str, Any] = json.loads(MANIFEST.read_text())
     status = manifest["extraction_status"]
@@ -72,6 +104,11 @@ def build() -> str:
 
     lines: list[str] = []
     add = lines.append
+
+    fleet = _fleet_status()
+    rights_record: dict[str, Any] = json.loads(
+        (REPO / "data" / "rights_shasta_addendum6.json").read_text()
+    )
 
     add("# FACTS")
     add("")
@@ -94,6 +131,55 @@ def build() -> str:
     # and costs nothing.
     add("")
     add("---")
+    add("")
+
+    # ---- 0. What is wired -------------------------------------------------------
+    #
+    # SYSTEM facts, computed, because the domain facts were generated and the system
+    # claims were prose, and it was the prose that drifted: the README described three
+    # fleet nodes as placeholders for a while after they had stopped being placeholders.
+    # A stale disclaimer understates the project to a judge, which is the same defect as
+    # overclaiming and just as wrong.
+    add("## 0. What is wired")
+    add("")
+    add("Computed from the source, not described. Each node is inspected for whether it")
+    add("returns its input unchanged.")
+    add("")
+    add("| Fleet node | Acts on its input |")
+    add("|---|---|")
+    for name, passthrough in fleet:
+        add(f"| `{name.lstrip('_')}` | {'no, it is a pass-through' if passthrough else 'yes'} |")
+    add("")
+    acting = sum(1 for _, p in fleet if not p)
+    add(f"{acting} of {len(fleet)} nodes act on their input.")
+    add("")
+    add(
+        "**The rights table.** Read from the Board's own attachment to "
+        f"{rights_record['source']['document']}, issued "
+        f"{rights_record['source']['issued']}, sha256 "
+        f"`{rights_record['source']['sha256'][:16]}...`."
+    )
+    add("")
+    accounting = rights_record["accounting"]
+    add(f"- {accounting['application_numbers_seen']} application numbers seen")
+    add(
+        f"- {accounting['parsed']} rows parsed, "
+        f"{accounting['imprecise']} imprecise, {accounting['ambiguous']} ambiguous, "
+        f"{accounting['unparsed']} unparsed"
+    )
+    placement = rights_record["ladder_placement_counts"]
+    placed = sum(placement.values())
+    add(
+        f"- {placed} placed on the priority ladder ("
+        + ", ".join(f"{k}: {v}" for k, v in sorted(placement.items()))
+        + f"), {len(rights_record['unplaceable'])} refused placement because the record"
+    )
+    add("  states no priority precise enough to establish decree membership")
+    add("")
+    add("**Not wired, and named so it cannot be implied away:** no database (the approval")
+    add("queue lives in the serving process), no Pub/Sub broker, no delivery vendor (the")
+    add("transport is explicitly synthetic and every report says so), no OpenTelemetry")
+    add("export, and no Curtail agent registered in Agent Registry.")
     add("")
 
     add("## 1. The backtest")
