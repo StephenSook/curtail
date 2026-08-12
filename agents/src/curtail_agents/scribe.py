@@ -351,6 +351,7 @@ def draft_order(
             violations.append(feedback)
             guard = GuardResult(
                 verdict=Verdict.RETRY if attempt < MAX_ATTEMPTS else Verdict.ESCALATE,
+                other_findings=(feedback,),
                 reason=feedback,
             )
             continue
@@ -367,6 +368,7 @@ def draft_order(
             violations.append(divergence)
             guard = GuardResult(
                 verdict=Verdict.RETRY if attempt < MAX_ATTEMPTS else Verdict.ESCALATE,
+                other_findings=(divergence,),
                 reason=divergence,
             )
             continue

@@ -184,6 +184,16 @@ class GuardResult:
     missing_rights: tuple[str, ...] = field(default_factory=tuple)
     extent_mismatch: str | None = None
     stripped_citations: tuple[str, ...] = field(default_factory=tuple)
+    #: Findings that are real but fit none of the categories above: the prose diverging
+    #: from the stated claims, the wrong basin's ladder vocabulary, an answer that could
+    #: not be read as claims at all.
+    #:
+    #: They are NAMED rather than left to the reason string because `approval.sign`
+    #: fails closed on an unverified draft whose guard named no specific finding, and it
+    #: is right to: there would be nothing for an officer to acknowledge. Without this
+    #: field those drafts were permanently unsignable and the console offered a button
+    #: that could never succeed, which is the dead end this project has a rule about.
+    other_findings: tuple[str, ...] = field(default_factory=tuple)
     reason: str = ""
 
     @property

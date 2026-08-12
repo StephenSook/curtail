@@ -473,3 +473,84 @@ class TestAModelOutageIsNotADraft:
 
         with pytest.raises(ScribeUnavailableError, match="returned no text"):
             draft_order(recommendation, generate=call)
+
+
+class TestAnEscalatedDraftIsNotADeadEnd:
+    """`approval.sign` fails closed on an unverified draft whose guard named no specific
+    finding, and it is right to: there would be nothing for an officer to acknowledge.
+
+    That made every Scribe-level refusal permanently unsignable, because those
+    GuardResults carried a reason and no named finding. The console offered a Sign button
+    that could never succeed, which is the same dead end this project already has a rule
+    about from Herald's escalations.
+
+    Found on the DEPLOYED service: a real draft escalated for the wrong basin's ladder
+    vocabulary and could not then be signed, overridden, or resolved by anything except
+    redrafting.
+    """
+
+    def test_a_cross_basin_refusal_names_its_finding(self, recommendation: Recommendation) -> None:
+        bad = sound_claims(
+            recommendation,
+            order_text="DRAFT ORDER under 23 CCR 875 curtailing all post-1914 rights: "
+            + ", ".join(recommendation.rights_reached),
+        )
+        outcome = draft_order(recommendation, generate=answering(bad, bad))
+        assert outcome.guard.other_findings, (
+            "the guard explained itself and named nothing, so no officer can weigh it"
+        )
+        assert any("ladder vocabulary" in f for f in outcome.guard.other_findings)
+
+    def test_a_prose_divergence_names_its_finding(self, recommendation: Recommendation) -> None:
+        bad = sound_claims(
+            recommendation,
+            order_text="DRAFT ORDER under 23 CCR 875. Curtailment applies as computed.",
+        )
+        outcome = draft_order(recommendation, generate=answering(bad, bad))
+        assert outcome.guard.other_findings
+
+    def test_an_unreadable_answer_names_its_finding(self, recommendation: Recommendation) -> None:
+        outcome = draft_order(recommendation, generate=answering("not json", "not json"))
+        assert outcome.guard.other_findings
+
+    def test_the_named_finding_reaches_the_queue_and_can_be_overridden(
+        self, recommendation: Recommendation
+    ) -> None:
+        """The whole point. 875(b)(3) preserves the discretion to decline, narrow or
+        proceed, and an officer cannot exercise it over a finding nobody wrote down."""
+        import os
+        from datetime import UTC, datetime
+
+        from curtail_agents.approval import QueueItem
+        from curtail_agents.approval_queue import ApprovalQueue, demo_token
+        from curtail_core.clocks import SignatoryRole
+
+        os.environ["CURTAIL_SIGNING_KEY"] = "k" * 48
+        try:
+            bad = sound_claims(
+                recommendation,
+                order_text="DRAFT ORDER under 23 CCR 875 curtailing all post-1914 rights: "
+                + ", ".join(recommendation.rights_reached),
+            )
+            outcome = draft_order(recommendation, generate=answering(bad, bad))
+            item = QueueItem(
+                order_id="DRAFT-TEST",
+                draft_text=outcome.text,
+                requires_role=SignatoryRole.DEPUTY_DIRECTOR,
+                guard=outcome.guard,
+                created_at=datetime.now(UTC),
+            )
+            queue = ApprovalQueue()
+            queue.add(item)
+            assert item.blocking_violations, "nothing reached the queue for an officer to see"
+
+            decision = queue.decide(
+                "DRAFT-TEST",
+                officer_token=demo_token(role="deputy_director", officer_id="j.officer"),
+                reviewed_digest=item.digest,
+                overriding=item.blocking_violations,
+                note="prose corrected by hand before issue",
+            )
+            assert decision.is_override is True
+        finally:
+            os.environ.pop("CURTAIL_SIGNING_KEY", None)
