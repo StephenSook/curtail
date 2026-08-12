@@ -32,6 +32,13 @@ dev = [
     # rest on a parser with a known weakness.
     "defusedxml>=0.7.1,<0.8",
     "pytest-asyncio>=1.4.0,<2",
+    # Pulled in by the ledger's persistence test, which injects a real ADK
+    # DatabaseSessionService. They were declared as RUNTIME dependencies of the agents
+    # package and nothing in agents/src imports either: the deployed service constructs
+    # no session service at all. A runtime dependency nothing runs is a claim about the
+    # system, checkable by anyone in one grep.
+    "sqlalchemy>=2.0.51,<2.1",
+    "aiosqlite>=0.21,<0.22",
     # Drives the console in a real Chromium. The defects it covers live in browser
     # control flow (an unguarded await, a fallback on a missing field, two responses
     # racing to write one element) and no in-process client reaches any of them.

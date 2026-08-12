@@ -192,7 +192,11 @@ class TestAPlaceholderCannotBeOvertakenByReality:
             if not (REPO / artifact).exists():
                 continue
             line = _line_containing(readme, marker)
-            assert "**Partial.**" in line or "not built yet" not in line, (
+            # Prefix, not the exact literal. The guard wants a "Partial" QUALIFIER on
+            # a line carrying a "not built yet" marker, and it was matching
+            # "**Partial.**" character for character, so rewording the qualifier to say
+            # more broke a check about whether the qualifier was there at all.
+            assert "**Partial" in line or "not built yet" not in line, (
                 f"{marker!r} is marked 'not built yet' with no qualifier, but "
                 f"{artifact} exists. A stale disclaimer understates the project to "
                 "a judge, which is the same defect as overclaiming and just as "
@@ -365,3 +369,71 @@ class TestTheFleetClaimIsComputedNotWritten:
             assert "NOT called" in armor_line, (
                 "nothing in the shipped code calls Model Armor and the table does not say so"
             )
+
+
+class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
+    """The contradiction a review found after the first audit pass.
+
+    The README said weeks-long session state "persists across a process restart via ADK
+    DatabaseSessionService", citing ledger.py. That class appears nowhere in agents/src:
+    it is constructed by a TEST, which injects one and proves the ledger round-trips. The
+    deployed service constructs no session service at all, so it persists nothing.
+
+    A neighbouring FACTS line then said "no database", and the two shipped together. The
+    contradiction was the symptom; the cause was a claim about the DEPLOYED SERVICE that
+    only a test supports.
+    """
+
+    @staticmethod
+    def _api_source() -> str:
+        return (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+
+    @staticmethod
+    def _shipped_source() -> str:
+        return "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+
+    def test_the_readme_says_the_http_path_bypasses_the_graph(self, readme: str) -> None:
+        """40 percent of this track is whether the agent acts end to end. If the console
+        does not run the graph, the honest sentence has that qualifier in it."""
+        runs_graph = "build_fleet_runner" in self._api_source()
+        if not runs_graph:
+            assert "does not construct the ADK runner" in readme, (
+                "api.py never builds the fleet runner and the README does not say so"
+            )
+
+    def test_no_session_service_claim_beyond_what_the_source_constructs(self, readme: str) -> None:
+        constructs = "DatabaseSessionService(" in self._shipped_source()
+        if not constructs:
+            assert "Nothing in `agents/src` constructs a session service" in readme, (
+                "the README claims persistence the shipped service cannot provide"
+            )
+
+    def test_the_fact_sheet_agrees_with_the_readme_about_persistence(self) -> None:
+        """The two artifacts must not be able to contradict each other, which is what
+        happened: one said state persists, the other said there is no database."""
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        assert "No session service is constructed anywhere in `agents/src`" in facts
+        assert "no database" not in facts.lower().replace("no database, and", ""), (
+            "the fact sheet still makes the blunt claim that contradicts the ledger test"
+        )
+
+    def test_no_runtime_dependency_is_used_only_by_tests(self) -> None:
+        """sqlalchemy and aiosqlite were runtime dependencies of the agents package and
+        nothing in agents/src imported either. A runtime dependency nothing runs is a
+        claim about the system, checkable by anyone in one grep."""
+        import re
+
+        manifest = (REPO / "agents" / "pyproject.toml").read_text()
+        block = manifest.split("dependencies = [", 1)[1].split("]", 1)[0]
+        declared = {
+            match.group(1).replace("-", "_")
+            for match in re.finditer(r'"([A-Za-z][A-Za-z0-9_-]+)', block)
+        }
+        source = self._shipped_source()
+        # Only the ones this test knows how to check by import name.
+        for name in ("sqlalchemy", "aiosqlite"):
+            if name in declared:
+                assert re.search(rf"\b{name}\b", source), (
+                    f"{name} is a runtime dependency of the agents package and nothing "
+                    "in agents/src imports it"
+                )
