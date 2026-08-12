@@ -165,6 +165,7 @@ class QueueItem:
         if self.guard.extent_mismatch:
             problems.append(f"extent mismatch: {self.guard.extent_mismatch}")
         problems.extend(f"stripped citation: {c}" for c in self.guard.stripped_citations)
+        problems.extend(self.guard.other_findings)
         return tuple(problems)
 
 
