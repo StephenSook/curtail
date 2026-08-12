@@ -33,7 +33,7 @@ DURING = ISSUED + timedelta(hours=1)
 def _token(**overrides: object) -> str:
     args: dict[str, object] = {
         "role": SignatoryRole.DEPUTY_DIRECTOR,
-        "officer_id": "jchristian-smith",
+        "officer_id": "demo-deputy-director",
         "authenticated_via": "iap-oidc",
         "issued_at": ISSUED,
         "expires_at": EXPIRES,
@@ -49,7 +49,7 @@ class TestAVerifiedTokenYieldsAnOfficer:
         every attack test in this file."""
         officer = verify_officer_token(_token(), key=KEY, now=DURING)
         assert officer.role is SignatoryRole.DEPUTY_DIRECTOR
-        assert officer.officer_id == "jchristian-smith"
+        assert officer.officer_id == "demo-deputy-director"
         assert officer.authenticated_via == "iap-oidc"
 
     def test_the_claim_carries_its_own_lifetime(self) -> None:
@@ -174,7 +174,7 @@ class TestReplayAndExpiry:
             {
                 "aud": "some.other.service",
                 "role": SignatoryRole.DEPUTY_DIRECTOR.value,
-                "officer_id": "jchristian-smith",
+                "officer_id": "demo-deputy-director",
                 "authenticated_via": "iap-oidc",
                 "iat": ISSUED.isoformat(),
                 "exp": EXPIRES.isoformat(),

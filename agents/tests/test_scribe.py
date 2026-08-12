@@ -526,6 +526,7 @@ class TestAnEscalatedDraftIsNotADeadEnd:
         from curtail_core.clocks import SignatoryRole
 
         os.environ["CURTAIL_SIGNING_KEY"] = "k" * 48
+        os.environ["CURTAIL_DEMO_PASSPHRASE"] = "test-passphrase"
         try:
             bad = sound_claims(
                 recommendation,
@@ -546,7 +547,7 @@ class TestAnEscalatedDraftIsNotADeadEnd:
 
             decision = queue.decide(
                 "DRAFT-TEST",
-                officer_token=demo_token(role="deputy_director", officer_id="j.officer"),
+                officer_token=demo_token(role="deputy_director", passphrase="test-passphrase"),
                 reviewed_digest=item.digest,
                 overriding=item.blocking_violations,
                 note="prose corrected by hand before issue",
@@ -554,3 +555,4 @@ class TestAnEscalatedDraftIsNotADeadEnd:
             assert decision.is_override is True
         finally:
             os.environ.pop("CURTAIL_SIGNING_KEY", None)
+            os.environ.pop("CURTAIL_DEMO_PASSPHRASE", None)
