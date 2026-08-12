@@ -787,10 +787,17 @@
     const mine = ++generation.queue;
     try {
       if (!officerToken) {
-        const session = await ask(
-          `/api/session?role=${encodeURIComponent(document.getElementById("role").value)}`
-          + `&passphrase=${encodeURIComponent(document.getElementById("passphrase").value)}`,
-          { method: "POST" });
+        // BODY, never the query string. A URL reaches the access log, the browser
+        // history, every proxy in between, and the Referer header on the next outbound
+        // link. A credential in a URL is a credential you have published.
+        const session = await ask("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: document.getElementById("role").value,
+            passphrase: document.getElementById("passphrase").value,
+          }),
+        });
         officerToken = session.officer_token;
       }
       await ask(`/api/queue/${encodeURIComponent(item.order_id)}/sign`, {
