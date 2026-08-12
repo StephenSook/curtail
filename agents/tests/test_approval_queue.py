@@ -100,7 +100,7 @@ class TestNoKeyMeansNoSignature:
         monkeypatch.setenv(DEMO_PASSPHRASE_ENV, PASSPHRASE)
         monkeypatch.delenv(SIGNING_KEY_ENV, raising=False)
         response = TestClient(app).post(
-            f"/api/session?role=deputy_director&passphrase={PASSPHRASE}"
+            "/api/session", json={"role": "deputy_director", "passphrase": PASSPHRASE}
         )
         assert response.status_code == 503
         assert SIGNING_KEY_ENV in response.json()["detail"]
@@ -177,9 +177,9 @@ class TestTheApiCarriesTheDecisionRatherThanMakingIt:
         placeholders like "unknown" so a record can always say how it knew who signed."""
         client = TestClient(app)
         queued = clean_queue.add(item())
-        token = client.post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}").json()[
-            "officer_token"
-        ]
+        token = client.post(
+            "/api/session", json={"role": "deputy_director", "passphrase": PASSPHRASE}
+        ).json()["officer_token"]
 
         response = client.post(
             f"/api/queue/{queued.order_id}/sign",
@@ -207,9 +207,9 @@ class TestTheApiCarriesTheDecisionRatherThanMakingIt:
         """These are decisions the domain layer made, not failures of the service."""
         client = TestClient(app)
         queued = clean_queue.add(item())
-        wrong = client.post(f"/api/session?role=executive_director&passphrase={PASSPHRASE}").json()[
-            "officer_token"
-        ]
+        wrong = client.post(
+            "/api/session", json={"role": "executive_director", "passphrase": PASSPHRASE}
+        ).json()["officer_token"]
         response = client.post(
             f"/api/queue/{queued.order_id}/sign",
             json={"officer_token": wrong, "reviewed_digest": queued.digest},
@@ -289,7 +289,9 @@ class TestTheDemoLoginIsNotAnOpenDoor:
             demo_token(role="deputy_director", passphrase=attempt)
 
     def test_the_endpoint_returns_403_and_no_token(self, keyed: None) -> None:
-        response = TestClient(app).post("/api/session?role=deputy_director&passphrase=guess")
+        response = TestClient(app).post(
+            "/api/session", json={"role": "deputy_director", "passphrase": "guess"}
+        )
         assert response.status_code == 403
         assert "officer_token" not in response.json()
 
@@ -317,7 +319,7 @@ class TestTheDemoLoginIsNotAnOpenDoor:
         sees the first and the record keeps the second."""
         body = (
             TestClient(app)
-            .post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}")
+            .post("/api/session", json={"role": "deputy_director", "passphrase": PASSPHRASE})
             .json()
         )
         assert body["officer_id"] == DEMO_ROSTER[SignatoryRole.DEPUTY_DIRECTOR]
@@ -335,8 +337,60 @@ class TestTheDemoLoginIsNotAnOpenDoor:
         happened, or it is decoration on a fabricated record."""
         body = (
             TestClient(app)
-            .post(f"/api/session?role=deputy_director&passphrase={PASSPHRASE}")
+            .post("/api/session", json={"role": "deputy_director", "passphrase": PASSPHRASE})
             .json()
         )
         assert "shared passphrase" in body["authenticated_via"]
         assert "NOT who they are" in body["disclaimer"]
+
+
+class TestTheCredentialNeverTravelsInAUrl:
+    """It shipped as a query parameter for one revision and a review caught it.
+
+    Cloud Run records the full request URL in its access log, so the live passphrase was
+    sitting in plaintext in Cloud Logging. It would also reach browser history, any
+    intervening proxy, and the Referer header on the next outbound link. Verified in the
+    logs before fixing, and the exposed value was rotated.
+
+    A credential in a URL is a credential you have published.
+    """
+
+    def test_the_query_string_form_no_longer_works(self, keyed: None) -> None:
+        response = TestClient(app).post(
+            f"/api/session?role=deputy_director&passphrase={PASSPHRASE}"
+        )
+        assert response.status_code == 422, "the endpoint still accepts a credential from the URL"
+        assert "officer_token" not in response.json()
+
+    def test_the_body_form_works(self, keyed: None) -> None:
+        """Non-vacuity: an endpoint that refused everything would pass the test above."""
+        response = TestClient(app).post(
+            "/api/session", json={"role": "deputy_director", "passphrase": PASSPHRASE}
+        )
+        assert response.status_code == 200
+        assert response.json()["officer_token"]
+
+    @pytest.mark.parametrize(
+        ("body", "expected"),
+        [
+            ({"passphrase": PASSPHRASE}, "a role is required"),
+            ({"role": "deputy_director"}, "a passphrase is required"),
+            ({"role": "", "passphrase": PASSPHRASE}, "a role is required"),
+        ],
+    )
+    def test_a_malformed_body_is_refused(
+        self, keyed: None, body: dict[str, str], expected: str
+    ) -> None:
+        response = TestClient(app).post("/api/session", json=body)
+        assert response.status_code == 422
+        assert expected in response.json()["detail"]
+
+    def test_the_console_sends_it_in_the_body(self) -> None:
+        """The other half. A server that only accepts a body is no help if the page it
+        serves still puts the secret in a URL."""
+        from curtail_agents.api import CONSOLE
+
+        page = CONSOLE.read_text()
+        assert "passphrase=${" not in page, "the console builds a URL containing the secret"
+        assert '"/api/session", {' in page or '"/api/session",' in page
+        assert "JSON.stringify({" in page

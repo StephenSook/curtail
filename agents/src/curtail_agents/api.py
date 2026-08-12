@@ -333,7 +333,7 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
 
 
 @app.post("/api/session")
-def session(role: str, passphrase: str) -> dict[str, Any]:
+def session(body: dict[str, Any]) -> dict[str, Any]:
     """The demo login. Gated, and honest about what it establishes.
 
     **This endpoint was the worst defect in the project and a review caught it.** It took
@@ -348,7 +348,21 @@ def session(role: str, passphrase: str) -> dict[str, Any]:
     holding the passphrase acted in a role, so that is what the record says.
 
     A real deployment replaces this with IAP and drops the roster.
+
+    **The passphrase arrives in the BODY, never the query string.** It shipped as a query
+    parameter for one revision and a review caught it: Cloud Run records the full request
+    URL in its access log, so the live secret was sitting in plaintext in Cloud Logging,
+    and it would also reach browser history, any intervening proxy, and Referer headers on
+    outbound links. Verified in the logs before fixing, and the exposed value was rotated.
+    A credential in a URL is a credential you have published.
     """
+    role = body.get("role")
+    passphrase = body.get("passphrase")
+    if not isinstance(role, str) or not role.strip():
+        raise HTTPException(status_code=422, detail="a role is required")
+    if not isinstance(passphrase, str):
+        raise HTTPException(status_code=422, detail="a passphrase is required")
+
     try:
         token = demo_token(role=role, passphrase=passphrase)
     except DemoLoginRefusedError as exc:
