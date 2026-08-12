@@ -139,6 +139,28 @@
   </section>
 
   <section class="card">
+    <h2>Approval queue, signed by a named officer</h2>
+    <div class="row" style="margin-bottom:14px">
+      <div>
+        <label for="officer">Officer</label>
+        <input id="officer" value="j.christian-smith" style="width:190px">
+      </div>
+      <div>
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="deputy_director">Deputy Director</option>
+          <option value="executive_director">Executive Director</option>
+        </select>
+      </div>
+      <button id="draft">Draft an order</button>
+      <button id="refresh">Refresh queue</button>
+    </div>
+    <div id="queue">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Queue not loaded</span></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>What this is showing</h2>
     <p class="note">
       The default is the reading behind Scott Addendum 7: 48.7 cfs on 20 July 2025,
@@ -152,6 +174,18 @@
     <p class="note">
       The reading you type is labelled <code>unsourced</code>: this console
       classifies a value you supply and never contacts USGS.
+    </p>
+    <p class="note">
+      The signature is the beat the rest exists for. 23 CCR 875(b) assigns the
+      determination to the Deputy Director and 875(b)(2) assigns health, safety and
+      livestock determinations to the Executive Director, so the wrong officer's
+      signature is not a lesser signature, it is none. An approval is bound to the exact
+      bytes reviewed: the digest travels out with the draft and must come back with the
+      decision, which is what makes a stale draft impossible to sign by accident. A draft
+      that failed its guards is queued as UNVERIFIED and can still be signed, but only by
+      naming every finding being overridden, because 875(b)(3) preserves that discretion
+      and a signature against findings nobody saw is not an exercise of it. The queue
+      lives in the serving process and says so: no database is wired.
     </p>
     <p class="note">
       The ledger is the artifact that makes a signed order reviewable: for any single
@@ -213,7 +247,12 @@
   //: and claim the newest generation for itself. The two cards could then show
   //: different requests while both carried valid-looking terminal stamps, which is the
   //: precise failure the counter exists to prevent.
-  let generation = 0;
+  //: PER CARD, not one shared counter. Three independent surfaces answering three
+  //: different questions each supersede only their OWN earlier request. Sharing one
+  //: counter meant loading the queue invalidated an in-flight classification, whose
+  //: render then returned without stamping and left anything waiting on that stamp
+  //: waiting forever. A generation is "is this still the newest answer to MY question".
+  const generation = { out: 0, rec: 0, queue: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -273,13 +312,13 @@
       // Unguarded, this left the calm grey PENDING label on screen for a network
       // failure, a timeout, or a proxy returning an HTML error page, which reads
       // as "waiting" rather than as "this told you nothing".
-      if (mine !== generation) return;
+      if (mine !== generation.out) return;
       systemState("\u26A0", "Unavailable",
         `The engine could not be reached, so nothing here describes the river: ${error}`);
       stamp(out, mine);
       return;
     }
-    if (mine !== generation) return;
+    if (mine !== generation.out) return;
 
     if (!response.ok) {
       // A refusal is a RESULT worth reading, not an error to hide. The engine
@@ -488,13 +527,13 @@
         `/api/recommendation/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
       body = await response.json();
     } catch (error) {
-      if (mine !== generation) return;
+      if (mine !== generation.rec) return;
       recSystemState("\u26A0", "Unavailable",
         `The engine could not be reached, so nothing here describes the river: ${error}`);
       stamp(rec, mine);
       return;
     }
-    if (mine !== generation) return;
+    if (mine !== generation.rec) return;
 
     if (!response.ok) {
       recSystemState("\u2298", "Refused", detailOf(body));
@@ -566,14 +605,236 @@
   }
 
   async function run() {
-    const mine = ++generation;
+    const mine = ++generation.out;
+    generation.rec = mine;
     await classify(mine);
     // A superseded run must not go on to start a second request. Without this the
     // stale run reached the recommendation call anyway.
-    if (mine !== generation) return;
+    if (mine !== generation.out) return;
     await recommendFor(mine);
   }
 
+  // ---- the approval queue ------------------------------------------------------
+  //
+  // The token lives in memory for the life of the page and is never written to storage.
+  // It is short lived and it is authority: putting it in localStorage would leave it
+  // sitting on a shared machine after the tab closed.
+  const queueBox = document.getElementById("queue");
+  let officerToken = null;
+
+  const QUEUE_STATE = {
+    awaiting_signature: ["s-suspended",  "\u2016", "Awaiting signature"],
+    unverified:         ["s-conditional","\u25D0", "Unverified"],
+  };
+
+  function queueState(glyph, label, detail) {
+    queueBox.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    queueBox.querySelector(".glyph").textContent = glyph;
+    queueBox.querySelector(".status span:last-child").textContent = label;
+    queueBox.querySelector(".refusal").textContent = detail;
+  }
+
+  async function ask(path, options) {
+    const response = await fetch(path, options);
+    let body;
+    try {
+      body = await response.json();
+    } catch (error) {
+      throw new Error(`the service returned no readable answer: ${error}`);
+    }
+    if (!response.ok) {
+      throw new Error(
+        body && typeof body === "object" && nonEmptyString(body.detail)
+          ? body.detail
+          : "the service refused and stated no reason");
+    }
+    return body;
+  }
+
+  function signRow(entry) {
+    const row = document.createElement("tr");
+    const [cls, glyph, label] = QUEUE_STATE[entry.state] || ["s-pending", "\u25CB", entry.state];
+    row.append(text(entry.order_id));
+    const state = document.createElement("td");
+    state.innerHTML = `<span class="status ${cls}" style="margin:0"><span class="glyph"></span><span></span></span>`;
+    state.querySelector(".glyph").textContent = glyph;
+    state.querySelector("span:last-child").textContent = label;
+    row.append(state);
+    row.append(text(entry.requires_role.replace("_", " ")));
+    row.append(text(entry.blocking_violations.length
+      ? `${entry.blocking_violations.length} to override` : "none"));
+    const act = document.createElement("td");
+    const button = document.createElement("button");
+    button.textContent = "Open and sign";
+    button.addEventListener("click", () => openAndSign(entry.order_id));
+    act.append(button);
+    row.append(act);
+    return row;
+  }
+
+  async function loadQueue() {
+    const mine = ++generation.queue;
+    queueBox.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Reading the queue</span></div>';
+    let body;
+    try {
+      body = await ask("/api/queue");
+    } catch (error) {
+      if (mine !== generation.queue) return;
+      queueState("\u26A0", "Unavailable", String(error.message || error));
+      stamp(queueBox, mine);
+      return;
+    }
+    if (mine !== generation.queue) return;
+
+    if (!Array.isArray(body.pending) || !Array.isArray(body.decided)) {
+      queueState("\u26A0", "Unavailable", "the queue answer is not readable");
+      stamp(queueBox, mine);
+      return;
+    }
+
+    queueBox.innerHTML =
+      '<div class="ledger"><table><thead><tr><th>Draft</th><th>State</th>' +
+      '<th>Requires</th><th>To override</th><th></th></tr></thead><tbody></tbody></table></div>' +
+      '<p class="note js-decided"></p><p class="note js-persist"></p>';
+    const rows = queueBox.querySelector("tbody");
+    if (body.pending.length === 0) {
+      const empty = document.createElement("tr");
+      const cell = text("Nothing is awaiting signature. Draft an order to queue one.");
+      cell.colSpan = 5;
+      empty.append(cell);
+      rows.append(empty);
+    }
+    for (const entry of body.pending) rows.append(signRow(entry));
+
+    queueBox.querySelector(".js-decided").textContent = body.decided.length
+      ? body.decided.map((d) =>
+          `${d.order_id}: ${d.approved ? "approved" : "declined"} by ${d.officer_id} ` +
+          `(${d.role.replace("_", " ")}, via ${d.authenticated_via})` +
+          `${d.is_override ? `, overriding ${d.overridden.length} finding(s)` : ""}`).join(" . ")
+      : "No decision has been recorded yet.";
+    queueBox.querySelector(".js-persist").textContent = String(body.persistence || "");
+    stamp(queueBox, mine);
+  }
+
+  async function openAndSign(orderId) {
+    // AN INLINE REVIEW, not a dialog.
+    //
+    // Peer-reviewed evidence says naive human review of drafted text fails: in a 2025
+    // npj Digital Medicine study of clinicians reviewing drafts containing planted
+    // errors, 35 to 45 percent of erroneous drafts were submitted entirely unedited.
+    // Every entry in this field has a human-in-the-loop checkbox; a checkbox is what
+    // that study measured failing. So the draft, its digest and every blocking finding
+    // are put on the page and the signature sits underneath them, rather than behind a
+    // one-line confirm that a reviewer can dismiss without reading anything.
+    const mine = ++generation.queue;
+    let item;
+    try {
+      item = await ask(`/api/queue/${encodeURIComponent(orderId)}`);
+    } catch (error) {
+      if (mine !== generation.queue) return;
+      queueState("\u2298", "Refused", String(error.message || error));
+      stamp(queueBox, mine);
+      return;
+    }
+    if (mine !== generation.queue) return;
+
+    for (const field of ["order_id", "draft_text", "digest", "state"]) {
+      if (!nonEmptyString(item[field])) {
+        queueState("\u26A0", "Unavailable", `the queued draft states no ${field}`);
+        stamp(queueBox, mine);
+        return;
+      }
+    }
+    const overriding = Array.isArray(item.blocking_violations) ? item.blocking_violations : [];
+
+    queueBox.innerHTML =
+      '<div class="status s-suspended"><span class="glyph">\u2016</span>' +
+      '<span class="js-title"></span></div>' +
+      '<p class="note js-digest"></p>' +
+      '<div class="ledger" style="max-height:260px"><pre class="js-draft" ' +
+      'style="margin:0;padding:12px;white-space:pre-wrap;font:13px/1.6 var(--serif, serif)"></pre></div>' +
+      '<p class="refusal js-blocking"></p>' +
+      '<div class="row" style="margin-top:14px">' +
+      '<button id="do-sign"></button><button id="cancel-sign">Back to the queue</button></div>' +
+      '<p class="note js-why"></p>';
+
+    queueBox.querySelector(".js-title").textContent = `${item.order_id} . ${item.state}`;
+    queueBox.querySelector(".js-digest").textContent =
+      `Digest ${item.digest}. This exact value goes back with the signature, so an ` +
+      "approval is bound to the bytes on screen rather than to whatever the queue holds later.";
+    queueBox.querySelector(".js-draft").textContent = item.draft_text;
+    queueBox.querySelector(".js-blocking").textContent = overriding.length
+      ? `UNVERIFIED. Signing overrides ${overriding.length} finding(s): ` + overriding.join(" . ")
+      : "";
+    queueBox.querySelector(".js-why").textContent = String(item.disclaimer || "");
+
+    const signButton = queueBox.querySelector("#do-sign");
+    signButton.textContent = overriding.length
+      ? `Sign, overriding ${overriding.length} finding(s)`
+      : "Sign as the named officer";
+    signButton.addEventListener("click", () => confirmSign(item, overriding));
+    queueBox.querySelector("#cancel-sign").addEventListener("click", loadQueue);
+    stamp(queueBox, mine);
+  }
+
+  async function confirmSign(item, overriding) {
+    const mine = ++generation.queue;
+    try {
+      if (!officerToken) {
+        const session = await ask(
+          `/api/session?role=${encodeURIComponent(document.getElementById("role").value)}`
+          + `&officer_id=${encodeURIComponent(document.getElementById("officer").value)}`,
+          { method: "POST" });
+        officerToken = session.officer_token;
+      }
+      await ask(`/api/queue/${encodeURIComponent(item.order_id)}/sign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          officer_token: officerToken,
+          // The digest SHOWN is the digest sent. Recomputing it here would make the
+          // binding tautological and a stale draft would sign silently.
+          reviewed_digest: item.digest,
+          approved: true,
+          overriding,
+          note: "signed from the demonstration console",
+        }),
+      });
+    } catch (error) {
+      if (mine !== generation.queue) return;
+      queueState("\u2298", "Refused", String(error.message || error));
+      stamp(queueBox, mine);
+      return;
+    }
+    await loadQueue();
+  }
+
+  async function draftIntoQueue() {
+    const mine = ++generation.queue;
+    const basin = document.getElementById("basin").value;
+    const cfs = document.getElementById("cfs").value;
+    const at = encodeURIComponent(document.getElementById("at").value + "T12:00:00+00:00");
+    queueBox.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span>' +
+      '<span>Drafting, which calls a model and runs its guards</span></div>';
+    try {
+      await ask(`/api/queue/draft/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`,
+                { method: "POST" });
+    } catch (error) {
+      if (mine !== generation.queue) return;
+      queueState("\u2298", "Refused", String(error.message || error));
+      stamp(queueBox, mine);
+      return;
+    }
+    await loadQueue();
+  }
+
+  document.getElementById("draft").addEventListener("click", draftIntoQueue);
+  document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
   run();
+  loadQueue();
 </script>

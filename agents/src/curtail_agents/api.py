@@ -31,11 +31,21 @@ import structlog
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 
+from curtail_agents.approval import ApprovalError, QueueItem
+from curtail_agents.approval_queue import (
+    PERSISTENCE,
+    QUEUE,
+    SigningUnavailableError,
+    demo_token,
+)
+from curtail_agents.credentials import CredentialError
 from curtail_agents.events import Provenance
+from curtail_agents.scribe import ScribeUnavailableError, draft_order
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
 from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.basins import Basin
+from curtail_core.clocks import SignatoryRole
 from curtail_core.flow_minimums import ScheduleGapError, minimum_flow
 from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
 
@@ -316,6 +326,241 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
         "disclaimer": (
             "A recommendation. 23 CCR 875(b) vests the determination in a named human "
             "official, and nothing this system produces self-executes."
+        ),
+    }
+
+
+@app.post("/api/session")
+def session(role: str, officer_id: str) -> dict[str, Any]:
+    """The demo login. Converts an identity into a token the domain layer can verify.
+
+    The constitution allows an authenticated console via IAP or a demo login so judges
+    can reach it, and this is the demo login. It records itself as one: every token it
+    mints carries `authenticated_via = "demo console login"`, so a signature made through
+    it says on its face how identity was established. `issue_officer_token` refuses
+    placeholder values like "unknown" precisely so that field cannot become decoration.
+
+    Refuses when no signing key is configured rather than falling back to a built-in one.
+    """
+    try:
+        token = demo_token(role=role, officer_id=officer_id)
+    except SigningUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ValueError, CredentialError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "officer_token": token,
+        "role": role,
+        "officer_id": officer_id,
+        "authenticated_via": "demo console login",
+        "disclaimer": (
+            "A demonstration login. It establishes no real authority and every "
+            "signature it produces records that it came from a demo console."
+        ),
+    }
+
+
+@app.post("/api/queue/draft/{basin}")
+def draft_into_queue(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]:
+    """Run the whole loop and put the result in front of an officer.
+
+    Core computes on the Board's own rights table, the Scribe drafts through Gemini
+    behind its guards, and whatever comes back is queued WITH its verdict. A draft that
+    failed its checks is queued as UNVERIFIED rather than withheld: an officer deciding
+    whether to override needs to read the thing, and the label is what keeps it out of
+    the PDF generator.
+
+    The order id is deliberately not shaped like a Board order number. This system
+    produces drafts, and an artifact numbered "WR 2026-0005-DWR" would read as one the
+    state issued.
+    """
+    recommendation_response = recommendation(basin, cfs, at)
+    which = Basin(basin)
+    moment = datetime.now(UTC) if at is None else _parse(at)
+
+    loaded = load_rights()
+    in_basin = [r for r in loaded.converted.rights if r.basin is which]
+    result = recommend(basin=which, when=moment.date(), observed_cfs=cfs, rights=in_basin)
+
+    try:
+        outcome = draft_order(result)
+    except ScribeUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    order_id = (
+        f"DRAFT-{which.value.upper()}-{moment.date().isoformat()}-{outcome.guard.verdict.value}"
+    )
+    item = QueueItem(
+        order_id=order_id,
+        draft_text=outcome.text,
+        # 875(b) assigns the curtailment determination to the Deputy Director.
+        requires_role=SignatoryRole.DEPUTY_DIRECTOR,
+        guard=outcome.guard,
+        created_at=moment,
+    )
+    try:
+        QUEUE.add(item)
+    except ApprovalError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    log.info(
+        "queued a draft",
+        order_id=order_id,
+        verdict=outcome.guard.verdict.value,
+        attempts=outcome.attempts,
+        model=outcome.model,
+    )
+    return {
+        "order_id": order_id,
+        "state": item.state.value,
+        "digest": item.digest,
+        "model": outcome.model,
+        "attempts": outcome.attempts,
+        "guard_reason": outcome.guard.reason,
+        "violations_along_the_way": list(outcome.violations),
+        "blocking_violations": list(item.blocking_violations),
+        "recommendation": recommendation_response,
+        "persistence": PERSISTENCE,
+    }
+
+
+@app.get("/api/queue")
+def queue() -> dict[str, Any]:
+    """Drafts awaiting signature. The list view carries no draft text.
+
+    A queue is read to decide what to open, and shipping every full order into that view
+    would put documents in front of a reader who has not chosen to review them. What it
+    does carry is the state and the blocking findings, because those decide whether an
+    item can be signed at all.
+    """
+    return {
+        "persistence": PERSISTENCE,
+        "pending": [
+            {
+                "order_id": item.order_id,
+                "state": item.state.value,
+                "requires_role": item.requires_role.value,
+                "digest": item.digest,
+                "created_at": item.created_at.isoformat(),
+                "blocking_violations": list(item.blocking_violations),
+                "guard_reason": item.guard.reason,
+            }
+            for item in QUEUE.pending()
+        ],
+        "decided": [
+            {
+                "order_id": order_id,
+                "approved": decision.approved,
+                "officer_id": decision.officer.officer_id,
+                "role": decision.officer.role.value,
+                "authenticated_via": decision.officer.authenticated_via,
+                "decided_at": decision.decided_at.isoformat(),
+                "is_override": decision.is_override,
+                "overridden": list(decision.overridden),
+                "draft_digest": decision.draft_digest,
+            }
+            for order_id, decision in QUEUE.decisions.items()
+        ],
+    }
+
+
+@app.get("/api/queue/{order_id}")
+def queue_item(order_id: str) -> dict[str, Any]:
+    """One draft, in full, with everything an officer needs to weigh it.
+
+    The digest travels with it and must come back on the signature. That is what binds
+    an approval to the bytes actually read: recomputing it at signing time would make
+    the check tautological and the stale-draft case would pass silently.
+    """
+    try:
+        item = QUEUE.get(order_id)
+    except ApprovalError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    decision = QUEUE.decision_for(order_id)
+    return {
+        "persistence": PERSISTENCE,
+        "order_id": item.order_id,
+        "draft_text": item.draft_text,
+        "digest": item.digest,
+        "state": item.state.value,
+        "requires_role": item.requires_role.value,
+        "created_at": item.created_at.isoformat(),
+        "blocking_violations": list(item.blocking_violations),
+        "guard_reason": item.guard.reason,
+        "decided": None
+        if decision is None
+        else {
+            "approved": decision.approved,
+            "officer_id": decision.officer.officer_id,
+            "decided_at": decision.decided_at.isoformat(),
+            "overridden": list(decision.overridden),
+            "note": decision.note,
+        },
+        "disclaimer": (
+            "A draft for signature. Nothing here is in force, and 23 CCR 875(b) vests "
+            "the determination in a named human official."
+        ),
+    }
+
+
+@app.post("/api/queue/{order_id}/sign")
+def sign_queue_item(order_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    """The officer states intent. The SERVER performs the act.
+
+    Nothing in the request is trusted as authority: the token is verified against the
+    MAC inside `approval.sign`, which also enforces that the right officer signed, that
+    the digest matches the bytes reviewed, and that an unverified draft names every
+    finding being overridden. This endpoint chooses none of that, it carries it.
+
+    That division is the same one the mobile layer is designed around. The client says
+    yes; the server decides whether that yes is a signature.
+    """
+    token = body.get("officer_token")
+    reviewed = body.get("reviewed_digest")
+    if not isinstance(token, str) or not token.strip():
+        raise HTTPException(status_code=422, detail="an officer token is required")
+    if not isinstance(reviewed, str) or not reviewed.strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "the digest of the draft actually reviewed is required. An approval is "
+                "bound to the bytes it was given, and a caller that does not send them "
+                "has not told us what was read."
+            ),
+        )
+    overriding = tuple(str(v) for v in body.get("overriding", []))
+
+    try:
+        decision = QUEUE.decide(
+            order_id,
+            officer_token=token,
+            reviewed_digest=reviewed,
+            approved=bool(body.get("approved", True)),
+            overriding=overriding,
+            note=str(body.get("note", "")),
+        )
+    except SigningUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (ApprovalError, CredentialError) as exc:
+        # 409, not 500. Every one of these is a refusal the domain layer chose: the
+        # wrong officer, a stale digest, an unacknowledged finding, a second signature.
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return {
+        "order_id": decision.order_id,
+        "approved": decision.approved,
+        "officer_id": decision.officer.officer_id,
+        "role": decision.officer.role.value,
+        "authenticated_via": decision.officer.authenticated_via,
+        "decided_at": decision.decided_at.isoformat(),
+        "draft_digest": decision.draft_digest,
+        "is_override": decision.is_override,
+        "overridden": list(decision.overridden),
+        "note": decision.note,
+        "persistence": PERSISTENCE,
+        "disclaimer": (
+            "A record of a decision, not an instruction. Nothing this system produces "
+            "self-executes."
         ),
     }
 
