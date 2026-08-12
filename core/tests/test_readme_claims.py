@@ -355,7 +355,7 @@ class TestTheFleetClaimIsComputedNotWritten:
     def test_the_readme_points_at_the_generated_section(self, readme: str) -> None:
         """Non-vacuity for the pair above: if the README stopped citing the computed
         source, the two could agree by coincidence rather than by construction."""
-        assert "FACTS section 0" in readme
+        assert "FACTS section 0" in _flat(readme)
 
     def test_no_row_claims_a_component_the_code_never_calls(self, readme: str) -> None:
         """Model Armor was listed as `Native` while nothing in the shipped code called
@@ -369,6 +369,17 @@ class TestTheFleetClaimIsComputedNotWritten:
             assert "NOT called" in armor_line, (
                 "nothing in the shipped code calls Model Armor and the table does not say so"
             )
+
+
+def _flat(text: str) -> str:
+    """Collapse whitespace before matching a phrase.
+
+    Markdown prose is hard-wrapped and gets rewrapped whenever a sentence changes, so a
+    substring check against the raw file fails whenever a phrase happens to straddle a
+    line break. That is a false negative in a guard, which trains a reader to ignore it,
+    and it fired on correct text the first time this file checked a multi-word phrase.
+    """
+    return " ".join(text.split())
 
 
 class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
@@ -397,14 +408,14 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
         does not run the graph, the honest sentence has that qualifier in it."""
         runs_graph = "build_fleet_runner" in self._api_source()
         if not runs_graph:
-            assert "does not construct the ADK runner" in readme, (
+            assert "does not construct the ADK runner" in _flat(readme), (
                 "api.py never builds the fleet runner and the README does not say so"
             )
 
     def test_no_session_service_claim_beyond_what_the_source_constructs(self, readme: str) -> None:
         constructs = "DatabaseSessionService(" in self._shipped_source()
         if not constructs:
-            assert "Nothing in `agents/src` constructs a session service" in readme, (
+            assert "Nothing in `agents/src` constructs a session service" in _flat(readme), (
                 "the README claims persistence the shipped service cannot provide"
             )
 
@@ -437,3 +448,67 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
                     f"{name} is a runtime dependency of the agents package and nothing "
                     "in agents/src imports it"
                 )
+
+
+class TestTheReachabilityTableIsComputed:
+    """The correction to the correction.
+
+    The first fix said the HTTP surface calls "the four node functions". It calls THREE
+    domain functions that the nodes wrap, and `deliver_order` has no call site at all, so
+    Herald is unreachable through the console. A hand-written count inside a generated
+    file is the one line nothing checks, which is how the same defect recurred one
+    sentence later.
+    """
+
+    #: The domain function each node wraps, mirrored from the generator on purpose: if
+    #: the two ever disagree, this test fails rather than silently checking nothing.
+    NODE_LOGIC: ClassVar[dict[str, str]] = {
+        "sentinel": "evaluate",
+        "core": "recommend",
+        "scribe": "draft_order",
+        "herald": "deliver_order",
+    }
+
+    @staticmethod
+    def _called_in_api() -> set[str]:
+        import ast
+
+        tree = ast.parse((REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text())
+        return {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+
+    def test_the_table_matches_what_the_api_calls(self) -> None:
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        called = self._called_in_api()
+        assert called, "no calls parsed out of api.py, so this proves nothing"
+        for node, function in self.NODE_LOGIC.items():
+            line = _line_containing(facts, f"| `{node}` |")
+            if function in called:
+                assert f"yes, via `{function}`" in line, (
+                    f"{node} is reached and the table denies it"
+                )
+            else:
+                assert "**no**" in line, f"{node} is NOT reached and the table claims it is"
+
+    def test_the_generator_and_this_test_agree_on_the_mapping(self) -> None:
+        """Both hold the node-to-function map. If they drift, the check above would be
+        asking about functions nobody calls and passing for the wrong reason."""
+        generator = (REPO / "scripts" / "generate_facts.py").read_text()
+        for node, function in self.NODE_LOGIC.items():
+            assert f'"_{node}": "{function}"' in generator, (
+                f"the generator maps {node} differently, so this test checks the wrong function"
+            )
+
+    def test_an_unreachable_node_is_named_in_both_artifacts(self, readme: str) -> None:
+        """A capability that cannot be demonstrated through the console must say so in
+        the README too, not only in the fact sheet a judge may not open."""
+        called = self._called_in_api()
+        for node, function in self.NODE_LOGIC.items():
+            if function in called:
+                continue
+            assert f"{node.capitalize()} is not reachable through the console" in _flat(readme), (
+                f"{node} cannot be exercised through the console and the README does not say so"
+            )

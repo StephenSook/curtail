@@ -83,13 +83,20 @@ computed recommendation behind it. **All four nodes act on their input**, and th
 sentence is generated rather than written: [FACTS section 0](docs/FACTS.md) inspects
 each node's source and reports whether it returns its input unchanged.
 
-**The graph is exercised by the test suite; the HTTP surface calls the same four node
-functions directly.** `api.py` imports `evaluate`, `recommend`, `draft_order` and the
-approval queue and runs them in that order. It does not construct the ADK runner, so
-what a judge exercises through the console is the agents' logic without ADK's
-orchestration around it. Wiring the HTTP path through the graph is the next build task
-and is not done. This is stated because "the agent acts end to end" is a scored
-criterion and the honest version of that sentence has this qualifier in it.
+**The graph is exercised by the test suite; the HTTP surface calls three of the four
+node's domain functions directly.** `api.py` imports `evaluate`, `recommend`,
+`draft_order` and the approval queue and runs them in that order. Those are the
+functions the nodes wrap, not the node functions, and it does not construct the ADK
+runner, so what a judge exercises through the console is the agents' logic without
+ADK's orchestration around it.
+
+**Herald is not reachable through the console at all**: `deliver_order` has no call
+site in `api.py`, so the two service lanes are demonstrable by the test suite and the
+chaos drill and not by clicking. Wiring the HTTP path through the graph, which would
+also put Herald on it, is the next build task and is not done. The per-node table in
+[FACTS section 0](docs/FACTS.md) is computed from the source and reports this, because
+the hand-written version of this paragraph said "the four node functions" when it is
+three domain functions and one that is never called.
 
 That check exists because this section went stale in the understating direction and no
 guard could see it. The claim was prose, the guards checked markers, and a description
