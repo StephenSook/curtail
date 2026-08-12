@@ -149,16 +149,16 @@ class TestTheDependencyManifestStaysHonest:
     #: exemption is WRITTEN DOWN with a reason, so an unused entry has to be
     #: justified in prose rather than assumed to be fine. Same shape as the README
     #: placeholder registry: discovery, then a registry that must explain itself.
+    #:
+    #: **And a written reason can itself be the overclaim.** This registry carried
+    #: sqlalchemy and aiosqlite as runtime-only because "the Season Ledger's
+    #: durability depends on that class". The durability is a TEST property: nothing
+    #: in agents/src constructs a session service, so the deployed console persists
+    #: nothing and neither package is needed at runtime. They are dev dependencies
+    #: now. An exemption reads as justified BECAUSE it is written down, which is
+    #: exactly what makes a wrong reason durable, so re-read the reasons here
+    #: whenever the thing they describe changes.
     RUNTIME_ONLY: ClassVar[dict[str, str]] = {
-        "sqlalchemy": (
-            "ADK's DatabaseSessionService imports it. The Season Ledger's durability "
-            "depends on that class, and ADK ships it behind an extra rather than as "
-            "a hard dependency, so it is pinned here."
-        ),
-        "aiosqlite": (
-            "The async SQLite driver behind the sqlite+aiosqlite URL the ledger "
-            "durability test uses, and the same shape a Cloud SQL URL takes."
-        ),
         "uvicorn": (
             "The ASGI server that runs this API on Cloud Run. It is invoked as a "
             "command by the container entrypoint and never imported, which is a real "

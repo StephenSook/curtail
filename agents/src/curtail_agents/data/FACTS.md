@@ -33,10 +33,18 @@ returns its input unchanged.
 - 71 placed on the priority ladder (Tier A: 65, Tier B: 6), 14 refused placement because the record
   states no priority precise enough to establish decree membership
 
-**Not wired, and named so it cannot be implied away:** no database (the approval
-queue lives in the serving process), no Pub/Sub broker, no delivery vendor (the
-transport is explicitly synthetic and every report says so), no OpenTelemetry
-export, and no Curtail agent registered in Agent Registry.
+**Not wired in the DEPLOYED service, named so it cannot be implied away.**
+
+- The HTTP surface calls the four node functions directly and does not construct
+  the ADK runner, so the graph is exercised by the test suite rather than by the
+  console. Wiring the HTTP path through the graph is the next build task.
+- No session service is constructed anywhere in `agents/src`, so no season state
+  persists in production. A test injects a real `DatabaseSessionService` and
+  proves the ledger round-trips across a restart, which is a different claim.
+- No Cloud SQL, and the approval queue lives in the serving process.
+- No Pub/Sub broker, and no delivery vendor: the transport is explicitly
+  synthetic and every report says so.
+- No OpenTelemetry export, and no Curtail agent registered in Agent Registry.
 
 ## 1. The backtest
 

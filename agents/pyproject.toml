@@ -33,8 +33,7 @@ dependencies = [
     # different URL. Upper-bounded like every other pin: this repo sits frozen
     # through a month of judging and an unpinned dependency turns it red with
     # nobody touching the code.
-    "sqlalchemy>=2.0.51,<2.1",
-    "aiosqlite>=0.21,<0.22",
+
     "greenlet>=3.2,<4",
     "google-cloud-pubsub>=2.31,<3",
     # The ASGI server Cloud Run runs. Invoked as a command, never imported, so it is
