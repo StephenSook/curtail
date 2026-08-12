@@ -141,10 +141,11 @@ def _sound_recommendation() -> dict[str, Any]:
     }
 
 
-def _fulfil(body: dict[str, Any]) -> Callable[[Route], None]:
-    return lambda route: route.fulfill(
-        status=200, content_type="application/json", body=json.dumps(body)
-    )
+def _fulfil(body: dict[str, Any], status: int = 200) -> Callable[[Route], None]:
+    def handler(route: Route) -> None:
+        route.fulfill(status=status, content_type="application/json", body=json.dumps(body))
+
+    return handler
 
 
 def _render_id(page: Page, card: str) -> str:
@@ -901,3 +902,180 @@ class TestTheLedgerCard:
         status = page.locator("#rec .status")
         assert "UNAVAILABLE" in status.inner_text().upper()
         assert "s-pending" not in (status.get_attribute("class") or "")
+
+
+class TestTheApprovalQueueCard:
+    """The signature, driven the way a watermaster would drive it.
+
+    The review is INLINE rather than behind a confirm dialog, and that is a design
+    decision with evidence under it: a 2025 npj Digital Medicine study found 35 to 45
+    percent of erroneous drafts were submitted entirely unedited by clinicians reviewing
+    them. Every entry in this field has a human-in-the-loop checkbox, and a checkbox is
+    what that study measured failing. The draft, its digest and every blocking finding go
+    on the page, with the signature underneath them.
+    """
+
+    def _queued(self, page: Page) -> None:
+        page.route(
+            "**/api/queue",
+            _fulfil(
+                {
+                    "persistence": "in-process, not durable",
+                    "pending": [
+                        {
+                            "order_id": "DRAFT-SHASTA-2026-06-15-pass",
+                            "state": "awaiting_signature",
+                            "requires_role": "deputy_director",
+                            "digest": "a" * 64,
+                            "created_at": "2026-06-15T12:00:00+00:00",
+                            "blocking_violations": [],
+                            "guard_reason": "draft matches the computed ledger",
+                        }
+                    ],
+                    "decided": [],
+                }
+            ),
+        )
+
+    def test_it_lists_what_is_awaiting_signature(self, page: Page, console_url: str) -> None:
+        self._queued(page)
+        page.goto(console_url)
+        _settle_after(page, "#queue", "")
+        assert "DRAFT-SHASTA-2026-06-15-pass" in page.locator("#queue").inner_text()
+        assert "AWAITING SIGNATURE" in page.locator("#queue").inner_text().upper()
+
+    def test_the_draft_and_its_digest_are_shown_before_the_signature(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The reviewer reads the order, not a summary of it."""
+        self._queued(page)
+        page.route(
+            "**/api/queue/DRAFT-SHASTA-2026-06-15-pass",
+            _fulfil(
+                {
+                    "persistence": "in-process, not durable",
+                    "order_id": "DRAFT-SHASTA-2026-06-15-pass",
+                    "draft_text": "DRAFT ORDER under 23 CCR 875. Rights curtailed: A031522.",
+                    "digest": "a" * 64,
+                    "state": "awaiting_signature",
+                    "requires_role": "deputy_director",
+                    "created_at": "2026-06-15T12:00:00+00:00",
+                    "blocking_violations": [],
+                    "guard_reason": "draft matches the computed ledger",
+                    "decided": None,
+                    "disclaimer": "A draft for signature. Nothing here is in force.",
+                }
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#queue", "")
+        before = _render_id(page, "#queue")
+        page.get_by_role("button", name="Open and sign").click()
+        _settle_after(page, "#queue", before)
+
+        shown = page.locator("#queue").inner_text()
+        assert "A031522" in shown, "the draft text was not put in front of the officer"
+        assert "a" * 64 in shown, "the digest binding the approval was not shown"
+        assert "Nothing here is in force" in shown
+
+    def test_an_unverified_draft_names_what_signing_would_override(
+        self, page: Page, console_url: str
+    ) -> None:
+        """875(b)(3) preserves the discretion to override, and a signature against
+        findings nobody saw is not an exercise of it."""
+        page.route(
+            "**/api/queue",
+            _fulfil(
+                {
+                    "persistence": "in-process, not durable",
+                    "pending": [
+                        {
+                            "order_id": "DRAFT-SHASTA-2026-06-15-escalate",
+                            "state": "unverified",
+                            "requires_role": "deputy_director",
+                            "digest": "b" * 64,
+                            "created_at": "2026-06-15T12:00:00+00:00",
+                            "blocking_violations": ["unsupported right: A999999"],
+                            "guard_reason": "1 right asserted with no basis in the ledger",
+                        }
+                    ],
+                    "decided": [],
+                }
+            ),
+        )
+        page.route(
+            "**/api/queue/DRAFT-SHASTA-2026-06-15-escalate",
+            _fulfil(
+                {
+                    "persistence": "in-process, not durable",
+                    "order_id": "DRAFT-SHASTA-2026-06-15-escalate",
+                    "draft_text": "DRAFT ORDER under 23 CCR 875 naming A999999.",
+                    "digest": "b" * 64,
+                    "state": "unverified",
+                    "requires_role": "deputy_director",
+                    "created_at": "2026-06-15T12:00:00+00:00",
+                    "blocking_violations": ["unsupported right: A999999"],
+                    "guard_reason": "1 right asserted with no basis in the ledger",
+                    "decided": None,
+                    "disclaimer": "A draft for signature. Nothing here is in force.",
+                }
+            ),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#queue", "")
+        before = _render_id(page, "#queue")
+        page.get_by_role("button", name="Open and sign").click()
+        _settle_after(page, "#queue", before)
+
+        shown = page.locator("#queue").inner_text()
+        assert "UNVERIFIED" in shown.upper()
+        assert "A999999" in shown, "the finding being overridden was not named"
+        assert "overrid" in page.locator("#do-sign").inner_text().lower(), (
+            "the button did not say that pressing it overrides a finding"
+        )
+
+    def test_a_refused_signature_says_why(self, page: Page, console_url: str) -> None:
+        """Every refusal here is a decision the domain layer made: the wrong officer, a
+        stale digest, an unacknowledged finding."""
+        self._queued(page)
+        page.route(
+            "**/api/queue/DRAFT-SHASTA-2026-06-15-pass",
+            _fulfil(
+                {
+                    "persistence": "in-process, not durable",
+                    "order_id": "DRAFT-SHASTA-2026-06-15-pass",
+                    "draft_text": "DRAFT ORDER under 23 CCR 875.",
+                    "digest": "a" * 64,
+                    "state": "awaiting_signature",
+                    "requires_role": "deputy_director",
+                    "created_at": "2026-06-15T12:00:00+00:00",
+                    "blocking_violations": [],
+                    "guard_reason": "draft matches the computed ledger",
+                    "decided": None,
+                    "disclaimer": "A draft for signature. Nothing here is in force.",
+                }
+            ),
+        )
+        page.route(
+            "**/api/session**",
+            _fulfil({"detail": "CURTAIL_SIGNING_KEY is not set"}, status=503),
+        )
+        page.goto(console_url)
+        _settle_after(page, "#queue", "")
+        before = _render_id(page, "#queue")
+        page.get_by_role("button", name="Open and sign").click()
+        _settle_after(page, "#queue", before)
+        opened = _render_id(page, "#queue")
+        page.locator("#do-sign").click()
+        _settle_after(page, "#queue", opened)
+
+        assert "REFUSED" in page.locator("#queue .status").inner_text().upper()
+        assert "CURTAIL_SIGNING_KEY" in page.locator("#queue .refusal").inner_text()
+
+    def test_the_queue_says_it_is_not_durable(self, page: Page, console_url: str) -> None:
+        """No database is wired, and a surface that looked durable would claim what the
+        deployment cannot support."""
+        self._queued(page)
+        page.goto(console_url)
+        _settle_after(page, "#queue", "")
+        assert "not durable" in page.locator("#queue").inner_text()
