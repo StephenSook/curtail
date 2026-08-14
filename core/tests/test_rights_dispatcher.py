@@ -137,6 +137,32 @@ class TestUnknownDecreeMembershipRefuses:
         )
         assert place(known).rank == 1
 
+    def test_the_refusal_covers_the_shasta_ladder_too(self) -> None:
+        """**A guard on one ladder is half a guard.**
+
+        The first version of this check lived inside `_scott_group`, which left the
+        identical hole one basin over: a Shasta right with unknown membership placed at
+        Tier A, rank 1, the most junior tier and the one curtailed FIRST. Both ladders
+        read absence of an adjudication as a confident "initiated after", so both need
+        the refusal, and it belongs at the level that sees every right rather than inside
+        either branch.
+        """
+        from curtail_core.adjudications import RightClass, WaterRight
+        from curtail_core.priority import PlacementError, place
+
+        for basin, rung in ((Basin.SHASTA, "Tier A"), (Basin.SCOTT, "Group 1")):
+            unknown = WaterRight(
+                right_id=f"X-{basin.value}",
+                basin=basin,
+                right_class=RightClass.APPROPRIATIVE,
+                decree_membership_unknown=True,
+            )
+            with pytest.raises(PlacementError) as caught:
+                place(unknown)
+            assert rung in str(caught.value), (
+                f"the {basin.value} refusal does not name the rung the guess would cost"
+            )
+
     def test_a_stated_group_outranks_the_unknown_flag(self) -> None:
         """Where the Board states the grouping there is nothing left to be unknown about,
         so the stated column is read and the refusal never fires."""

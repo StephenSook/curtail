@@ -140,18 +140,6 @@ def _scott_group(right: WaterRight) -> tuple[ScottGroup, str, str]:
             "grouping stated by the State Water Board in Attachment A, not inferred",
         )
 
-    # Unknown membership refuses BEFORE branch (i) reads it, because that branch treats
-    # "not in a decree" as Group 1 and there is no recovering from a guess afterwards.
-    if right.decree_membership_unknown:
-        raise PlacementError(
-            f"{right.right_id}: cannot place on the Scott ladder because decree "
-            "membership could not be determined. Branch (i) reads absence as "
-            "post-Adjudication and places the right in Group 1, which is curtailed "
-            "FIRST, so treating an unknown as a confident 'outside the decrees' can shut "
-            "off a diverter the ladder never actually reached. This right must reach a "
-            "human."
-        )
-
     # (i) post-Adjudication appropriative
     #
     # **`adjudication=None` here is a CLAIM that the right sits outside all four decrees**,
@@ -370,6 +358,28 @@ def place(right: WaterRight) -> Placement:
     Raises:
         PlacementError: when the right cannot be placed. Never guesses.
     """
+    # **Unknown decree membership refuses on BOTH ladders, and it is checked here rather
+    # than inside either one.**
+    #
+    # The first version guarded only the Scott ladder, which left the identical hole one
+    # basin over: a Shasta right with this flag placed at Tier A, rank 1, the most junior
+    # tier and the one curtailed FIRST. Both ladders read absence of decree membership the
+    # same way, as a confident "initiated after the adjudication", so a guard on one of
+    # them is half a guard. Membership is a property of the RIGHT, not of a ladder, so the
+    # refusal belongs at the level that sees every right.
+    #
+    # `stated_group` is the one exemption and only Scott has it: where the Board prints the
+    # grouping, there is nothing left to be unknown about and the column is read directly.
+    if right.decree_membership_unknown and right.stated_group is None:
+        rung = "Group 1" if right.basin is Basin.SCOTT else "Tier A"
+        raise PlacementError(
+            f"{right.right_id}: cannot place on the {right.basin.value} ladder because "
+            "decree membership could not be determined. Absence of an adjudication is "
+            f"read as initiated-after, which places the right in {rung}, the rung "
+            "curtailed FIRST, so treating an unknown as a confident claim can shut off a "
+            "diverter the ladder never actually reached. This right must reach a human."
+        )
+
     if right.basin is Basin.SCOTT:
         group, citation, reason = _scott_group(right)
         rank, label = int(group), f"Group {int(group)}"
