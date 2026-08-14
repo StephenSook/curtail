@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from fastapi.testclient import TestClient
@@ -263,3 +263,70 @@ class TestAConfiguredProjectFailsClosed:
             "an import-time store is back, so a cold-start failure would outlive the "
             "request that caused it"
         )
+
+
+class TestTheDurabilityContractHoldsOnEveryPath:
+    """A contract kept on the success path and dropped on failure is not a contract.
+
+    The README and the store's module docstring both promise every response says whether
+    its record is durable and names its store. Three failure branches omitted `durable`
+    entirely and a fourth reported it as `False`, which is worse than omitting it: it
+    asserts a volatile store WAS used when nothing was written at all.
+    """
+
+    #: Every branch of the `season_ledger` block must answer all of these.
+    REQUIRED: ClassVar[tuple[str, ...]] = (
+        "recorded",
+        "durable",
+        "store",
+        "reason",
+        "orders_on_record",
+        "clocks_started",
+    )
+
+    def test_the_not_approved_path_still_reports_a_store(self) -> None:
+        from curtail_agents.api import _season_ledger_block
+
+        block = _season_ledger_block(recorded=False, store=None, reason="not approved")
+        assert set(block) == set(self.REQUIRED)
+        assert block["durable"] is None, "unknown must not be reported as False"
+        assert block["store"] == "not consulted"
+
+    def test_an_unreachable_store_is_unknown_not_volatile(self) -> None:
+        """`False` would mean the clocks went to a volatile store. They went nowhere.
+
+        The same conflation that put fourteen undated rights in the first grouping
+        curtailed, one layer up: unknown fed in as a definite value.
+        """
+        from curtail_agents.api import _season_ledger_block
+
+        block = _season_ledger_block(recorded=False, store=None, reason="unreachable")
+        assert block["durable"] is not False
+        assert block["durable"] is None
+
+    def test_the_success_path_reports_the_real_store(self) -> None:
+        from curtail_agents.api import _season_ledger_block
+
+        store = InMemorySeasonStore("a test")
+        block = _season_ledger_block(
+            recorded=True, store=store, orders_on_record=1, clocks_started=["a"]
+        )
+        assert set(block) == set(self.REQUIRED)
+        assert block["durable"] is False, "an in-memory store is genuinely not durable"
+        assert "a test" in block["store"]
+
+    def test_every_branch_answers_the_same_questions(self) -> None:
+        """Key-set equality across branches, so no path can quietly answer fewer."""
+        from curtail_agents.api import _season_ledger_block
+
+        branches = [
+            _season_ledger_block(recorded=False, store=None, reason="not approved"),
+            _season_ledger_block(recorded=False, store=None, reason="unreachable"),
+            _season_ledger_block(
+                recorded=False, store=InMemorySeasonStore(), reason="ledger refused"
+            ),
+            _season_ledger_block(recorded=True, store=InMemorySeasonStore(), orders_on_record=1),
+        ]
+        shapes = {frozenset(b) for b in branches}
+        assert len(shapes) == 1, f"branches answer different questions: {shapes}"
+        assert all(set(b) == set(self.REQUIRED) for b in branches)
