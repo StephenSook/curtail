@@ -224,6 +224,13 @@ def build() -> str:
     add("`make deployed-check` to re-probe and fail on drift; that is the freshness")
     add("mechanism, and it must be run before recording the demo or submitting.")
     add("")
+    add("**The fact sheet served at `/api/facts` names the probe BEFORE its own deploy,")
+    add("and that is structural rather than a mistake.** `docs/FACTS.md` quotes the stamp")
+    add("above, the packaged copy of it ships inside the container, and deploying that")
+    add("container necessarily creates a revision newer than the one the stamp names. A")
+    add("served sheet can never name its own serving revision. It is labelled as a probe")
+    add("record for that reason, so a newer revision serving it contradicts nothing.")
+    add("")
 
     if unreachable is not None:
         add("## The probe did not reach the service")
