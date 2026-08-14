@@ -103,7 +103,7 @@
 
         <!-- ============ LEFT: sources of record ============ -->
         <div class="zone zone-depth-0">
-          <span class="zone-label">Sources of record</span>
+          <span class="zone-label">Sources of record, and the on-prem reader</span>
           <div class="zone-content" style="grid-template-columns: 1fr; gap: 22px; justify-items: center;">
 
             <div class="node" data-node-id="reading">
@@ -123,6 +123,13 @@
               <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="14" y="8" width="36" height="48" rx="3" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.08"/><path d="M22 24 L42 24 M38 20 L42 24 L38 28" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 40 L22 40 M26 36 L22 40 L26 44" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="22" y1="16" x2="42" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/><line x1="22" y1="48" x2="42" y2="48" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.4"/></svg></div>
               <span class="node-title">State Water Board</span>
               <span class="node-desc">Published curtailment orders and their Attachment A rights tables. Fetched and parsed offline.</span>
+            </div>
+
+            <div class="node" data-node-id="gemma">
+              <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.08"/><circle cx="24" cy="30" r="5" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.2"/><circle cx="40" cy="30" r="5" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.2"/><path d="M20 42 L44 42" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="4" x2="32" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+              <span class="node-title">Gemma Normalizer</span>
+              <span class="node-tag tag-det">open weights, on-prem</span>
+              <span class="node-desc">gemma3:4b through a local runtime. Identifies and files a new order. Every value must appear verbatim in the source or it is refused.</span>
             </div>
 
             <div class="node" data-node-id="decrees">
@@ -348,7 +355,8 @@
           // Inputs. The reading is CALLER-SUPPLIED: no served path fetches a gage.
           { from: 'reading',   to: 'console',  type: 'realtime', fromSide: 'right', toSide: 'left', label: 'cfs and timestamp' },
           { from: 'sourcedoc', to: 'sanitizer', type: 'realtime', fromSide: 'right', toSide: 'left' },
-          { from: 'board',     to: 'rights',   type: 'batch',    fromSide: 'right', toSide: 'left' },
+          { from: 'board',     to: 'gemma',    type: 'batch',    fromSide: 'bottom', toSide: 'top' },
+          { from: 'gemma',     to: 'rights',   type: 'batch',    fromSide: 'right', toSide: 'left' },
           { from: 'decrees',   to: 'rights',   type: 'batch',    fromSide: 'right', toSide: 'left' },
 
           // The graph, left to right, one hop each.

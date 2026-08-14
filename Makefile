@@ -107,6 +107,15 @@ diagram: ## Re-render the submission architecture diagram from docs/architecture
 # connections must be able to go red.
 	uv run python scripts/render_architecture.py
 
+.PHONY: normalizer
+normalizer: ## Run the local Gemma over a real Board order and record what it produced
+# Deliberately NOT part of `verify`, and for the same reason as `deployed`: this needs a
+# local model CI does not have and a corpus the repository does not carry. The offline
+# half runs in `test`, reading the record this writes and failing when it is vacuous,
+# unpinned or overclaiming. Bare, so an unreachable model reddens rather than passes.
+	uv run python scripts/run_normalizer.py
+	uv run python scripts/generate_facts.py
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that
