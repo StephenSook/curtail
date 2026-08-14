@@ -30,11 +30,19 @@ STRICT=0
 
 PATHSPEC=('*.md' '*.mdx' '*.txt' ':!LICENSE' ':!CHANGELOG.md')
 
+# Untracked files count, and that is the whole point of --others here.
+#
+# A guard scoped to tracked files has a blind spot exactly the size of "what is
+# about to ship". A newly written page is untracked, this cannot see it, the run
+# passes, the file is committed, becomes tracked, and the same assertion fails in
+# CI. The local run was structurally incapable of catching it. --exclude-standard
+# still skips gitignored research material and fetched corpora, which is the part
+# worth keeping.
 FAIL=0
-SCANNED=$(git ls-files -- "${PATHSPEC[@]}" | wc -l | tr -d ' ')
+SCANNED=$(git ls-files --cached --others --exclude-standard -- "${PATHSPEC[@]}" | wc -l | tr -d ' ')
 
 if [ "$SCANNED" -eq 0 ]; then
-  echo "check-ai-tone: no tracked prose files, nothing to scan"
+  echo "check-ai-tone: no prose files, nothing to scan"
   exit 0
 fi
 
@@ -45,7 +53,9 @@ run_pass() {
   shift 2
   echo "==> $label"
 
-  out=$(git grep -n "$@" -e "$pattern" -- "${PATHSPEC[@]}")
+  # --untracked, for the same reason the count above uses --others. Without it the
+  # file being written right now is the one file this cannot read.
+  out=$(git grep -n --untracked "$@" -e "$pattern" -- "${PATHSPEC[@]}")
   rc=$?
 
   if [ "$rc" -ge 2 ]; then
@@ -77,7 +87,7 @@ fi
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-  echo "check-ai-tone: PASSED across $SCANNED tracked prose file(s)"
+  echo "check-ai-tone: PASSED across $SCANNED prose file(s), tracked and untracked"
   exit 0
 fi
 echo "check-ai-tone: FAILED"
