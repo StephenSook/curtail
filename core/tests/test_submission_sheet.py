@@ -11,6 +11,7 @@ judge with the repository open would.
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -83,11 +84,43 @@ def source() -> str:
     for directory in SOURCE_DIRS:
         for path in directory.rglob("*.py"):
             if "__pycache__" not in path.parts:
-                parts.append(path.read_text())
+                parts.append(_executable(path.read_text(), python=True))
     docker = REPO / "Dockerfile"
     if docker.exists():
-        parts.append(docker.read_text())
+        parts.append(_executable(docker.read_text(), python=False))
     return "\n".join(parts)
+
+
+def _executable(text: str, *, python: bool) -> str:
+    """The part of a file that RUNS, with comments and docstrings removed.
+
+    **A comment naming a requirement is not the requirement.** This project's Dockerfile
+    carries the line `# --proxy-headers is not optional behind Cloud Run`, and while the
+    evidence search read whole files, deleting `--proxy-headers` from the actual `CMD`
+    left the claim standing on that comment. The prose about a contract was satisfying a
+    check on the contract.
+
+    Python goes through `ast`, which drops comments on unparse, plus an explicit pass to
+    remove module, class and function docstrings. A Dockerfile drops `#` lines, which is
+    the whole of its comment syntax.
+    """
+    if not python:
+        return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    tree = ast.parse(text)
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if not isinstance(body, list) or not body:
+            continue
+        if not isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        first = body[0]
+        if (
+            isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+        ):
+            body.pop(0)
+    return ast.unparse(tree)
 
 
 def _ticked(sheet: str, row: str) -> str:
@@ -233,3 +266,45 @@ class TestTheGuardCoversEverythingTheGeneratorCanClaim:
         services, sdks = self._generator_tables()
         stale = sorted((set(EVIDENCE) - services) | (set(SDK_EVIDENCE) - sdks))
         assert not stale, f"these are guarded and the generator cannot emit them: {stale}"
+
+
+class TestProseAboutARequirementIsNotTheRequirement:
+    """The hole a review found: the evidence search read comments.
+
+    This repository's Dockerfile carries `# --proxy-headers is not optional behind Cloud
+    Run`. While whole files were searched, deleting `--proxy-headers` from the actual
+    `CMD` left the Cloud Run claim standing on that sentence. A comment explaining why
+    something is required was satisfying the check that it IS required, which is the
+    documentation-instead-of-implementation failure this project has hit before at other
+    layers.
+    """
+
+    def test_a_dockerfile_comment_does_not_count_as_configuration(self) -> None:
+        commented = '# --proxy-headers is required\nCMD ["uvicorn", "app"]\n'
+        assert "--proxy-headers" not in _executable(commented, python=False)
+        assert "uvicorn" in _executable(commented, python=False), "real config was dropped"
+
+    def test_a_python_comment_does_not_count_as_code(self) -> None:
+        commented = "# google.cloud.firestore is what we would use\nimport os\n"
+        stripped = _executable(commented, python=True)
+        assert "google.cloud.firestore" not in stripped
+        assert "import os" in stripped, "real code was dropped"
+
+    def test_a_docstring_does_not_count_as_code(self) -> None:
+        """Docstrings survive `ast.unparse`, so they are removed explicitly.
+
+        This module's own docstrings name several of these markers while describing why
+        they matter, which would have made the guard self-satisfying.
+        """
+        documented = '"""We talk about google.cloud.firestore in this docstring."""\nimport os\n'
+        stripped = _executable(documented, python=True)
+        assert "google.cloud.firestore" not in stripped
+        assert "import os" in stripped
+
+    def test_real_code_still_survives_the_stripping(self) -> None:
+        """Non-vacuity. A stripper that removed everything would pass the three checks
+        above and make every claim unprovable, which would read as a very strict guard
+        and be no guard at all."""
+        real = "import google.cloud.firestore as firestore\nX = firestore.Client()\n"
+        stripped = _executable(real, python=True)
+        assert "google.cloud.firestore" in stripped
