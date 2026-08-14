@@ -610,6 +610,44 @@ def queue_item(order_id: str) -> dict[str, Any]:
     }
 
 
+def _season_ledger_block(
+    *,
+    recorded: bool,
+    store: SeasonStore | None,
+    reason: str | None = None,
+    orders_on_record: int | None = None,
+    clocks_started: list[str] | None = None,
+) -> dict[str, Any]:
+    """The `season_ledger` block, with the SAME KEYS on every path.
+
+    **Three failure branches used to omit `durable` entirely and one reported it as
+    False**, while this service's README and module docstring both promise that every
+    response says whether its record is durable and names its store. A contract kept on
+    the success path and dropped on the failure paths is not a contract, and failure is
+    where a reader most needs to know which of the two they are looking at.
+
+    `durable` is tri-state on purpose:
+
+    * `True`  the clocks were written to a durable store
+    * `False` they were written to a volatile one, deliberately configured
+    * `None`  we cannot say, because the store was unreachable or never consulted
+
+    The unreachable case used to report `False`, which asserts a volatile store WAS
+    used. It was not; nothing was written at all. **Unknown is not False**, and this
+    project has already been bitten by exactly that conflation in the priority ladder,
+    where feeding `None` for "unknown" put fourteen undated rights in the first grouping
+    curtailed.
+    """
+    return {
+        "recorded": recorded,
+        "durable": None if store is None else store.durable,
+        "store": "not consulted" if store is None else store.describe(),
+        "reason": reason,
+        "orders_on_record": orders_on_record,
+        "clocks_started": clocks_started or [],
+    }
+
+
 def basin_of_order(order_id: str) -> Basin | None:
     """Which basin's season an order belongs to, read off its id.
 
@@ -681,7 +719,12 @@ def sign_queue_item(order_id: str, body: dict[str, Any]) -> dict[str, Any]:
     # A store failure does NOT fail the signature. The order was signed; refusing to
     # report that because a database was unreachable would lose the more important
     # fact. It is reported instead, so the gap is visible rather than swallowed.
-    recorded: dict[str, Any] = {"recorded": False, "reason": "not attempted"}
+    store: SeasonStore | None = None
+    recorded = _season_ledger_block(
+        recorded=False,
+        store=None,
+        reason="the draft was not approved, so no statutory clock started",
+    )
     if decision.approved:
         try:
             entry = record_order(
@@ -701,26 +744,33 @@ def sign_queue_item(order_id: str, body: dict[str, Any]) -> dict[str, Any]:
                 )
             store = season_store()
             ledger = store.append_entry(basin, entry)
-            recorded = {
-                "recorded": True,
-                "durable": store.durable,
-                "store": store.describe(),
-                "orders_on_record": len(ledger.entries),
-                "clocks_started": [c.clock_type.value for c in entry.clocks],
-            }
+            recorded = _season_ledger_block(
+                recorded=True,
+                store=store,
+                orders_on_record=len(ledger.entries),
+                clocks_started=[c.clock_type.value for c in entry.clocks],
+            )
         except SeasonStoreUnavailableError as exc:
-            recorded = {
-                "recorded": False,
-                "durable": False,
-                "reason": (f"the signature stands and its clocks were NOT recorded: {exc}"),
-            }
+            # `store` stays None here on purpose: an unreachable store is not a volatile
+            # store, and reporting `durable: False` would say the clocks went somewhere.
+            # They went nowhere.
+            recorded = _season_ledger_block(
+                recorded=False,
+                store=None,
+                reason=f"the signature stands and its clocks were NOT recorded: {exc}",
+            )
         except (LedgerIntegrityError, ValueError) as exc:
             # `LedgerIntegrityError` is a RuntimeError, not a ValueError, so catching
             # only ValueError let a duplicate filing escape as a 500. The signature
             # itself was fine; a refusal to re-file an order whose adoption timestamp
             # already anchors five deadlines is correct behaviour and belongs in the
             # response, not in a stack trace. Found by the append-only test.
-            recorded = {"recorded": False, "reason": f"the ledger refused the entry: {exc}"}
+            #
+            # `store` is passed through: it may be a real, reachable store that simply
+            # refused this entry, and a reader is owed that distinction.
+            recorded = _season_ledger_block(
+                recorded=False, store=store, reason=f"the ledger refused the entry: {exc}"
+            )
 
     return {
         "order_id": decision.order_id,
