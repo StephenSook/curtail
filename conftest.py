@@ -23,3 +23,14 @@ import os
 # Set here rather than in a fixture because fixtures run after collection, and the
 # import that matters has already happened by then.
 os.environ.setdefault("CURTAIL_DISABLE_TRACING", "1")
+
+# **And the suite must never call Model Armor**, for the same reason and one more.
+#
+# The Scribe node now screens untrusted document text through Model Armor as its second
+# injection layer, which is a real network call against a real Google project. Left
+# unguarded, every sanitiser test would bill for an opinion, fail on a plane, and make a
+# unit test depend on a regional API being up.
+#
+# The extra reason: screening is SLOW relative to a unit test, and a suite that quietly
+# grew a network round trip per case is a suite people stop running.
+os.environ.setdefault("CURTAIL_DISABLE_MODEL_ARMOR", "1")

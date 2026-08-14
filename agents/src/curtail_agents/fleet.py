@@ -91,6 +91,7 @@ from curtail_agents.herald import (
     synthetic_transport,
 )
 from curtail_agents.messaging import Channel
+from curtail_agents.model_armor import screen_document
 from curtail_agents.routing import (
     BACKOFF_FACTOR,
     INITIAL_DELAY_SECONDS,
@@ -499,6 +500,14 @@ SOURCE_DOCUMENT = "source_document"
 PROMPT_BLOCK = "prompt_block"
 INJECTION_HITS = "injection_hits"
 
+#: Model Armor's verdict on the untrusted document, layer 2 of the injection defence.
+#:
+#: Three keys rather than one, because "did it run" and "did it match" are different
+#: questions and collapsing them is how an unavailable layer comes to read as a pass.
+ARMOR_STATE = "model_armor_state"
+ARMOR_REASON = "model_armor_reason"
+ARMOR_FILTERS = "model_armor_filters"
+
 #: Names a registered transport. A NAME, never a callable, and that is forced.
 #:
 #: The previous key held the transport itself, read with `node_input.get(TRANSPORT)`,
@@ -810,9 +819,27 @@ def _sanitize(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
 
         check_document_size(raw)
         sanitized = sanitize_document(raw)
+
+        # LAYER 2. Google's own guidance is never to rely on a single defensive
+        # measure, and this row read "provisioned, NOT called by the shipped Scribe"
+        # for weeks. It is called now.
+        #
+        # Screened on the RAW text, not the sanitized block, because the question is
+        # what the document tried to do. Screening our own neutralised output would
+        # mostly confirm that layer 1 works.
+        #
+        # **The verdict does not block.** Layer 1 has already neutralised and fenced
+        # the text, so what reaches the prompt is safe by construction; a match is
+        # EVIDENCE a watermaster should see, exactly like layer 1's hits, and refusing
+        # to draft would let any injected document veto an order. `screened` is carried
+        # separately from `clean`, because an unavailable layer is not a passing one.
+        verdict = screen_document(raw)
         del forwarded[SOURCE_DOCUMENT]
         forwarded[PROMPT_BLOCK] = sanitized.fenced()
         forwarded[INJECTION_HITS] = tuple((hit.kind.value, hit.matched) for hit in sanitized.hits)
+        forwarded[ARMOR_STATE] = verdict.state.value
+        forwarded[ARMOR_REASON] = verdict.reason
+        forwarded[ARMOR_FILTERS] = verdict.matched_filters
 
     return forwarded
 
