@@ -54,6 +54,11 @@ CLAIMED_ROUTES = {
 
 TIMEOUT_SECONDS = 30
 
+#: The Agent Registry the fleet is cataloged in. Same project and region as the service,
+#: which the governance ADR requires: Registry, Gateway and app co-located.
+REGISTRY_PROJECT = "curtail-505118"
+REGISTRY_LOCATION = "us-central1"
+
 
 def _head_sha() -> str:
     return subprocess.run(
@@ -63,6 +68,60 @@ def _head_sha() -> str:
         text=True,
         check=True,
     ).stdout.strip()
+
+
+def _registered_agents() -> tuple[list[dict[str, str]], str | None]:
+    """The Curtail agents the live Agent Registry holds, or the reason it cannot be read.
+
+    The registry is external state, exactly like the deployed service, so the same split
+    applies: this half needs the network and a token, and the test that reads the record
+    needs neither. The governance table is a claim about what is RUNNING, and it said
+    "Reachable, not yet populated" for days while that was true. Once it stopped being
+    true, only something that queries the registry could notice.
+    """
+    try:
+        token = subprocess.run(
+            ["gcloud", "auth", "print-access-token"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        return [], f"no gcloud access token ({type(exc).__name__})"
+
+    url = (
+        f"https://agentregistry.googleapis.com/v1/projects/{REGISTRY_PROJECT}"
+        f"/locations/{REGISTRY_LOCATION}/agents"
+    )
+    request = urllib.request.Request(url)
+    request.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+            if response.status != 200:
+                return [], f"the registry answered {response.status}"
+            listed = json.load(response)
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        return [], f"the registry could not be read: {exc}"
+
+    found = []
+    for agent in listed.get("agents") or []:
+        name = str(agent.get("displayName", ""))
+        if not name.startswith("Curtail "):
+            continue
+        urls = [
+            i.get("url", "")
+            for protocol in agent.get("protocols") or []
+            for i in protocol.get("interfaces") or []
+        ]
+        found.append(
+            {
+                "displayName": name,
+                "url": urls[0] if urls else "",
+                "skills": ", ".join(s.get("id", "?") for s in agent.get("skills") or []),
+            }
+        )
+    return sorted(found, key=lambda a: a["displayName"]), None
 
 
 def _served_routes() -> tuple[list[str], str | None]:
@@ -143,6 +202,32 @@ def build() -> str:
         add("the live URL scores as absent and reads worse than an honest omission.")
     else:
         add("Every capability the repository claims is reachable on the live service.")
+
+    add("")
+    add("## Agents cataloged in the live Agent Registry")
+    add("")
+    agents, unreadable_registry = _registered_agents()
+    if unreadable_registry is not None:
+        add(f"The registry could not be read: {unreadable_registry}.")
+        add("")
+        add("**Recorded as unknown, not as empty.** An unreadable registry and an empty")
+        add("one are indistinguishable from here, and publishing the second would turn a")
+        add("missing credential into the claim that nothing is registered.")
+    elif not agents:
+        add("**No Curtail agent is registered.** The governance table must say so.")
+    else:
+        add("| Agent | Skills | Route that reaches it |")
+        add("|---|---|---|")
+        for agent in agents:
+            add(f"| {agent['displayName']} | `{agent['skills']}` | {agent['url']} |")
+        add("")
+        add(f"{len(agents)} Curtail agents are discoverable in the registry.")
+        add("")
+        add("Each carries the route that actually reaches it. The registry enforces")
+        add("unique interface URLs, so four agents cannot share one address, and that")
+        add("constraint is correct: an address identifies an agent. Herald has no direct")
+        add("route because `deliver_order` has no HTTP call site; it is reached only as")
+        add("the final node of a full traversal, and its card says exactly that.")
     return "\n".join(lines) + "\n"
 
 

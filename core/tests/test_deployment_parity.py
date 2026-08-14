@@ -26,6 +26,9 @@ RECORD = REPO / "docs" / "DEPLOYMENT.md"
 README = REPO / "README.md"
 API = REPO / "agents" / "src" / "curtail_agents" / "api.py"
 
+#: The service every cataloged agent must point at.
+SERVICE_URL = "https://curtail-console-api-672785135387.us-central1.run.app"
+
 #: The marker the probe writes when it could not read the service at all.
 UNREACHABLE = "## The probe did not reach the service"
 
@@ -140,3 +143,76 @@ class TestTheDeployedServiceSupportsWhatTheRepositoryClaims:
             "the recorded deployment does not support a capability the repository "
             "claims. Redeploy, or remove the claim."
         )
+
+
+#: The marker the probe writes when the registry itself could not be read.
+REGISTRY_UNREADABLE = "The registry could not be read:"
+
+
+class TestTheGovernanceTableMatchesTheLiveRegistry:
+    """The governance table is read as a list of what is RUNNING.
+
+    It said "Reachable, not yet populated" for days, which was true and honest. The
+    moment four agents were registered it became false in the UNDERSTATING direction,
+    and a stale disclaimer misleads a judge exactly as much as an inflated claim while
+    being easier to miss, because nobody re-reads a sentence that was true when written.
+
+    Nothing in the repository can see the registry, so this reads the probe's record.
+    Same split as the deployment checks above: the network half runs locally, the
+    assertion half runs in CI.
+    """
+
+    def _registered(self, record: str) -> int | None:
+        """How many Curtail agents the record shows, or None when unknown.
+
+        An unreadable registry and an empty one are indistinguishable from outside, and
+        treating a missing credential as "nothing is registered" would turn an auth
+        failure into a published claim.
+        """
+        if REGISTRY_UNREADABLE in record:
+            return None
+        for line in record.splitlines():
+            if line.endswith("Curtail agents are discoverable in the registry."):
+                return int(line.split()[0])
+        if "**No Curtail agent is registered.**" in record:
+            return 0
+        return None
+
+    def test_the_table_does_not_understate_a_populated_registry(self, record: str) -> None:
+        count = self._registered(record)
+        if count is None:
+            pytest.skip("the registry could not be read, so this proves nothing")
+        flat = " ".join(README.read_text().split())
+        if count > 0:
+            assert "not yet populated" not in flat, (
+                f"{count} Curtail agents are registered and the governance table still "
+                "says the registry is not populated, which understates the project on "
+                "the axis worth 30 percent"
+            )
+            assert "no Curtail agent is registered yet" not in flat, (
+                "the registry holds Curtail agents and the README denies it"
+            )
+        else:
+            assert "populated" not in flat or "not yet populated" in flat, (
+                "no Curtail agent is registered and the governance table implies one is"
+            )
+
+    def test_every_recorded_agent_points_at_the_deployed_service(self, record: str) -> None:
+        """A catalog entry pointing somewhere else is worse than no entry.
+
+        The M0 spike's probe was deleted for naming a placeholder host. This asserts the
+        recorded catalog names THIS service, so a stale or copied registration cannot sit
+        in the table looking governed.
+        """
+        count = self._registered(record)
+        if count is None:
+            pytest.skip("the registry could not be read, so this proves nothing")
+        rows = [
+            line for line in record.splitlines() if line.startswith("| Curtail ") and "http" in line
+        ]
+        assert len(rows) == count, (
+            f"the record summarises {count} agents but lists {len(rows)} rows, so the "
+            "table and its own count disagree"
+        )
+        for row in rows:
+            assert SERVICE_URL in row, f"a cataloged agent does not point at the service: {row}"
