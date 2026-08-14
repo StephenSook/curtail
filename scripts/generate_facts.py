@@ -357,6 +357,46 @@ def _normalizer_claim() -> str:
     )
 
 
+def _season_claim() -> str:
+    """Whether the Season Ledger's clocks OUTLIVE the request that computed them.
+
+    The track asks for context maintained across weeks of asynchronous operations, and
+    that is the easiest sentence in this whole submission to write without earning. The
+    ledger existed for weeks with every statutory clock in it and nothing behind it, so
+    this claim requires three things: a store module, a call on the signing path, and a
+    record showing a SECOND client read a season back.
+    """
+    store = REPO / "agents" / "src" / "curtail_agents" / "season_store.py"
+    api = REPO / "agents" / "src" / "curtail_agents" / "api.py"
+    record = REPO / "docs" / "SEASON.md"
+
+    if not store.exists():
+        return "**Nothing persists.** The Season Ledger's clocks do not outlive a request."
+
+    wired = "append_entry(" in api.read_text() if api.exists() else False
+    if not record.exists():
+        return (
+            "**The Season Ledger has a store but no proven round trip.** `docs/SEASON.md` "
+            "is absent, so nothing shows a second client reading a season back. Run "
+            "`make season`."
+        )
+
+    text = record.read_text()
+    clocks = len(re.findall(r"^\| `", text, re.MULTILINE))
+    durable = "Durable: **True**" in text
+    second = "SECOND" in text
+
+    return (
+        f"The Season Ledger is held in **Cloud Firestore**, and a **second, independently "
+        f"constructed client read a season back** with {clocks} statutory clock(s) still "
+        f"running, which is the check that distinguishes durable from remembered "
+        f"(durable={durable}, second_client={second}). A signature on the queue path "
+        f"{'writes those clocks' if wired else 'does NOT yet write those clocks'}. "
+        "`GET /api/season/{basin}` reports `durable` and names its store on every "
+        "response, so an empty season can never be read as a quiet river."
+    )
+
+
 def _armor_claim() -> str:
     """Whether Model Armor is CALLED, in three parts, all required.
 
@@ -630,6 +670,7 @@ def build() -> str:
     add(f"- {_armor_claim()}")
     add(f"- {_registry_claim()}")
     add(f"- {_normalizer_claim()}")
+    add(f"- {_season_claim()}")
     add("")
 
     add("## 1. The backtest")

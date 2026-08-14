@@ -116,6 +116,14 @@ normalizer: ## Run the local Gemma over a real Board order and record what it pr
 	uv run python scripts/run_normalizer.py
 	uv run python scripts/generate_facts.py
 
+.PHONY: season
+season: ## Prove the Season Ledger survives the process, with a SECOND Firestore client
+# Not part of `verify`: this needs credentials CI does not have, and a test that wrote
+# to the real seasons collection would be editing a legal record. The offline half runs
+# in `test`, reading the record this writes.
+	uv run python scripts/probe_season_store.py
+	uv run python scripts/generate_facts.py
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that

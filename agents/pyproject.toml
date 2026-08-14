@@ -35,6 +35,11 @@ dependencies = [
     # nobody touching the code.
     "greenlet>=3.2,<4",
     "google-cloud-pubsub>=2.31,<3",
+    # Imported by curtail_agents.season_store, which is what finally puts a durable
+    # record behind the Season Ledger's statutory clocks. Declared here rather than in
+    # dev because the deployed service reads and writes it on the signing path.
+    "google-cloud-firestore>=2.19,<3",
+
     # The ASGI server Cloud Run runs. Invoked as a command, never imported, so it is
     # registered in the manifest guard's RUNTIME_ONLY table with that reason rather
     # than tripping the unused-dependency check.

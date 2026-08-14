@@ -121,16 +121,33 @@ class TestTheDiagramNamesOnlyWhatTheCodeUses:
             "implemented and tested, but no served request path reaches either."
         )
 
-    def test_it_states_the_missing_persistence_rather_than_omitting_it(self) -> None:
+    def test_it_states_the_state_that_is_still_volatile(self) -> None:
         """A diagram that quietly leaves out what a system lacks is a claim too.
 
-        This asserts the honest label is PRESENT, which is the opposite direction from
-        every other check here, and it is the one most likely to be silently dropped
-        while tidying the picture up before a deadline.
+        This asserts the honest label is PRESENT, the opposite direction from every
+        other check here, and the one most likely to be dropped while tidying a picture
+        up before a deadline.
+
+        **The label MOVED rather than disappeared, and that is the interesting part.**
+        It used to read "No persistent store", which stopped being true when the Season
+        Ledger got Firestore behind it. The temptation at that moment is to delete the
+        caveat and enjoy the cleaner picture. The approval queue is still in-process, so
+        the caveat now names that instead. An honest limit that shrinks is still a limit.
         """
         diagram = _diagram_text()
-        assert "No persistent store" in diagram
-        assert "Nothing survives a request" in diagram
+        assert "still in-process" in diagram
+        assert "does not survive a restart" in diagram
+
+    def test_it_may_name_firestore_only_because_the_code_now_uses_it(self) -> None:
+        """The wired-or-cut rule in the direction that usually goes unchecked.
+
+        `Firestore` was on the forbidden list until this commit, and it is drawn now
+        only because `season_store.py` imports and calls it. The sibling test above
+        would fail if that stopped being true.
+        """
+        diagram, source = _diagram_text(), _source_text()
+        assert "Cloud Firestore" in diagram
+        assert "google.cloud.firestore" in source
 
 
 class TestTheRenderedArtifactExists:
