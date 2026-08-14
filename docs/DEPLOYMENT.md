@@ -10,8 +10,8 @@ deploys on merge, so the repository can be correct and the live URL behind it.
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
 - Commit the container reports: `614757ca168df42cf6dab78561b9fa63d4c61ed5`
 - Season Ledger durable in production: **True**, store: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `614757ca168df42cf6dab78561b9fa63d4c61ed5`
-- Probed at: `2026-08-14T23:36:17+00:00`
+- Probed at repository commit: `bc1f8f8a0ad4eac687f73ad62251b5434e4d4193`
+- Probed at: `2026-08-14T23:43:56+00:00`
 - Serving revision at probe time: `curtail-console-api-00035-8k4`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
@@ -47,6 +47,9 @@ record for that reason, so a newer revision serving it contradicts nothing.
 14 routes.
 
 ## Capabilities the repository may claim
+
+- Season Ledger durable in production: **True**
+- Container reports its own commit: **yes**
 
 | Capability | Route that settles it | Served |
 |---|---|---|

@@ -363,6 +363,18 @@ def build() -> str:
     add("")
     add("## Capabilities the repository may claim")
     add("")
+    # **These two live INSIDE the compared block on purpose.** They were in the header
+    # first, where `--check` never looks, so a deployment that lost durability or its
+    # stamp still reported "matches the live service". A capability check that cannot
+    # see the capability is the shape this record exists to prevent.
+    #
+    # Booleans, not the revision string: whether the container can name its commit is a
+    # stable fact, and WHICH commit changes on every deploy. Comparing the value would
+    # redden the gate for the system working normally, which is how a real drift later
+    # goes unnoticed.
+    add(f"- Season Ledger durable in production: **{caps['durable']}**")
+    add(f"- Container reports its own commit: **{'yes' if caps['stamped'] else 'no'}**")
+    add("")
     add("| Capability | Route that settles it | Served |")
     add("|---|---|---|")
     for route, claim in sorted(CLAIMED_ROUTES.items(), key=lambda pair: pair[1]):
