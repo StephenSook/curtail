@@ -71,12 +71,20 @@ agents-check: ## Fail if the live registry does not hold exactly the agents the 
 	uv run python scripts/register_agents.py --check
 
 .PHONY: deployed
-deployed: ## Probe the live service and record what it actually serves
+deployed: ## Probe the live service, record what it serves, and refresh the fact sheet
 # Deliberately NOT part of `verify`. This needs the network and the deployed service,
 # and a gate that reddens when a service is intentionally powered down is a gate people
 # learn to override. The offline half runs in `test`: it reads the record this writes
 # and fails when the repository claims a capability production does not serve.
+#
+# **The fact sheet is regenerated in the SAME target, because it reads this record.**
+# The registry claim quotes the probe stamp, so re-probing without regenerating leaves
+# FACTS.md quoting a timestamp that no longer exists in DEPLOYMENT.md. That is not
+# hypothetical: it turned a PR red on exactly this, one commit after the stamp was
+# introduced. Two commands a human has to remember to run in order is a footgun; one
+# target that runs both is not.
 	uv run python scripts/probe_deployment.py
+	uv run python scripts/generate_facts.py
 
 deployed-check: ## Fail if the committed deployment record has drifted from the live service
 	uv run python scripts/probe_deployment.py --check
