@@ -56,7 +56,7 @@ SDKS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _executable(text: str, *, python: bool) -> str:
+def executable_source(text: str, *, python: bool) -> str:
     """The part of a file that RUNS, with comments and docstrings removed.
 
     **A comment naming a requirement is not the requirement.** This project's Dockerfile
@@ -93,10 +93,10 @@ def _source() -> str:
     for directory in SOURCE_DIRS:
         for path in directory.rglob("*.py"):
             if "__pycache__" not in path.parts:
-                parts.append(_executable(path.read_text(), python=True))
+                parts.append(executable_source(path.read_text(), python=True))
     docker = REPO / "Dockerfile"
     if docker.exists():
-        parts.append(_executable(docker.read_text(), python=False))
+        parts.append(executable_source(docker.read_text(), python=False))
     return "\n".join(parts)
 
 
