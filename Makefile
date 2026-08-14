@@ -59,6 +59,16 @@ rights: ## Re-parse Attachment A from the fetched corpus into the committed reco
 rights-check: ## Fail if the committed rights record has drifted from the source PDF
 	uv run python scripts/extract_attachment_a.py --check
 
+scott-rights: ## Re-parse the Scott Attachment A into the committed record
+	uv run python scripts/extract_scott_attachment_a.py
+
+scott-rights-check: ## Fail if the committed Scott record has drifted from its source PDF
+# NOT in the test suite, and that is deliberate. The corpus is fetched rather than
+# vendored, so a test that re-parses the PDF SKIPS on a CI runner, and this project fails
+# the build on any skip because a skipped guard is a false green. A human with the corpus
+# runs this; the record's internal consistency is asserted by tests that need no PDF.
+	uv run python scripts/extract_scott_attachment_a.py --check
+
 .PHONY: agents
 agents: ## Register the fleet in the Agent Registry, from the graph's own node names
 # Idempotent: re-running patches the existing cards rather than duplicating them. Refuses
