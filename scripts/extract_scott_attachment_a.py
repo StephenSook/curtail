@@ -97,6 +97,16 @@ def parse(text: str) -> list[dict[str, Any]]:
     return rows
 
 
+def _digest(rows: list[dict[str, Any]]) -> str:
+    """A content hash over the parsed rows, in canonical form.
+
+    Sorted keys and a fixed separator so the digest depends on the DATA rather than on
+    how json chose to format it that day.
+    """
+    canonical = json.dumps(rows, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 def build() -> dict[str, Any]:
     text = _text()
     rows = parse(text)
@@ -121,6 +131,7 @@ def build() -> dict[str, Any]:
         )
 
     groups = Counter(r["curtailment_group"] for r in rows)
+    ordered = sorted(rows, key=lambda r: (r["curtailment_group"], r["application_number"]))
     return {
         "source": {
             "file": SOURCE.name,
@@ -144,8 +155,21 @@ def build() -> dict[str, Any]:
             "application_numbers_in_document": len(in_document),
             "by_group": {str(k): groups[k] for k in sorted(groups)},
             "by_status": dict(Counter(r["status_as_printed"] for r in rows)),
+            # **A digest CI can check without the PDF, and the reason it exists.**
+            #
+            # The corpus is gitignored, so `--check` only runs where somebody has the
+            # source, which is a human's machine and never a CI runner. Every other
+            # assertion about this record reads numbers the record itself reports, so
+            # they are a total derived from its own parts and cannot fail: a hand edit
+            # moving one right from group 8 to group 1, the difference between curtailed
+            # first and curtailed last, passed the entire suite. Demonstrated before this
+            # was added, not imagined.
+            #
+            # This binds the counts to the rows. Editing a right without re-running the
+            # extractor now fails in CI, on a runner that has never seen the PDF.
+            "rights_sha256": _digest(ordered),
         },
-        "rights": sorted(rows, key=lambda r: (r["curtailment_group"], r["application_number"])),
+        "rights": ordered,
     }
 
 
