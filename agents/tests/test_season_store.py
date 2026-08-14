@@ -506,3 +506,31 @@ class TestTheFirestoreStoreItself:
             implementation.append_entry(Basin.SCOTT, _entry("SAME-ID"))
             with pytest.raises(LedgerIntegrityError):
                 implementation.append_entry(Basin.SCOTT, _entry("SAME-ID"))
+
+    def test_corrupt_stored_data_is_an_outage_not_a_refusal(
+        self, store: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A ValueError from the stored season is infrastructure, not a domain answer.
+
+        The first version of the domain-refusal fix re-raised `ValueError` as well,
+        which reads reasonable and is an overcorrection: a season that will not parse,
+        or an SDK that objects to an argument, would have escaped as a ValueError and
+        been classified by the API as "the ledger refused the entry". A corrupt record
+        reported as a routine refusal is the quietest possible way to lose a season.
+
+        Exactly one exception means "this order is already on record".
+        """
+        import curtail_agents.season_store as module
+
+        def _corrupt(entries: Any, new: Any) -> Any:
+            raise ValueError("the stored season could not be parsed")
+
+        monkeypatch.setattr(module, "append", _corrupt)
+        with pytest.raises(SeasonStoreUnavailableError, match="could not be written"):
+            store.append_entry(Basin.SHASTA, _entry("WR-1"))
+
+    def test_the_duplicate_refusal_still_gets_through(self, store: Any) -> None:
+        """The other side of the same narrowing, so it cannot swing back."""
+        store.append_entry(Basin.SHASTA, _entry("WR-1"))
+        with pytest.raises(LedgerIntegrityError):
+            store.append_entry(Basin.SHASTA, _entry("WR-1"))
