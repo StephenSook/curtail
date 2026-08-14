@@ -163,6 +163,55 @@ class TestUnknownDecreeMembershipRefuses:
                 f"the {basin.value} refusal does not name the rung the guess would cost"
             )
 
+    def test_a_stated_group_cannot_attach_to_a_shasta_right(self) -> None:
+        """**The bypass: a field that meant nothing on one path bought a pass on another.**
+
+        `stated_group` is a Scott concept. Set on a Shasta right it was silently discarded
+        by the Shasta ladder, which does not read it, while still satisfying the exemption
+        in the unknown-membership refusal. The right then placed at Tier A, rank 1, the
+        rung curtailed first, on a flag that said its membership was unknown.
+
+        Rejected at construction so the state cannot exist, following the precedent
+        already set for `schedule`, which is refused on non-Scott rights for the same
+        reason.
+        """
+        from curtail_core.adjudications import RightClass, WaterRight
+
+        with pytest.raises(ValueError) as caught:
+            WaterRight(
+                right_id="SG-BYPASS",
+                basin=Basin.SHASTA,
+                right_class=RightClass.APPROPRIATIVE,
+                decree_membership_unknown=True,
+                stated_group=8,
+            )
+        message = str(caught.value)
+        assert "Scott concept" in message
+        assert "suppressed the unknown-membership refusal" in message, (
+            "the rejection does not say what the field would have bought"
+        )
+
+    def test_the_exemption_is_scott_only_even_if_construction_were_bypassed(self) -> None:
+        """Defence in depth, because the project's own rule is never one layer.
+
+        Construction now makes the bad state unrepresentable, so this asserts the guard
+        would hold anyway. `object.__setattr__` is used deliberately to build the state
+        the constructor refuses, which is the only way to test the second layer at all.
+        """
+        from curtail_core.adjudications import RightClass, WaterRight
+        from curtail_core.priority import PlacementError, place
+
+        smuggled = WaterRight(
+            right_id="SG-SMUGGLED",
+            basin=Basin.SHASTA,
+            right_class=RightClass.APPROPRIATIVE,
+            decree_membership_unknown=True,
+        )
+        object.__setattr__(smuggled, "stated_group", 8)
+
+        with pytest.raises(PlacementError):
+            place(smuggled)
+
     def test_a_stated_group_outranks_the_unknown_flag(self) -> None:
         """Where the Board states the grouping there is nothing left to be unknown about,
         so the stated column is read and the refusal never fires."""

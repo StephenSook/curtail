@@ -244,6 +244,21 @@ class WaterRight:
                     f"record that it is held under a decree that does not govern it."
                 )
 
+        # Same shape as the schedule check below, and it closes a confirmed bypass rather
+        # than a hypothetical one. `stated_group` is a Scott concept: only the Scott
+        # ladder reads it, and only Scott's Attachment A prints it. Set on a Shasta right
+        # it was silently DISCARDED by the ladder while still buying that right an
+        # exemption from the unknown-membership refusal in `place`, so a field that meant
+        # nothing on one path granted a pass on another and the right landed in Tier A,
+        # the rung curtailed first. Rejecting it here makes that state unrepresentable.
+        if self.stated_group is not None and self.basin is not Basin.SCOTT:
+            raise ValueError(
+                f"{self.right_id}: a stated curtailment group is a Scott concept, from "
+                f"23 CCR 875.5(a)(1)(A) and the Board's Attachment A, and cannot attach "
+                f"to a {self.basin.value} right. The {self.basin.value} ladder would "
+                "ignore it while it still suppressed the unknown-membership refusal."
+            )
+
         if self.schedule is not None and self.basin is not Basin.SCOTT:
             raise ValueError(
                 f"{self.right_id}: Schedule {self.schedule.value} is a Scott decree "
