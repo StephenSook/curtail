@@ -25,10 +25,32 @@ SOURCE_DIRS = (REPO / "agents" / "src", REPO / "core" / "src")
 #: claim is at least stated twice, and if only one is edited these tests fail. A single
 #: shared constant would let a wrong edit propagate silently to the check that guards it.
 EVIDENCE: dict[str, tuple[str, ...]] = {
+    # Cloud Run was MISSING from this table while the generator could claim it, which a
+    # review caught. The guard's name said "ticks nothing the code lacks" and it covered
+    # four of the five services and none of the SDKs, so a sheet claiming Cloud Run or
+    # either SDK passed unguarded. A guard whose stated scope exceeds its actual scope
+    # is the defect it exists to catch, one level up, and this project has hit it before.
+    # `test_the_guard_covers_every_claim_the_generator_can_make` now makes the gap
+    # impossible rather than relying on someone noticing.
+    # `PORT` was the first marker here and it was USELESS: it matches inside
+    # `TRANSPORT`, `TRANSPORTS` and `SYNTHETIC_TRANSPORT`, so the check passed with the
+    # Dockerfile's Cloud Run contract deliberately broken. A mutation caught it. Same
+    # substring failure as `curtail` matching inside `curtailments` in the normalizer,
+    # which is twice in one day: **a marker short enough to be convenient is usually
+    # short enough to appear somewhere it means nothing.**
+    "Cloud Run": ("CLOUD_RUN_REQUEST_TIMEOUT_SECONDS", "--proxy-headers"),
     "Cloud SQL": ("cloudsql", "cloud_sql"),
     "Firestore": ("google.cloud.firestore",),
     "Google Kubernetes (GKE)": ("container_v1",),
     "Pub/Sub": ("pubsub_v1.PublisherClient", "pubsub_v1.SubscriberClient"),
+}
+
+#: The SDK row was guarded by NOTHING. Same table shape, same independence.
+SDK_EVIDENCE: dict[str, tuple[str, ...]] = {
+    "Agent Development Kit (ADK)": ("google.adk",),
+    "Google GenAI SDK (google-genai)": ("from google import genai", "google.genai"),
+    "Antigravity SDK": ("antigravity",),
+    "Genkit": ("genkit",),
 }
 
 
@@ -40,11 +62,21 @@ def sheet() -> str:
 
 @pytest.fixture(scope="module")
 def source() -> str:
+    """Shipped Python AND the Dockerfile.
+
+    The Dockerfile is where Cloud Run's evidence lives: the container reads `$PORT` and
+    runs with `--proxy-headers`, which is the platform's contract and appears in no .py
+    file. A source fixture that stopped at Python could never have verified the one
+    service this project most obviously uses.
+    """
     parts: list[str] = []
     for directory in SOURCE_DIRS:
         for path in directory.rglob("*.py"):
             if "__pycache__" not in path.parts:
                 parts.append(path.read_text())
+    docker = REPO / "Dockerfile"
+    if docker.exists():
+        parts.append(docker.read_text())
     return "\n".join(parts)
 
 
@@ -70,6 +102,29 @@ class TestTheSheetTicksNothingTheCodeLacks:
             f"the sheet ticks {service} and no shipped source matches "
             f"{EVIDENCE[service]}. A dropdown is a claim about the stack."
         )
+
+    @pytest.mark.parametrize("sdk", sorted(SDK_EVIDENCE))
+    def test_a_claimed_sdk_has_its_evidence_in_the_source(
+        self, sdk: str, sheet: str, source: str
+    ) -> None:
+        """The SDK row was guarded by nothing at all.
+
+        It is the row a judge is most likely to check first, because the rules make one
+        Google agent framework mandatory.
+        """
+        row = _ticked(sheet, "Google SDK")
+        assert row, "the sheet has no SDK row"
+        if sdk not in row:
+            return
+        assert any(marker in source for marker in SDK_EVIDENCE[sdk]), (
+            f"the sheet ticks {sdk} and no shipped source matches {SDK_EVIDENCE[sdk]}"
+        )
+
+    def test_the_sheet_claims_at_least_one_sdk(self, sheet: str) -> None:
+        """The rules require at least one Google agent framework, so an empty row is a
+        disqualification rather than a modest answer."""
+        row = _ticked(sheet, "Google SDK")
+        assert any(sdk in row for sdk in SDK_EVIDENCE), f"no SDK is claimed: {row!r}"
 
     def test_every_model_it_names_is_in_the_source(self, sheet: str, source: str) -> None:
         row = _ticked(sheet, "Google AI models")
@@ -121,3 +176,48 @@ class TestItSaysWhatIsStillMissing:
         an Organization" and is `required: true` regardless. A form that rejects on a
         field nobody read as mandatory is a bad way to spend the last hour."""
         assert "required even though it reads optional" in sheet
+
+
+class TestTheGuardCoversEverythingTheGeneratorCanClaim:
+    """Registry completeness, so this gap cannot reopen when an option is added.
+
+    The tables above are deliberately a SECOND statement of the evidence, so that one
+    wrong edit cannot propagate into the check that guards it. That independence is
+    worth keeping and it created the hole a review found: the generator grew a Cloud Run
+    entry and an SDK table, and the guard did not, so a sheet claiming either passed.
+
+    Comparing KEY SETS gets both properties. The guard has to know about every option the
+    generator can emit, and it still states its own evidence for each.
+    """
+
+    @staticmethod
+    def _generator_tables() -> tuple[set[str], set[str]]:
+        import importlib.util
+
+        path = REPO / "scripts" / "generate_submission.py"
+        spec = importlib.util.spec_from_file_location("generate_submission", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return set(module.CLOUD_SERVICES), set(module.SDKS)
+
+    def test_no_service_the_generator_knows_is_unguarded(self) -> None:
+        services, _ = self._generator_tables()
+        unguarded = sorted(services - set(EVIDENCE))
+        assert not unguarded, (
+            f"the generator can claim {unguarded} and no test verifies them. A guard "
+            "whose stated scope exceeds its actual scope is the defect it exists to "
+            "catch."
+        )
+
+    def test_no_sdk_the_generator_knows_is_unguarded(self) -> None:
+        _, sdks = self._generator_tables()
+        unguarded = sorted(sdks - set(SDK_EVIDENCE))
+        assert not unguarded, f"the generator can claim {unguarded} and nothing checks them"
+
+    def test_the_guard_names_nothing_the_generator_cannot_emit(self) -> None:
+        """The other direction. A table entry for an option that no longer exists is a
+        check watching a line that cannot appear, which reads as coverage and is not."""
+        services, sdks = self._generator_tables()
+        stale = sorted((set(EVIDENCE) - services) | (set(SDK_EVIDENCE) - sdks))
+        assert not stale, f"these are guarded and the generator cannot emit them: {stale}"

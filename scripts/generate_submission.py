@@ -29,7 +29,7 @@ SOURCE_DIRS = (REPO / "agents" / "src", REPO / "core" / "src")
 #: Devpost field 28142's options, and the import or call that proves we use each.
 #: Ticking one of these without the evidence is the checkbox form of a false claim.
 CLOUD_SERVICES: dict[str, tuple[str, ...]] = {
-    "Cloud Run": ("PORT", "proxy-headers"),
+    "Cloud Run": ("CLOUD_RUN_REQUEST_TIMEOUT_SECONDS", "--proxy-headers"),
     "Cloud SQL": ("cloudsql", "cloud_sql"),
     "Firestore": ("google.cloud.firestore",),
     "Google Kubernetes (GKE)": ("container_v1",),
