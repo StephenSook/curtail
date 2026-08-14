@@ -143,7 +143,22 @@ chaos-recording: ## The drill, STRICT. Every layer must actually run. Use before
 # and says so out loud. A RECORDING must not: a run that demonstrates layer 1 only looks
 # identical on camera to one that demonstrates both, and it silently loses the strongest
 # finding the drill produces.
-	GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT:-curtail-505118} uv run python -m curtail_agents.chaos
+# **No default project, and that is the correction.** This target used to substitute
+# `curtail-505118` when GOOGLE_CLOUD_PROJECT was unset, which contradicted its own
+# contract: a target whose whole purpose is "set the project before recording" cannot
+# set it for you. Worse, on any machine but this one it would aim authenticated live
+# requests at a project the operator never chose, which is the ambient-default failure
+# that has bitten this account before on another platform.
+#
+# Bare `test`, so an unset variable exits non-zero rather than being reported in prose
+# above a green run.
+	@test -n "$$GOOGLE_CLOUD_PROJECT" || { \
+	  echo "GOOGLE_CLOUD_PROJECT is not set."; \
+	  echo "Set it to the project whose Model Armor template this drill should call:"; \
+	  echo "    GOOGLE_CLOUD_PROJECT=<your-project> make chaos-recording"; \
+	  echo "Refusing to pick one: a recorded drill must call the project you meant."; \
+	  exit 1; }
+	uv run python -m curtail_agents.chaos
 
 .PHONY: verify
 verify: lint types test tone chaos ## The pre-commit triplet, tone, and the drill.

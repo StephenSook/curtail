@@ -7,7 +7,7 @@ The Fleet track asks for a system that maintains context across weeks of asynchr
 operations. This is the evidence, and the shape of the check is the point.
 
 - Store: **Cloud Firestore**, native mode, project `curtail-505118`, collection `seasons`
-- Written by one client at `2026-08-14T21:04:42.626719+00:00`
+- Written by one client at `2026-08-14T22:24:00.589260+00:00`
 - **Read back by a SECOND, independently constructed client**, sharing no memory with
   the writer. Reading through the object that just wrote is satisfied by a dictionary,
   which is exactly what this project had before.
