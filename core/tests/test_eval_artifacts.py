@@ -55,7 +55,7 @@ class TestTheEvalSetIsBuiltFromTheBoardsOwnRecord:
 
 
 class TestNoMetricIsReportedWithoutBeingMeasured:
-    ALLOWED: ClassVar[set[str]] = {"measured", "not_applicable", "pending_credentials"}
+    ALLOWED: ClassVar[set[str]] = {"measured", "not_applicable", "pending_credentials", "not_run"}
 
     def test_every_metric_declares_a_status(self, results: dict[str, Any]) -> None:
         assert results["metrics"], "a result file with no metrics claims nothing"
@@ -198,3 +198,86 @@ class TestTheExpectationIsSomethingTheAgentCanActuallyAnswer:
 
         assert compared == len(eval_set["eval_cases"]), "some cases were never compared"
         assert compared > 0, "an empty eval set compares nothing and proves nothing"
+
+
+class TestTheMeasuredScoresAreRealMeasurements:
+    """Four agents are now scored deterministically, and a score is the easiest thing
+    in this repository to fake by accident.
+
+    The failure mode is specific and it has a name here: a suite made only of cases the
+    system is supposed to PASS scores a perfect 1.0 the moment its guard is deleted,
+    because nothing in it ever expected a rejection. That is the vacuous-1.0 shape this
+    project has already shipped once in an eval artifact, so the last test below refuses
+    a suite that contains no negative expectation.
+    """
+
+    AGENTS: ClassVar[tuple[str, ...]] = (
+        "gage_sentinel",
+        "allocation_core",
+        "order_scribe",
+        "herald",
+    )
+
+    def test_every_fleet_member_is_measured(self, results: dict[str, Any]) -> None:
+        """Evals covering one agent out of four is evidence about one agent."""
+        measured = results.get("measured") or {}
+        missing = [a for a in self.AGENTS if a not in measured]
+        assert not missing, f"no measurement for {missing}"
+
+    def test_a_score_is_never_reported_without_a_denominator(self, results: dict[str, Any]) -> None:
+        for name, entry in results["measured"].items():
+            if entry["score"] is None:
+                assert entry["cases_scored"] == 0, (
+                    f"{name} reports no score while claiming it scored cases"
+                )
+                continue
+            assert entry["cases_scored"] > 0, f"{name} reports a score over zero cases"
+            assert entry["matched"] <= entry["cases_scored"]
+            assert abs(entry["score"] - entry["matched"] / entry["cases_scored"]) < 1e-9, (
+                f"{name}'s score does not equal matched over scored, so it was not "
+                "derived from the cases beside it"
+            )
+
+    def test_a_blocked_case_says_why_and_is_out_of_the_denominator(
+        self, results: dict[str, Any]
+    ) -> None:
+        """**A denominator that quietly shrinks to what passes is a manufactured score.**
+        Cases the system cannot run are reported, counted separately, and given a reason.
+        """
+        for name, entry in results["measured"].items():
+            blocked = [c for c in entry["cases"] if "blocked" in c]
+            assert entry["cases_blocked"] == len(blocked), f"{name} miscounts its blocked cases"
+            assert entry["cases_scored"] + entry["cases_blocked"] == entry["cases_total"], (
+                f"{name} loses cases between its total and its parts"
+            )
+            for case in blocked:
+                assert case["blocked"].strip(), f"{name} blocked a case without saying why"
+            if blocked:
+                assert entry["blocked_reasons"], f"{name} hides the reasons it could not run"
+
+    def test_every_suite_contains_a_case_it_expects_to_fail(self, results: dict[str, Any]) -> None:
+        """The non-vacuity guard.
+
+        A suite whose every case expects success cannot distinguish a working guard from
+        a deleted one. Each suite here must contain at least two DISTINCT expectations,
+        so that a component which always answers the same way scores less than 1.0.
+
+        Verified by mutation rather than assumed: disabling the Scribe's ledger guard
+        drops that suite from 1.0 to 0.33, and inverting the direction rule drops the
+        Sentinel from 1.0 to 0.0.
+        """
+        for name, entry in results["measured"].items():
+            expectations = {c["expected"] for c in entry["cases"]}
+            assert len(expectations) > 1, (
+                f"{name} expects {expectations} on every case, so a component that "
+                "always answers the same way would score a vacuous 1.0"
+            )
+
+    def test_no_measurement_claims_a_judge_model_it_did_not_use(
+        self, results: dict[str, Any]
+    ) -> None:
+        """These are deterministic by construction: arithmetic, a set comparison and a
+        statute. Claiming an LLM judge would overstate the instrument."""
+        for name, entry in results["measured"].items():
+            assert entry["judge_model_required"] is False, name
+            assert entry["measures"].strip(), f"{name} does not say what it measures"

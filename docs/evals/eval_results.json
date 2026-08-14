@@ -1,22 +1,199 @@
 {
   "eval_set_id": "curtail_sentinel",
   "cases": 6,
+  "measured": {
+    "gage_sentinel": {
+      "agent": "gage_sentinel",
+      "measures": "the direction the Board's own verb points, against the Sentinel's classification",
+      "judge_model_required": false,
+      "cases_total": 6,
+      "cases_scored": 6,
+      "cases_blocked": 0,
+      "matched": 6,
+      "score": 1.0,
+      "blocked_reasons": [],
+      "cases": [
+        {
+          "eval_id": "scott_2024/addenda/7",
+          "expected": "restrict",
+          "actual": "restrict",
+          "match": true
+        },
+        {
+          "eval_id": "scott_2024/addenda/8",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true
+        },
+        {
+          "eval_id": "shasta_2024/addenda/2",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true
+        },
+        {
+          "eval_id": "shasta_2024/addenda/3",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true
+        },
+        {
+          "eval_id": "shasta_2024/addenda/5",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true
+        },
+        {
+          "eval_id": "shasta_2024/addenda/6",
+          "expected": "restrict",
+          "actual": "restrict",
+          "match": true
+        }
+      ]
+    },
+    "allocation_core": {
+      "agent": "allocation_core",
+      "measures": "the direction the Core's recommended action points, on the committed rights table",
+      "judge_model_required": false,
+      "cases_total": 6,
+      "cases_scored": 4,
+      "cases_blocked": 2,
+      "matched": 4,
+      "score": 1.0,
+      "blocked_reasons": [
+        "no committed rights table for scott, so the Core cannot be replayed on this case"
+      ],
+      "cases": [
+        {
+          "eval_id": "scott_2024/addenda/7",
+          "expected": "restrict",
+          "actual": null,
+          "match": false,
+          "blocked": "no committed rights table for scott, so the Core cannot be replayed on this case"
+        },
+        {
+          "eval_id": "scott_2024/addenda/8",
+          "expected": "relieve",
+          "actual": null,
+          "match": false,
+          "blocked": "no committed rights table for scott, so the Core cannot be replayed on this case"
+        },
+        {
+          "eval_id": "shasta_2024/addenda/2",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true,
+          "recommended_action": "consider_suspension",
+          "rights_reached": 0
+        },
+        {
+          "eval_id": "shasta_2024/addenda/3",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true,
+          "recommended_action": "consider_suspension",
+          "rights_reached": 0
+        },
+        {
+          "eval_id": "shasta_2024/addenda/5",
+          "expected": "relieve",
+          "actual": "relieve",
+          "match": true,
+          "recommended_action": "consider_suspension",
+          "rights_reached": 0
+        },
+        {
+          "eval_id": "shasta_2024/addenda/6",
+          "expected": "restrict",
+          "actual": "restrict",
+          "match": true,
+          "recommended_action": "field_verification_first",
+          "rights_reached": 71
+        }
+      ]
+    },
+    "order_scribe": {
+      "agent": "order_scribe",
+      "measures": "the hallucination guard: a draft asserting a right or a priority date outside the Core's computed set must be rejected, and a faithful draft must pass",
+      "judge_model_required": false,
+      "cases_total": 3,
+      "cases_scored": 3,
+      "cases_blocked": 0,
+      "matched": 3,
+      "score": 1.0,
+      "blocked_reasons": [],
+      "cases": [
+        {
+          "eval_id": "faithful_draft_passes",
+          "expected": "may_reach_pdf",
+          "actual": "may_reach_pdf",
+          "match": true,
+          "guard_reason": "draft matches the computed ledger"
+        },
+        {
+          "eval_id": "invented_right_rejected",
+          "expected": "rejected",
+          "actual": "rejected",
+          "match": true,
+          "guard_reason": "1 right(s) asserted with no basis in the ledger: A-999. Retrying once with the violation fed back into the prompt."
+        },
+        {
+          "eval_id": "swapped_priority_date_rejected",
+          "expected": "rejected",
+          "actual": "rejected",
+          "match": true,
+          "guard_reason": "1 priority date(s) that do not match the right they are asserted for: A-001 asserted as 1850-03-01, ledger says 1958-01-01. Retrying once with the violation fed back into the prompt."
+        }
+      ]
+    },
+    "herald": {
+      "agent": "herald",
+      "measures": "Water Code 1121: only a permitted method to a party effects service, so a successful notification-lane delivery is still not service",
+      "judge_model_required": false,
+      "cases_total": 3,
+      "cases_scored": 3,
+      "cases_blocked": 0,
+      "matched": 3,
+      "score": 1.0,
+      "blocked_reasons": [],
+      "cases": [
+        {
+          "eval_id": "certified_mail_to_a_party_is_service",
+          "expected": "served",
+          "actual": "served",
+          "match": true
+        },
+        {
+          "eval_id": "email_to_a_diverter_is_not_service",
+          "expected": "not_served",
+          "actual": "not_served",
+          "match": true
+        },
+        {
+          "eval_id": "a_mixed_roster_is_not_fully_served",
+          "expected": "not_served",
+          "actual": "not_served",
+          "match": true
+        }
+      ]
+    }
+  },
   "metrics": {
     "tool_trajectory_avg_score": {
       "status": "not_applicable",
       "reason": "Curtail's fleet is an ADK Graph whose stages are NODES, not tools, so an agent that calls no tools scores a vacuous 1.0 against an empty expectation. Reporting that as a result would be quoting a number that measured nothing."
     },
     "final_response_match_v2": {
-      "status": "pending_credentials",
-      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+      "status": "not_run",
+      "reason": "An LLM-as-a-judge metric, and it is NOT run here. The earlier reason given was 'this environment holds no Gemini credentials', which stopped being true: the Scribe makes real Gemini calls in production and the same credentials are available here. The honest reason is different and narrower: a judge model scoring this system's own output is a weaker instrument than the deterministic checks in `measured` above, which score the same components against arithmetic, a computed set and a statute. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
     },
     "safety_v1": {
-      "status": "pending_credentials",
-      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+      "status": "not_run",
+      "reason": "An LLM-as-a-judge metric, and it is NOT run here. The earlier reason given was 'this environment holds no Gemini credentials', which stopped being true: the Scribe makes real Gemini calls in production and the same credentials are available here. The honest reason is different and narrower: a judge model scoring this system's own output is a weaker instrument than the deterministic checks in `measured` above, which score the same components against arithmetic, a computed set and a statute. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
     },
     "hallucinations_v1": {
-      "status": "pending_credentials",
-      "reason": "An LLM-as-a-judge metric. It needs a judge model, and this environment holds no Gemini credentials. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
+      "status": "not_run",
+      "reason": "An LLM-as-a-judge metric, and it is NOT run here. The earlier reason given was 'this environment holds no Gemini credentials', which stopped being true: the Scribe makes real Gemini calls in production and the same credentials are available here. The honest reason is different and narrower: a judge model scoring this system's own output is a weaker instrument than the deterministic checks in `measured` above, which score the same components against arithmetic, a computed set and a statute. Left unrun rather than filled with a placeholder, because a number nobody produced reads like evidence."
     }
   },
   "what_is_measured_today": {
