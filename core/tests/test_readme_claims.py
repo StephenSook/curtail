@@ -832,3 +832,66 @@ def test_the_deployment_check_compares_the_capability_facts() -> None:
         "the revision VALUE is inside the compared region, so this check goes red every "
         "time main advances, which is how a gate teaches people to override it"
     )
+
+
+class TestThePreSubmitGateCannotSayReadyTooEarly:
+    """A gate, not a checklist, and the exit code is the verdict.
+
+    Near a deadline the dangerous failure is not a red suite. It is a GREEN one being
+    read as "the submission is done" while the video does not exist, so this gate exits
+    non-zero for as long as a human item is outstanding.
+    """
+
+    @staticmethod
+    def _module() -> Any:
+        import importlib.util
+        import sys
+
+        path = REPO / "scripts" / "pre_submit.py"
+        spec = importlib.util.spec_from_file_location("pre_submit", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        # **Registered BEFORE exec, and that is required rather than tidy.** The
+        # dataclass decorator resolves its field annotations through
+        # `sys.modules[cls.__module__]`, so a module executed without being registered
+        # dies with `'NoneType' object has no attribute '__dict__'` the moment it
+        # defines one. The other loaders in this suite got away with it because those
+        # modules define no dataclass.
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        return module
+
+    def test_a_human_item_keeps_the_verdict_non_zero(self) -> None:
+        module = self._module()
+        human = [s for s in module.STEPS if s.human is not None]
+        assert human, "no human items, so this gate would report READY on a green suite"
+        assert any("video" in s.name for s in human), (
+            "the demo video is not listed, and it is the largest thing no command can check"
+        )
+
+    def test_every_step_either_runs_something_or_names_a_human(self) -> None:
+        """A step that does neither is decoration on a checklist."""
+        for step in self._module().STEPS:
+            assert step.command is not None or step.human is not None, (
+                f"{step.name!r} neither runs a check nor names what a human must supply"
+            )
+
+    def test_skipped_network_steps_are_reported_not_counted_as_passing(self) -> None:
+        """`--offline` must say what it did not do.
+
+        The same rule the chaos drill learned: a check that did not run is not a check
+        that passed, and the difference has to be visible in the output rather than
+        inferable from a flag somebody typed.
+        """
+        source = (REPO / "scripts" / "pre_submit.py").read_text()
+        assert "prove nothing" in source
+        assert "SKIP" in source
+
+    def test_the_gate_runs_the_checks_that_guard_the_judged_artifacts(self) -> None:
+        """Regenerating a claim is not the same as checking it is current, and the
+        submission is judged on the committed files, not on what a rerun would say."""
+        commands = " ".join(
+            " ".join(s.command) for s in self._module().STEPS if s.command is not None
+        )
+        for required in ("generate_facts.py", "generate_submission.py", "deployed-check"):
+            assert required in commands, f"the gate does not check {required}"

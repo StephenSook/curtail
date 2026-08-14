@@ -186,6 +186,14 @@ chaos-recording: ## The drill, STRICT. Every layer must actually run. Use before
 	  exit 1; }
 	uv run python -m curtail_agents.chaos
 
+.PHONY: pre-submit
+pre-submit: ## Everything checkable, checked, before submitting. Exits 2 while a human item is outstanding.
+# A gate, not a checklist. Every item either runs a real check or reports that it CANNOT,
+# and the exit code is the verdict. It refuses to report READY while the video is
+# missing, because near a deadline the dangerous failure is not a red suite: it is a
+# green one being read as "the submission is done".
+	GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT} uv run python scripts/pre_submit.py
+
 .PHONY: verify
 verify: lint types test tone chaos ## The pre-commit triplet, tone, and the drill.
 # `chaos` belongs here, not beside it. A review pointed out that a standalone target
