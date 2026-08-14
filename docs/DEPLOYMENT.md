@@ -8,9 +8,9 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `646ecf1ee52f32dbf5aa0e6d4738349a9328e622`
-- Probed at: `2026-08-14T05:18:00+00:00`
-- Serving revision at probe time: `curtail-console-api-00028-7jz`
+- Probed at repository commit: `d4f86071666b5163bae3a4b14c41c0e52a026a7d`
+- Probed at: `2026-08-14T20:27:32+00:00`
+- Serving revision at probe time: `curtail-console-api-00030-scp`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
