@@ -1,0 +1,229 @@
+{
+  "eval_set_id": "curtail_core",
+  "name": "Allocation Core against the Board's own record",
+  "description": "The same cases, replayed through the deterministic Allocation Core with the committed rights table. The Core is NOT a language model, so this measures arithmetic and priority law rather than generation. Cases in a basin with no committed rights table are reported as blocked rather than dropped.",
+  "eval_cases": [
+    {
+      "eval_id": "scott_2024/addenda/7",
+      "conversation": [
+        {
+          "invocation_id": "scott_2024/addenda/7",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate scott"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "restrict"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "scott",
+            "observed_cfs": 48.7,
+            "observed_at": "2025-07-20T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "scott_2024/addenda/7"
+        }
+      }
+    },
+    {
+      "eval_id": "scott_2024/addenda/8",
+      "conversation": [
+        {
+          "invocation_id": "scott_2024/addenda/8",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate scott"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "relieve"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "scott",
+            "observed_cfs": 78.4,
+            "observed_at": "2025-07-22T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "scott_2024/addenda/8"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/2",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "relieve"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 126.0,
+            "observed_at": "2024-10-25T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/2"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/3",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/3",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "relieve"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 140.0,
+            "observed_at": "2024-10-31T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/3"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/5",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/5",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "relieve"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 145.0,
+            "observed_at": "2025-10-13T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/5"
+        }
+      }
+    },
+    {
+      "eval_id": "shasta_2024/addenda/6",
+      "conversation": [
+        {
+          "invocation_id": "shasta_2024/addenda/6",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "evaluate shasta"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "restrict"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "curtail",
+        "user_id": "watermaster",
+        "state": {
+          "observation": {
+            "basin": "shasta",
+            "observed_cfs": 46.5,
+            "observed_at": "2026-06-15T00:00:00+00:00",
+            "provenance": "board_document"
+          },
+          "correlation_id": "shasta_2024/addenda/6"
+        }
+      }
+    }
+  ]
+}

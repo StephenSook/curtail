@@ -48,12 +48,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from curtail_core.backtest import ACTION_DIRECTION
+from curtail_core.allocation import RecommendedAction
+from curtail_core.backtest import ACTION_DIRECTION, Direction
 
 REPO = Path(__file__).resolve().parents[1]
 BACKTEST_CASES = REPO / "data" / "backtest_cases.json"
 EVAL_DIR = REPO / "docs" / "evals"
 EVAL_SET_PATH = EVAL_DIR / "curtail_sentinel.evalset.json"
+CORE_SET_PATH = EVAL_DIR / "curtail_core.evalset.json"
 RESULT_PATH = EVAL_DIR / "eval_results.json"
 
 #: Metrics that need a judge model, and therefore credentials.
@@ -142,11 +144,339 @@ def build_eval_set() -> dict[str, Any]:
     }
 
 
+#: Rights are needed to run the Core, and only one basin has a committed record.
+#:
+#: Scott's Attachment A has not been parsed yet, so two of the six Board cases cannot be
+#: replayed through the Core. That is REPORTED per case rather than quietly excluded:
+#: an eval set that silently drops what it cannot run reports a denominator it chose.
+RIGHTS_BASIN = "shasta"
+
+#: Which way each of the Core's recommendations points, in the shared vocabulary.
+#:
+#: Declared rather than reused: `ACTION_DIRECTION` maps the BOARD's verbs (impose,
+#: reinstate, suspend, rescind) and the Core does not speak those. Passing a
+#: RecommendedAction to it returns None for every case, which is exactly what the first
+#: version of this scorer did: it reported the Core at 0.0 and would have published that
+#: as a measurement rather than as its own bug.
+#:
+#: FIELD_VERIFICATION_FIRST maps to RESTRICT because it is what the Core says when a
+#: reading is inside the near-threshold band: it declines to recommend an extent and asks
+#: for a measurement, which is a refusal to relieve rather than a decision to relieve.
+CORE_ACTION_DIRECTION = {
+    RecommendedAction.CONSIDER_CURTAILMENT: Direction.RESTRICT,
+    RecommendedAction.FIELD_VERIFICATION_FIRST: Direction.RESTRICT,
+    RecommendedAction.CONSIDER_SUSPENSION: Direction.RELIEVE,
+    RecommendedAction.NO_ACTION: Direction.RELIEVE,
+}
+
+
+def _run_sentinel() -> list[dict[str, Any]]:
+    """Replay every Board case through the Sentinel and score the DIRECTION.
+
+    Deterministic and real. No judge model is involved, because the Sentinel is not a
+    model: it classifies a reading against the operative minimum. The expectation is the
+    direction the Board's own verb points, bridged by `ACTION_DIRECTION`, which the
+    backtest already uses so the two cannot disagree.
+    """
+    from datetime import datetime
+
+    from curtail_agents.events import Provenance
+    from curtail_agents.sentinel import Observation, evaluate
+    from curtail_core.backtest import direction_for
+    from curtail_core.basins import Basin
+
+    scored = []
+    for case in _load_cases():
+        expected = ACTION_DIRECTION[case["board_action"]]
+        try:
+            event = evaluate(
+                Observation(
+                    Basin(case["basin"]),
+                    float(case["reading_cfs"]),
+                    datetime.fromisoformat(f"{case['decision_date']}T00:00:00+00:00"),
+                    Provenance.BOARD_DOCUMENT,
+                ),
+                correlation_id=case["id"],
+            )
+            # `direction_for(observed, minimum)`, NOT the event type. The first
+            # version passed the classification and got None for every case, which
+            # scored the Sentinel at 0.0 and would have shipped that as a result.
+            actual = direction_for(float(event.observed_cfs), float(event.minimum_cfs))
+            scored.append(
+                {
+                    "eval_id": case["id"],
+                    "expected": expected.value,
+                    "actual": None if actual is None else actual.value,
+                    "match": actual == expected,
+                }
+            )
+        except Exception as exc:
+            scored.append(
+                {
+                    "eval_id": case["id"],
+                    "expected": expected.value,
+                    "actual": None,
+                    "match": False,
+                    "refused": f"{type(exc).__name__}: {exc}",
+                }
+            )
+    return scored
+
+
+def _run_core() -> list[dict[str, Any]]:
+    """Replay each case through the Allocation Core and score the direction it points.
+
+    **Two cases cannot run and say so.** The Core needs a rights table, and only Shasta
+    has a committed one, so the Scott cases report `blocked` with the reason rather than
+    being dropped. A metric whose denominator quietly shrinks to what passes is the
+    defect this project audits for.
+    """
+    from datetime import date
+
+    from curtail_core.allocation import recommend
+    from curtail_core.backtest import ACTION_DIRECTION as _AD
+    from curtail_core.basins import Basin
+    from curtail_core.rights_record import load_rights
+
+    loaded = load_rights()
+    scored = []
+    for case in _load_cases():
+        expected = _AD[case["board_action"]]
+        if case["basin"] != RIGHTS_BASIN:
+            scored.append(
+                {
+                    "eval_id": case["id"],
+                    "expected": expected.value,
+                    "actual": None,
+                    "match": False,
+                    "blocked": (
+                        f"no committed rights table for {case['basin']}, so the Core "
+                        "cannot be replayed on this case"
+                    ),
+                }
+            )
+            continue
+        recommendation = recommend(
+            basin=Basin(case["basin"]),
+            when=date.fromisoformat(case["decision_date"]),
+            observed_cfs=float(case["reading_cfs"]),
+            rights=[r for r in loaded.converted.rights if r.basin is Basin(case["basin"])],
+        )
+        actual = CORE_ACTION_DIRECTION.get(recommendation.action)
+        scored.append(
+            {
+                "eval_id": case["id"],
+                "expected": expected.value,
+                "actual": None if actual is None else actual.value,
+                "match": actual == expected,
+                "recommended_action": recommendation.action.value,
+                "rights_reached": len(recommendation.rights_reached),
+            }
+        )
+    return scored
+
+
+def _run_scribe_guard() -> list[dict[str, Any]]:
+    """Score the hallucination guard, not the model's prose.
+
+    **Stated precisely because the distinction matters.** What is measured is
+    `validate_draft`: whether a draft asserting a right or a priority date outside the
+    Core's computed set is rejected, and whether a faithful draft passes. That is the
+    property the rubric's failure-tolerance question actually asks about, it is
+    deterministic, and so it needs no judge model and cannot flatter itself.
+
+    The model's prose quality is a different question and is NOT claimed here.
+
+    The Core output is the drill's own fixture, imported rather than rebuilt. Two
+    hand-built copies of a dataclass are two things that drift, and the first attempt at
+    this function guessed the shape wrong twice.
+    """
+    from datetime import date
+
+    from curtail_agents.chaos import _recommendation_reaching_two_rights
+    from curtail_agents.routing import DraftAssertion, validate_draft
+
+    recommendation = _recommendation_reaching_two_rights()
+    reached = [e for e in recommendation.ledger if e.reached_by_extent]
+    first = reached[0]
+
+    faithful = DraftAssertion(
+        right_ids=tuple(e.right_id for e in reached),
+        asserted_dates=tuple((e.right_id, e.priority_date) for e in reached),
+        extent_rank=recommendation.recommended_extent_rank,
+        body_text="Curtailment extends to the rights the Core reached.",
+    )
+    invented = DraftAssertion(
+        right_ids=(*[e.right_id for e in reached], "A-999"),
+        asserted_dates=tuple((e.right_id, e.priority_date) for e in reached),
+        extent_rank=recommendation.recommended_extent_rank,
+        body_text="Curtailment extends to a right the Core never reached.",
+    )
+    swapped = DraftAssertion(
+        right_ids=tuple(e.right_id for e in reached),
+        asserted_dates=(
+            (first.right_id, date(1850, 3, 1)),
+            *[(e.right_id, e.priority_date) for e in reached[1:]],
+        ),
+        extent_rank=recommendation.recommended_extent_rank,
+        body_text="Curtailment extends to a right with a priority date it does not have.",
+    )
+
+    scored = []
+    for name, draft, should_pass in (
+        ("faithful_draft_passes", faithful, True),
+        ("invented_right_rejected", invented, False),
+        ("swapped_priority_date_rejected", swapped, False),
+    ):
+        guard = validate_draft(draft, recommendation)
+        scored.append(
+            {
+                "eval_id": name,
+                "expected": "may_reach_pdf" if should_pass else "rejected",
+                "actual": "may_reach_pdf" if guard.may_reach_pdf else "rejected",
+                "match": guard.may_reach_pdf is should_pass,
+                "guard_reason": guard.reason,
+            }
+        )
+    return scored
+
+
+def _run_herald_lanes() -> list[dict[str, Any]]:
+    """Score the one legal distinction the two lanes exist for.
+
+    Water Code 1121 as amended by SB 756 permits four service methods, and email is
+    none of them. So a delivery on the notification lane can succeed completely and is
+    still NOT service. Deterministic, and grounded in the statute rather than in a
+    Board case.
+    """
+    from datetime import UTC, datetime
+
+    from curtail_agents.herald import (
+        Channel,
+        OrderAction,
+        Recipient,
+        RecipientClass,
+        TransportResult,
+        deliver_order,
+    )
+
+    stamp = datetime(2026, 6, 16, 12, 0, tzinfo=UTC)
+
+    def _accept(recipient: Recipient, artifact: str) -> TransportResult:
+        return TransportResult(accepted=True, receipt_reference="r", delivered_at=stamp)
+
+    party_mail = Recipient("party-1", RecipientClass.PARTY, Channel.CERTIFIED_MAIL, "SYNTHETIC")
+    diverter_email = Recipient(
+        "diverter-1", RecipientClass.OPERATIONAL_DIVERTER, Channel.EMAIL, "SYNTHETIC"
+    )
+
+    scored = []
+    for name, recipients, expect_served in (
+        ("certified_mail_to_a_party_is_service", [party_mail], True),
+        ("email_to_a_diverter_is_not_service", [diverter_email], False),
+        ("a_mixed_roster_is_not_fully_served", [party_mail, diverter_email], False),
+    ):
+        report = deliver_order(
+            order_id="EVAL",
+            action=OrderAction.IMPOSE,
+            recipients=recipients,
+            artifact="DRAFT ORDER",
+            transport=_accept,
+            synthetic=True,
+        )
+        scored.append(
+            {
+                "eval_id": name,
+                "expected": "served" if expect_served else "not_served",
+                "actual": "served" if report.may_report_as_served else "not_served",
+                "match": report.may_report_as_served is expect_served,
+            }
+        )
+    return scored
+
+
+def _summary(name: str, scored: list[dict[str, Any]], measures: str) -> dict[str, Any]:
+    """One agent's score, with the denominator it actually ran on stated separately."""
+    runnable = [s for s in scored if "blocked" not in s]
+    blocked = [s for s in scored if "blocked" in s]
+    matched = sum(1 for s in runnable if s["match"])
+    return {
+        "agent": name,
+        "measures": measures,
+        "judge_model_required": False,
+        "cases_total": len(scored),
+        "cases_scored": len(runnable),
+        "cases_blocked": len(blocked),
+        "matched": matched,
+        "score": (matched / len(runnable)) if runnable else None,
+        "blocked_reasons": sorted({s["blocked"] for s in blocked}),
+        "cases": scored,
+    }
+
+
+def build_core_eval_set() -> dict[str, Any]:
+    """The same Board cases, aimed at the Core rather than the Sentinel.
+
+    Same shape as the Sentinel set because the question has the same shape: given a
+    reading, which way does the system say to move. What differs is which component
+    answers, and the Core answers with a priority extent and a per-right ledger behind
+    it rather than a classification.
+    """
+    base = build_eval_set()
+    return {
+        **base,
+        "eval_set_id": "curtail_core",
+        "name": "Allocation Core against the Board's own record",
+        "description": (
+            "The same cases, replayed through the deterministic Allocation Core with "
+            "the committed rights table. The Core is NOT a language model, so this "
+            "measures arithmetic and priority law rather than generation. Cases in a "
+            "basin with no committed rights table are reported as blocked rather than "
+            "dropped."
+        ),
+    }
+
+
 def build_results(eval_set: dict[str, Any]) -> dict[str, Any]:
     """What was measured, what was not, and why. No placeholder scores."""
+    sentinel = _summary(
+        "gage_sentinel",
+        _run_sentinel(),
+        "the direction the Board's own verb points, against the Sentinel's classification",
+    )
+    core = _summary(
+        "allocation_core",
+        _run_core(),
+        "the direction the Core's recommended action points, on the committed rights table",
+    )
+    scribe = _summary(
+        "order_scribe",
+        _run_scribe_guard(),
+        "the hallucination guard: a draft asserting a right or a priority date outside "
+        "the Core's computed set must be rejected, and a faithful draft must pass",
+    )
+    herald = _summary(
+        "herald",
+        _run_herald_lanes(),
+        "Water Code 1121: only a permitted method to a party effects service, so a "
+        "successful notification-lane delivery is still not service",
+    )
     return {
         "eval_set_id": eval_set["eval_set_id"],
         "cases": len(eval_set["eval_cases"]),
+        # **Measured, deterministically, with no judge model.** This section used to
+        # not exist: the file reported one metric as not-applicable and three as
+        # pending, so it recorded that nothing had been measured. Every component
+        # below has a checkable property that needs no LLM to score, which is a
+        # consequence of the architecture rather than a convenience: the Core is
+        # arithmetic, the Scribe's guard is a set comparison, and Herald's lanes are
+        # a statute.
+        "measured": {
+            "gage_sentinel": sentinel,
+            "allocation_core": core,
+            "order_scribe": scribe,
+            "herald": herald,
+        },
         "metrics": {
             "tool_trajectory_avg_score": {
                 "status": "not_applicable",
@@ -159,12 +489,19 @@ def build_results(eval_set: dict[str, Any]) -> dict[str, Any]:
             },
             **{
                 metric: {
-                    "status": "pending_credentials",
+                    "status": "not_run",
                     "reason": (
-                        "An LLM-as-a-judge metric. It needs a judge model, and this "
-                        "environment holds no Gemini credentials. Left unrun rather "
-                        "than filled with a placeholder, because a number nobody "
-                        "produced reads like evidence."
+                        "An LLM-as-a-judge metric, and it is NOT run here. The earlier "
+                        "reason given was 'this environment holds no Gemini "
+                        "credentials', which stopped being true: the Scribe makes real "
+                        "Gemini calls in production and the same credentials are "
+                        "available here. The honest reason is different and narrower: a "
+                        "judge model scoring this system's own output is a weaker "
+                        "instrument than the deterministic checks in `measured` above, "
+                        "which score the same components against arithmetic, a computed "
+                        "set and a statute. Left unrun rather than filled with a "
+                        "placeholder, because a number nobody produced reads like "
+                        "evidence."
                     ),
                 }
                 for metric in JUDGE_BACKED
@@ -193,8 +530,9 @@ def main() -> int:
     args = parser.parse_args()
 
     eval_set = build_eval_set()
+    core_set = build_core_eval_set()
     results = build_results(eval_set)
-    rendered = {EVAL_SET_PATH: eval_set, RESULT_PATH: results}
+    rendered = {EVAL_SET_PATH: eval_set, CORE_SET_PATH: core_set, RESULT_PATH: results}
 
     if args.check:
         for path, expected in rendered.items():
