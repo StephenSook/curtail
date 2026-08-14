@@ -34,7 +34,17 @@ class TestEveryScenarioDemonstratesItsGuard:
         assert len(run_drill()) == 3
 
     def test_the_entry_point_exits_zero_when_every_guard_fires(self) -> None:
-        assert chaos.main() == 0
+        """`--allow-partial` because the SUITE disables Model Armor.
+
+        `conftest.py` sets CURTAIL_DISABLE_MODEL_ARMOR so no test bills for a vendor
+        opinion or depends on a regional API being up, which means the drill can only
+        ever be partial in here. Passing the flag states that, rather than weakening
+        the drill's default so the suite is comfortable.
+
+        The empty list is load-bearing too: `main()` with no argument parses
+        `sys.argv`, and under pytest that is pytest's own flags.
+        """
+        assert chaos.main(["--allow-partial"]) == 0
 
 
 class TestTheDrillGoesRedWhenAGuardIsDisarmed:
@@ -210,13 +220,13 @@ class TestTheDrillReportsFailureRatherThanSwallowingIt:
         """`make chaos` has to be able to go red in front of a judge. That is the
         only reason to believe it when it goes green."""
         monkeypatch.setattr(chaos, "scrub_citations", lambda text: (text, ()))
-        assert chaos.main() == 1
+        assert chaos.main([]) == 1
 
     def test_the_failure_output_names_which_guard_did_not_fire(
         self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
     ) -> None:
         monkeypatch.setattr(chaos, "scrub_citations", lambda text: (text, ()))
-        chaos.main()
+        chaos.main([])
         printed = capsys.readouterr().out
         assert "DRILL FAILED" in printed
         assert "FABRICATED CITATION SURVIVED" in printed
@@ -266,3 +276,48 @@ class TestAHalfDemonstratedGuardIsNotAPass:
             name="x", injected="y", guard="z", demonstrated=False, unexercised=("a",)
         )
         assert "[FAIL]" in failed.render(), "a failure must never soften into PARTIAL"
+
+
+class TestTheExitCodeIsTheVerdict:
+    """Printing PARTIAL and returning 0 fixed the display and left the verdict lying.
+
+    In this repository the exit code IS the verdict: gates run bare and a pipeline reads
+    the number, not the prose. A drill that demonstrated half a guard and exited 0
+    satisfied `make verify` exactly as a complete one did, which is the false green the
+    drill exists to disprove, two layers in.
+    """
+
+    def test_a_partial_drill_exits_non_zero_by_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Strict by DEFAULT, so a naive invocation cannot be quietly satisfied."""
+        monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+        monkeypatch.setenv("CURTAIL_DISABLE_MODEL_ARMOR", "1")
+        from curtail_agents.chaos import main
+
+        assert main([]) == 1
+
+    def test_partial_is_accepted_only_when_asked_for(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Leniency exists because a developer with no cloud credentials must be able to
+        run the suite, and a gate that reddens for an intentionally absent service is a
+        gate people learn to override. It is opt-in so the exemption has to be typed,
+        at a call site where its reason can be written down."""
+        monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+        monkeypatch.setenv("CURTAIL_DISABLE_MODEL_ARMOR", "1")
+        from curtail_agents.chaos import main
+
+        assert main(["--allow-partial"]) == 0
+
+    def test_the_flag_cannot_rescue_an_actual_failure(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`--allow-partial` forgives an unexercised layer, never a guard that did not
+        hold. Those are different claims and conflating them would make the flag a way
+        to switch the drill off."""
+        import curtail_agents.chaos as chaos
+
+        def _broken() -> object:
+            raise chaos.DrillNotDemonstratedError("a guard did not fire")
+
+        monkeypatch.setattr(chaos, "run_drill", _broken)
+        assert chaos.main(["--allow-partial"]) == 1

@@ -134,7 +134,16 @@ chaos: ## The chaos drill: three injected failures, three guards. Run live on ca
 # Bare, like every other target. This one especially: the drill's whole value is that
 # it can go RED, so a pipe swallowing its exit code would turn the demonstration into
 # the exact theatre it exists to disprove.
-	uv run python -m curtail_agents.chaos
+	uv run python -m curtail_agents.chaos --allow-partial
+
+.PHONY: chaos-recording
+chaos-recording: ## The drill, STRICT. Every layer must actually run. Use before recording.
+# The difference from `chaos` is the exit code, and it is the whole point. `verify` must
+# stay runnable by a developer with no cloud credentials, so it accepts a partial drill
+# and says so out loud. A RECORDING must not: a run that demonstrates layer 1 only looks
+# identical on camera to one that demonstrates both, and it silently loses the strongest
+# finding the drill produces.
+	GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT:-curtail-505118} uv run python -m curtail_agents.chaos
 
 .PHONY: verify
 verify: lint types test tone chaos ## The pre-commit triplet, tone, and the drill.
