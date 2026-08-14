@@ -29,6 +29,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history. `scripts/generate_submission.py` reads the FIRST commit for
+          # the project start date, which is an eligibility field, and the default
+          # depth of 1 makes that the newest commit instead. The generator now refuses
+          # on a shallow clone rather than answering wrongly, so without this the
+          # submission check cannot run at all.
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -64,6 +71,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history. `scripts/generate_submission.py` reads the FIRST commit for
+          # the project start date, which is an eligibility field, and the default
+          # depth of 1 makes that the newest commit instead. The generator now refuses
+          # on a shallow clone rather than answering wrongly, so without this the
+          # submission check cannot run at all.
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -164,6 +178,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history. `scripts/generate_submission.py` reads the FIRST commit for
+          # the project start date, which is an eligibility field, and the default
+          # depth of 1 makes that the newest commit instead. The generator now refuses
+          # on a shallow clone rather than answering wrongly, so without this the
+          # submission check cannot run at all.
+          fetch-depth: 0
 
       - name: AI-tone gate
         run: bash scripts/check-ai-tone.sh

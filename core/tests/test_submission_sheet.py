@@ -331,3 +331,40 @@ class TestTheGeneratorsOwnPipelineIsWhatIsTested:
         the sheet saying something the code does not, and the sheet being stale."""
         module = _generator()
         assert module.main(["--check"]) == 0, "docs/SUBMISSION.md has drifted"
+
+
+class TestTheStartDateRefusesRatherThanGuessing:
+    """It broke main, which is the honest way to have found it.
+
+    `actions/checkout` defaults to depth 1, so `git log --reverse` on a runner returns
+    the newest commit. The generator would have reported the date of whatever merge CI
+    was building as the date the project began, and that is the ELIGIBILITY field: a
+    start date outside the submission period disqualifies the entry.
+
+    The shape is one this project has a name for: a check whose precondition holds only
+    on the machine where it was written. It passed here for hours.
+    """
+
+    def test_it_refuses_on_a_shallow_clone(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        module = _generator()
+        monkeypatch.setattr(module, "_is_shallow", lambda: True)
+        with pytest.raises(SystemExit, match="shallow"):
+            module._first_commit_date()
+
+    def test_it_answers_on_a_full_clone(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Non-vacuity: refusing always would be a very safe function and no use."""
+        module = _generator()
+        monkeypatch.setattr(module, "_is_shallow", lambda: False)
+        assert re.fullmatch(r"\d{2}-\d{2}-\d{2}", module._first_commit_date())
+
+    def test_ci_fetches_the_history_the_check_needs(self) -> None:
+        """The other half. Refusing on a shallow clone only converts a wrong answer into
+        a red build unless CI is given the history, so this asserts the workflow does."""
+        workflow = (REPO / ".github" / "workflows" / "ci.yml").read_text()
+        checkouts = workflow.count("actions/checkout@v5")
+        depths = workflow.count("fetch-depth: 0")
+        assert checkouts > 0, "no checkout steps found, so this proves nothing"
+        assert depths == checkouts, (
+            f"{checkouts} checkout step(s) and {depths} fetch-depth setting(s). Every "
+            "job that runs the submission check needs full history."
+        )
