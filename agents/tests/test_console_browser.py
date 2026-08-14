@@ -522,6 +522,86 @@ class TestTheLedgerCard:
             page.locator("#rec .refusal").inner_text()
         )
 
+    @pytest.mark.parametrize(
+        ("line", "expected"),
+        [
+            pytest.param(
+                {
+                    "priority_date": None,
+                    "priority_year_only": 9999,
+                    "priority_as_stated": "9999 (year only, no month or day in the record)",
+                },
+                "unreadable priority year",
+                id="a year that has not happened",
+            ),
+            pytest.param(
+                {
+                    "priority_date": None,
+                    "priority_year_only": 1650,
+                    "priority_as_stated": "1650 (year only, no month or day in the record)",
+                },
+                "unreadable priority year",
+                id="a year before appropriation existed here",
+            ),
+            pytest.param(
+                {
+                    "priority_date": None,
+                    "priority_year_only": 1977,
+                    "priority_as_stated": "1977 (approximately)",
+                },
+                "does not say its year is a year alone",
+                id="a qualifier asserting precision the record lacks",
+            ),
+            pytest.param(
+                {"priority_date": None, "priority_year_only": 1977, "priority_as_stated": "1977"},
+                "does not say its year is a year alone",
+                id="a bare year, which reads as a date",
+            ),
+            pytest.param(
+                {
+                    "priority_date": "2003-07-30",
+                    "priority_year_only": 1977,
+                    "priority_as_stated": "2003-07-30",
+                },
+                "states both a date and a bare year",
+                id="both a date and a year",
+            ),
+            pytest.param(
+                {
+                    "priority_date": "2003-07-30",
+                    "priority_year_only": None,
+                    "priority_as_stated": "1999-01-01",
+                },
+                "renders a priority its date contradicts",
+                id="a rendering disagreeing with its own date",
+            ),
+            pytest.param(
+                {"priority_date": None, "priority_year_only": None, "priority_as_stated": "1977"},
+                "claims a priority the record lacks",
+                id="a priority invented from nothing",
+            ),
+        ],
+    )
+    def test_the_priority_guard_refuses_each_way_it_can_be_wrong(
+        self, page: Page, console_url: str, line: dict[str, Any], expected: str
+    ) -> None:
+        """One case per branch, because a guard is only as good as its loosest clause.
+
+        The first version bounded the year with `> 1500` and checked only that the
+        rendering STARTED with it. So the year 9999 passed, and so did
+        "1977 (approximately)". The unbounded upper end is the dangerous one: a priority
+        is senior BECAUSE it is early, so an absurd future year sorts a right to the
+        junior end of the ladder, which is the end that gets curtailed.
+        """
+        payload = _sound_recommendation()
+        payload["ledger"] = [payload["ledger"][0] | line]
+        page.route("**/api/recommendation/**", _fulfil(payload))
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper()
+        assert expected in page.locator("#rec .refusal").inner_text()
+
     def test_it_names_the_provenance_of_both_inputs(self, page: Page, console_url: str) -> None:
         """Showing where the rights came from and not where the reading came from
         implies the reading is sourced as carefully. It is a number someone typed."""
