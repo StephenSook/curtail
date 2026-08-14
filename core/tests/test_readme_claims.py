@@ -711,3 +711,33 @@ class TestTheReachabilityTableIsComputed:
                 assert f"{node.capitalize()} is not reachable through the console" in flat, (
                     f"{node} cannot be exercised through the console and the README is silent"
                 )
+
+
+def test_the_local_coverage_gate_matches_the_one_ci_runs() -> None:
+    """A local gate weaker than the remote one is a false green by construction.
+
+    The Makefile already carries that lesson for `mypy`, in a comment written after the
+    paths drifted. The same drift was live for COVERAGE in the other direction: both
+    measured `curtail_core` only, so the whole agents package was unmeasured by either,
+    and `season_store.py` sat at 57% while the reported figure was 97%.
+
+    This asserts the two invocations carry the same coverage flags, so widening one and
+    forgetting the other cannot happen quietly.
+    """
+    makefile = (REPO / "Makefile").read_text()
+    workflow = (REPO / ".github" / "workflows" / "ci.yml").read_text()
+
+    def _flags(text: str) -> set[str]:
+        found: set[str] = set()
+        for line in text.splitlines():
+            if "pytest" in line and "--cov" in line:
+                found |= {tok for tok in line.split() if tok.startswith("--cov")}
+        return found
+
+    local, remote = _flags(makefile), _flags(workflow)
+    assert local, "no coverage invocation found in the Makefile"
+    assert remote, "no coverage invocation found in the workflow"
+    assert local == remote, (
+        f"the local gate runs {sorted(local)} and CI runs {sorted(remote)}. They must "
+        "measure the same thing, or one of them is reporting a number about a subset."
+    )

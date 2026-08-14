@@ -377,3 +377,132 @@ class TestNoScriptPicksAProjectForYou:
                 run_name="__main__",
             )
         assert exit_info.value.code == 1
+
+
+class _FakeSnapshot:
+    def __init__(self, data: dict[str, Any] | None) -> None:
+        self._data = data
+        self.exists = data is not None
+
+    def to_dict(self) -> dict[str, Any] | None:
+        return self._data
+
+
+class _FakeDocument:
+    def __init__(self, store: dict[str, Any], key: str) -> None:
+        self._store = store
+        self._key = key
+        self.raises: Exception | None = None
+
+    def get(self, transaction: Any = None) -> _FakeSnapshot:
+        if self.raises is not None:
+            raise self.raises
+        return _FakeSnapshot(self._store.get(self._key))
+
+
+class _FakeCollection:
+    def __init__(self, store: dict[str, Any], docs: dict[str, _FakeDocument]) -> None:
+        self._store = store
+        self._docs = docs
+
+    def document(self, key: str) -> _FakeDocument:
+        return self._docs.setdefault(key, _FakeDocument(self._store, key))
+
+
+class _FakeTransaction:
+    def __init__(self, store: dict[str, Any]) -> None:
+        self._store = store
+
+    def set(self, document: _FakeDocument, payload: dict[str, Any]) -> None:
+        self._store[document._key] = payload
+
+
+class _FakeClient:
+    """Just enough Firestore to exercise OUR logic, and none of theirs."""
+
+    def __init__(self) -> None:
+        self.store: dict[str, Any] = {}
+        self.docs: dict[str, _FakeDocument] = {}
+
+    def collection(self, name: str) -> _FakeCollection:
+        return _FakeCollection(self.store, self.docs)
+
+    def transaction(self) -> _FakeTransaction:
+        return _FakeTransaction(self.store)
+
+
+class TestTheFirestoreStoreItself:
+    """The durable implementation's own logic, which the probe cannot cover in CI.
+
+    The probe proves a real round trip on a machine with credentials. It runs nowhere
+    else, so every branch here was unexercised: an absent document, a client that
+    raises, the transaction body that merges and refuses a duplicate. Those are the
+    paths that decide whether a lost season is reported as lost.
+    """
+
+    @pytest.fixture
+    def store(self, monkeypatch: pytest.MonkeyPatch) -> Any:
+        import google.cloud.firestore as firestore
+
+        from curtail_agents.season_store import FirestoreSeasonStore
+
+        # Their decorator expects a real Transaction. We are testing our body, so it is
+        # replaced by a passthrough that calls the function with whatever we hand it.
+        monkeypatch.setattr(
+            firestore, "transactional", lambda fn: lambda txn: fn(txn), raising=False
+        )
+        return FirestoreSeasonStore("a-project", client=_FakeClient())
+
+    def test_an_absent_document_is_an_empty_season_not_an_error(self, store: Any) -> None:
+        """A basin nothing has happened in yet is genuinely empty, and that is the ONE
+        case where empty is the right answer."""
+        loaded = store.load(Basin.SHASTA)
+        assert loaded.entries == ()
+
+    def test_a_client_error_is_reported_rather_than_read_as_empty(self, store: Any) -> None:
+        """The distinction the whole module exists for."""
+        store._document(Basin.SHASTA).raises = RuntimeError("the database is unreachable")
+        with pytest.raises(SeasonStoreUnavailableError, match="could not be read"):
+            store.load(Basin.SHASTA)
+
+    def test_an_entry_written_is_an_entry_read_back(self, store: Any) -> None:
+        store.append_entry(Basin.SHASTA, _entry("WR-1"))
+        assert [e.order_id for e in store.load(Basin.SHASTA).entries] == ["WR-1"]
+
+    def test_a_second_entry_appends_rather_than_replacing(self, store: Any) -> None:
+        """Append-only, through the transaction body rather than in memory."""
+        store.append_entry(Basin.SHASTA, _entry("WR-1"))
+        store.append_entry(Basin.SHASTA, _entry("WR-2"))
+        assert sorted(e.order_id for e in store.load(Basin.SHASTA).entries) == ["WR-1", "WR-2"]
+
+    def test_the_transaction_body_refuses_a_duplicate(self, store: Any) -> None:
+        """Firestore retries a transaction body on contention, so it must be safe to run
+        twice. `ledger.append` refusing an existing id is what makes that true."""
+        store.append_entry(Basin.SHASTA, _entry("WR-1"))
+        with pytest.raises(LedgerIntegrityError):
+            store.append_entry(Basin.SHASTA, _entry("WR-1"))
+
+    def test_a_write_failure_is_reported_with_what_was_lost(self, store: Any) -> None:
+        store._document(Basin.SHASTA).raises = RuntimeError("write rejected")
+        with pytest.raises(SeasonStoreUnavailableError, match="were NOT recorded"):
+            store.append_entry(Basin.SHASTA, _entry("WR-1"))
+
+    def test_it_describes_itself_as_durable_and_names_where(self, store: Any) -> None:
+        assert store.durable is True
+        assert "a-project" in store.describe()
+        assert "seasons" in store.describe()
+
+    def test_both_implementations_refuse_a_duplicate_the_same_way(self, store: Any) -> None:
+        """The protocol has two implementations and they must not diverge.
+
+        The durable one wrapped `LedgerIntegrityError` into an outage, so a duplicate
+        filing reported "the database could not be written" in production while
+        reporting "the ledger refused the entry" in every test. The API distinguishes
+        those in its response, so the operator would have been told the wrong thing at
+        the only moment it matters.
+        """
+        memory: SeasonStore = InMemorySeasonStore()
+        for implementation in (memory, store):
+            implementation.append_entry(Basin.SCOTT, _entry("SAME-ID"))
+            with pytest.raises(LedgerIntegrityError):
+                implementation.append_entry(Basin.SCOTT, _entry("SAME-ID"))

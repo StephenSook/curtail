@@ -63,7 +63,7 @@ jobs:
         run: uv run mypy core/src agents/src core/tests agents/tests
 
       - name: pytest
-        run: uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
+        run: uv run pytest --cov=curtail_core --cov=curtail_agents --cov-report=term-missing --cov-fail-under=90
 
   browser:
     name: Console in a real browser

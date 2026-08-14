@@ -35,7 +35,12 @@ types: ## mypy strict
 
 .PHONY: test
 test: ## pytest with coverage gate
-	uv run pytest --cov=curtail_core --cov-report=term-missing --cov-fail-under=90
+# **Both packages.** The gate measured `curtail_core` only, so the entire agents package
+# was unmeasured: the graph, the API, the Scribe, the Herald and everything added since.
+# A coverage gate with a blind spot the size of half the shipped code reports a number
+# about the half nobody was worried about. Combined is 94%, so closing it cost nothing
+# except discovering that season_store.py had been at 57%.
+	uv run pytest --cov=curtail_core --cov=curtail_agents --cov-report=term-missing --cov-fail-under=90
 
 test-browser: ## The console's failure paths in a real Chromium
 	@uv run playwright install chromium
