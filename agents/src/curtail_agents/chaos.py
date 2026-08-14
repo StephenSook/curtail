@@ -31,7 +31,9 @@ run, in its own words, rather than either claiming or denying a defence.
 
 from __future__ import annotations
 
+import argparse
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -517,8 +519,32 @@ def run_drill() -> tuple[ScenarioResult, ...]:
     return results
 
 
-def main() -> int:
-    """Entry point for `make chaos`. Non-zero exit when a guard did not fire."""
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point for `make chaos`. Non-zero exit when a guard did not fire.
+
+    **Strict by default, and the default is the point.** A previous version printed
+    `[PARTIAL]` for a scenario that could not exercise one of its layers and then
+    returned 0, so `make verify` stayed green on a drill that demonstrated half a
+    guard. That fixed the display and left the verdict lying, which in this repository
+    is the verdict: gates run bare and the exit code is what a pipeline reads.
+
+    Leniency is still available, because a developer without cloud credentials must be
+    able to run the suite, and a gate that reddens for an intentionally absent service
+    is a gate people learn to override. But it is now OPT-IN and written down at the
+    call site with its reason, rather than being the silent default. An exemption
+    somebody had to type is an exemption somebody has to justify.
+    """
+    parser = argparse.ArgumentParser(description="The Curtail chaos drill.")
+    parser.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help=(
+            "exit 0 even when a scenario could not exercise a layer it names. For "
+            "environments without the credentials a layer needs. NEVER for a recording."
+        ),
+    )
+    args = parser.parse_args(argv)
+
     print("CURTAIL chaos drill: three injected failures, three guards\n")
     try:
         results = run_drill()
@@ -542,6 +568,14 @@ def main() -> int:
             "A partial drill is not a failed drill and it is not a passed one either. "
             "Do not record this run."
         )
+        if not args.allow_partial:
+            print(
+                "Exiting NON-ZERO. Pass --allow-partial to accept an incomplete drill, "
+                "which is appropriate where a layer's credentials are genuinely absent "
+                "and never appropriate for a recorded run."
+            )
+            return 1
+        print("Accepted as partial because --allow-partial was passed.")
     else:
         print(f"all {len(results)} scenarios demonstrated their guard in full")
     return 0

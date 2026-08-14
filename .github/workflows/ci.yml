@@ -106,7 +106,13 @@ jobs:
       # `python -m curtail_agents.chaos` failed to start. Bare, so a non-zero exit
       # fails the job.
       - name: chaos drill
-        run: uv run python -m curtail_agents.chaos
+        # `--allow-partial` because this runner has NO cloud credentials, so the
+        # poisoned-document scenario cannot reach Model Armor and demonstrates layer 1
+        # only. The drill is strict by default on purpose; the leniency is opted into
+        # here, where the reason is true, rather than being the binary's default
+        # everywhere. `make chaos-recording` is the strict gate, and it is what must
+        # pass before the drill is recorded.
+        run: uv run python -m curtail_agents.chaos --allow-partial
 
       # Read the log for PASSED, not just the green check. A green job proves a
       # suite RAN; it does not prove any assertion executed.
