@@ -34,3 +34,15 @@ os.environ.setdefault("CURTAIL_DISABLE_TRACING", "1")
 # The extra reason: screening is SLOW relative to a unit test, and a suite that quietly
 # grew a network round trip per case is a suite people stop running.
 os.environ.setdefault("CURTAIL_DISABLE_MODEL_ARMOR", "1")
+
+# **And the suite must never reach Cloud Firestore.**
+#
+# The Season Ledger now has a durable store, and `store_for()` builds a real Firestore
+# client whenever GOOGLE_CLOUD_PROJECT is set. Same hazard as the two above and the same
+# blind spot: on a machine with the variable unset the suite would pass while quietly
+# depending on that being true everywhere else. Worse than the tracing case, because a
+# test that wrote to the real seasons collection would be editing a legal record.
+#
+# The store honours this by returning the in-memory implementation, which reports
+# `durable: False` and says why, so nothing in the suite can mistake it for the real one.
+os.environ.setdefault("CURTAIL_DISABLE_FIRESTORE", "1")

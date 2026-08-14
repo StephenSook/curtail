@@ -260,11 +260,11 @@
                       <span class="node-title">Generated fact sheet</span>
                       <span class="node-desc">Every judged figure computed from source, served at /api/facts. CI fails if it drifts.</span>
                     </div>
-                    <div class="node" data-node-id="nostore">
-                      <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="14" rx="20" ry="8" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 4" fill="none"/><path d="M12 14v36c0 4.4 9 8 20 8s20-3.6 20-8V14" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 4"/><line x1="16" y1="52" x2="48" y2="12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
-                      <span class="node-title">No persistent store</span>
-                      <span class="node-tag tag-none">stated, not hidden</span>
-                      <span class="node-desc">Nothing survives a request today. The Season Ledger's statutory clocks are computed, not yet stored.</span>
+                    <div class="node" data-node-id="queue-volatile">
+                      <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="18" width="48" height="28" rx="4" stroke="currentColor" stroke-width="2.5" stroke-dasharray="6 4" fill="currentColor" fill-opacity="0.06"/><line x1="20" y1="32" x2="44" y2="32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="52" r="2.5" fill="currentColor"/></svg></div>
+                      <span class="node-title">Approval queue</span>
+                      <span class="node-tag tag-none">still in-process</span>
+                      <span class="node-desc">The one thing that does not survive a restart, said out loud. Signed orders and their clocks do.</span>
                     </div>
                   </div>
                 </div>
@@ -275,7 +275,7 @@
             <!-- Managed services -->
             <div class="zone zone-depth-1">
               <span class="zone-label">Managed services, and how each is reached</span>
-              <div class="zone-content" style="grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+              <div class="zone-content" class="row-dense" style="grid-template-columns: repeat(4, 1fr); gap: 12px;">
 
                 <div class="node" data-node-id="vertex">
                   <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="16" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.08"/><circle cx="32" cy="32" r="5" fill="currentColor"/><path d="M20 32 L28 32 M36 32 L44 32 M32 20 L32 28 M32 36 L32 44" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M8 32 L16 32 M48 32 L56 32 M32 8 L32 16 M32 48 L32 56" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -287,6 +287,12 @@
                   <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="6" width="44" height="14" rx="3" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.18"/><rect x="10" y="24" width="44" height="14" rx="3" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.12"/><rect x="10" y="42" width="44" height="14" rx="3" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.06"/></svg></div>
                   <span class="node-title">Agent Registry</span>
                   <span class="node-desc">Four agents published for cross-department discovery, generated from the graph's own node names. Registered by an operator script, not called per request.</span>
+                </div>
+
+                <div class="node" data-node-id="firestore">
+                  <div class="node-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="32" cy="14" rx="20" ry="8" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity="0.1"/><path d="M12 14v36c0 4.4 9 8 20 8s20-3.6 20-8V14" stroke="currentColor" stroke-width="2.5"/><path d="M12 26c0 4.4 9 8 20 8s20-3.6 20-8" stroke="currentColor" stroke-width="2" stroke-opacity="0.5"/><path d="M12 38c0 4.4 9 8 20 8s20-3.6 20-8" stroke="currentColor" stroke-width="2" stroke-opacity="0.5"/></svg></div>
+                  <span class="node-title">Cloud Firestore</span>
+                  <span class="node-desc">The Season Ledger. Statutory clocks under Water Code 1122 and 1126(b) that run for weeks after the request ends.</span>
                 </div>
 
                 <div class="node" data-node-id="trace">
@@ -377,6 +383,7 @@
           { from: 'gate',      to: 'draft',    type: 'realtime', fromSide: 'right', toSide: 'left', label: 'only if it matches the ledger' },
           { from: 'draft',     to: 'queue',    type: 'realtime', fromSide: 'bottom', toSide: 'top' },
           { from: 'queue',     to: 'watermaster', type: 'realtime', fromSide: 'bottom', toSide: 'top', label: 'signs' },
+          { from: 'watermaster', to: 'firestore', type: 'realtime', fromSide: 'bottom', toSide: 'right', label: 'a signature starts five clocks' },
           { from: 'herald',    to: 'recipients', type: 'realtime', fromSide: 'right', toSide: 'left', label: 'service, then notice' }
         ];
 
@@ -508,10 +515,10 @@
     </div>
 
     <div class="footnote">
-      <b>What this diagram deliberately does not show.</b> There is no database, no queue and no scheduler, because the shipped code has
-      none: the rights record is a hash-pinned file inside the image and every request recomputes from it. The <code>No persistent store</code>
-      node is drawn rather than omitted, because a diagram that quietly leaves out what a system lacks is a claim as much as one that invents
-      what it has. Every component above resolves to shipped code, and <code>test_architecture_diagram.py</code> fails the build if this file
+      <b>What this diagram deliberately does not show.</b> There is no queue and no scheduler, because the shipped code has none: the rights
+      record is a hash-pinned file inside the image and every request recomputes from it. The <code>still in-process</code> tag on the approval
+      queue is drawn rather than omitted, because a diagram that quietly leaves out what a system lacks is a claim as much as one that invents
+      what it has. Firestore holds only the Season Ledger: the signed orders and the statutory clocks that outlive the request. Every component above resolves to shipped code, and <code>test_architecture_diagram.py</code> fails the build if this file
       names a Google Cloud service, a model or an agent the repository does not actually use.
     </div>
   </body>
