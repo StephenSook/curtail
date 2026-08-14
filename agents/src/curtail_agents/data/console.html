@@ -475,8 +475,17 @@
       if (!nonEmptyString(entry.priority_as_stated)) {
         return `the ledger line for ${entry.right_id} states no priority at all`;
       }
+      // Bounded at BOTH ends. `> 1500` accepted the year 9999, and an unbounded upper
+      // limit is the more dangerous side here: a priority is senior BECAUSE it is early,
+      // so an absurd future year silently sorts a right to the junior end of the ladder,
+      // which is the end that gets curtailed. The floor is 1800 because California
+      // appropriation begins in the 1850s and the earliest decree tier this system
+      // encodes is March 1 1850. The ceiling is now, because a right cannot be
+      // established in a year that has not happened.
       const yearOnly = entry.priority_year_only;
-      if (!(yearOnly === null || (Number.isInteger(yearOnly) && yearOnly > 1500))) {
+      const thisYear = new Date().getUTCFullYear();
+      if (!(yearOnly === null
+            || (Number.isInteger(yearOnly) && yearOnly >= 1800 && yearOnly <= thisYear))) {
         return `the ledger line for ${entry.right_id} states an unreadable priority year`;
       }
       if (entry.priority_date !== null && yearOnly !== null) {
@@ -486,8 +495,15 @@
         return `the ledger line for ${entry.right_id} renders a priority its date contradicts`;
       }
       // The one that matters most: a bare year would read as a date, and silence about
-      // a known year is the denial this guard exists to catch.
-      if (yearOnly !== null && !entry.priority_as_stated.startsWith(`${yearOnly} (`)) {
+      // a known year is the denial this guard exists to catch. Checking only that the
+      // string STARTS with the year admitted any parenthetical after it, so
+      // "1977 (approximately)" passed, which asserts a precision the record does not
+      // support. The qualifier has to say the thing that is actually true, that this is
+      // a year with no month or day, so the phrase is required rather than the shape.
+      if (yearOnly !== null
+          && !(entry.priority_as_stated.startsWith(`${yearOnly} (`)
+               && entry.priority_as_stated.includes("year only")
+               && entry.priority_as_stated.endsWith(")"))) {
         return `the ledger line for ${entry.right_id} does not say its year is a year alone`;
       }
       if (entry.priority_date === null && yearOnly === null
