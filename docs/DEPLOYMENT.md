@@ -8,9 +8,9 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `9a0070e3712aac449b3aac7ec5e539104892f0e0`
-- Probed at: `2026-08-14T04:48:53+00:00`
-- Serving revision at probe time: `curtail-console-api-00027-vbj`
+- Probed at repository commit: `f8d5ab0e1f23a608974c4675865aeb540480961b`
+- Probed at: `2026-08-14T05:14:10+00:00`
+- Serving revision at probe time: `curtail-console-api-00028-7jz`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -68,3 +68,17 @@ unique interface URLs, so four agents cannot share one address, and that
 constraint is correct: an address identifies an agent. Herald has no direct
 route because `deliver_order` has no HTTP call site; it is reached only as
 the final node of a full traversal, and its card says exactly that.
+
+## The most recent traversal in Cloud Trace
+
+- `curtail.fleet_request`
+- `invocation`
+- `invoke_workflow curtailment`
+- `invoke_node gage_sentinel`
+- `invoke_node allocation_core`
+- `invoke_node order_scribe`
+- `invoke_node herald`
+
+7 spans. ADK opens `invoke_node` per fleet member and
+`invoke_workflow` around the traversal; the root `curtail.fleet_request`
+span carries the correlation id, so a trace and a log line join on one key.
