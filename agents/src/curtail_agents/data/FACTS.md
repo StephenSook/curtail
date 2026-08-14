@@ -45,6 +45,7 @@ returns its input unchanged.
 - No Pub/Sub broker, and no delivery vendor: the transport is explicitly
   synthetic and every report says so.
 - OpenTelemetry export to Cloud Trace is WIRED: the shipped source imports the Cloud Trace exporter, installs a tracer provider, and the HTTP entrypoint calls `configure_tracing` at import. ADK opens an `invoke_node` span per fleet node and an `invoke_workflow` span around the traversal, so the agent-hop trace is a property of the graph. It exports only where a project id is present, and the fleet response says so either way.
+- Model Armor is CALLED as layer 2: the Scribe path screens untrusted order text before drafting, chunked to stay inside the documented prompt-injection window, and an unreachable or partial screen reports UNAVAILABLE rather than clean. `make chaos` screens the same injection alone and embedded in an order and reports both verdicts.
 - 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-14T05:18:00+00:00 against revision curtail-console-api-00028-7jz. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
 
 ## 1. The backtest

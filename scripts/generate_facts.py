@@ -230,6 +230,48 @@ def _stamp_from(text: str, label: str) -> str:
     return "unrecorded"
 
 
+def _armor_claim() -> str:
+    """Whether Model Armor is CALLED, in three parts, all required.
+
+    Same shape as the telemetry claim and for the same reason. A template existing in
+    the cloud proves nothing about the shipped code, and this row read "provisioned,
+    NOT called" for weeks while that was true. The question is whether the drafting
+    path invokes it.
+
+    1. the client module exists in the shipped source,
+    2. the Scribe path CALLS it (a client nobody invokes is the structure-present
+       shape this project keeps finding),
+    3. the chaos drill exercises it too, so the claim is demonstrable rather than
+       merely true.
+    """
+    shipped = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+    fleet = (REPO / "agents" / "src" / "curtail_agents" / "fleet.py").read_text()
+    chaos = (REPO / "agents" / "src" / "curtail_agents" / "chaos.py").read_text()
+
+    exists = "def screen_document(" in shipped
+    called_by_scribe = "screen_document(" in fleet
+    in_drill = "screen_document(" in chaos
+
+    if exists and called_by_scribe and in_drill:
+        return (
+            "Model Armor is CALLED as layer 2: the Scribe path screens untrusted order "
+            "text before drafting, chunked to stay inside the documented "
+            "prompt-injection window, and an unreachable or partial screen reports "
+            "UNAVAILABLE rather than clean. `make chaos` screens the same injection "
+            "alone and embedded in an order and reports both verdicts."
+        )
+    missing = [
+        name
+        for name, ok in (
+            ("no Model Armor client ships", exists),
+            ("the Scribe path does not call it", called_by_scribe),
+            ("the chaos drill does not exercise it", in_drill),
+        )
+        if not ok
+    ]
+    return "Model Armor is NOT fully wired: " + "; ".join(missing) + "."
+
+
 def _registry_claim() -> str:
     """What the Agent Registry holds, read from the recorded probe.
 
@@ -456,6 +498,7 @@ def build() -> str:
     add("- No Pub/Sub broker, and no delivery vendor: the transport is explicitly")
     add("  synthetic and every report says so.")
     add(f"- {_otel_claim()}")
+    add(f"- {_armor_claim()}")
     add(f"- {_registry_claim()}")
     add("")
 
