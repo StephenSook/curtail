@@ -36,6 +36,16 @@ CLOUD_SERVICES: dict[str, tuple[str, ...]] = {
     "Pub/Sub": ("pubsub_v1.PublisherClient", "pubsub_v1.SubscriberClient"),
 }
 
+#: Services whose evidence must ALL be present rather than any one of them.
+#:
+#: Cloud Run is not proved by a single import, because there is no import: it is a
+#: DEPLOYMENT CONTRACT, and the parts are separable. `CLOUD_RUN_REQUEST_TIMEOUT_SECONDS`
+#: is a Python constant that would happily survive moving off the platform, and the
+#: container reading `${PORT}` with `--proxy-headers` is what actually makes the service
+#: run there. Under `any`, deleting the Dockerfile contract left the claim standing on a
+#: constant name, which a review pointed out is not the contract this row asserts.
+REQUIRE_ALL: frozenset[str] = frozenset({"Cloud Run"})
+
 #: Devpost field 28091's options.
 SDKS: dict[str, tuple[str, ...]] = {
     "Agent Development Kit (ADK)": ("google.adk",),
@@ -89,7 +99,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     source = _source()
-    services = [name for name, ev in CLOUD_SERVICES.items() if any(e in source for e in ev)]
+
+    def _has(name: str, evidence: tuple[str, ...]) -> bool:
+        test = all if name in REQUIRE_ALL else any
+        return test(e in source for e in evidence)
+
+    services = [name for name, ev in CLOUD_SERVICES.items() if _has(name, ev)]
     sdks = [name for name, ev in SDKS.items() if any(e in source for e in ev)]
     models = _models(source)
     started = _first_commit_date()
