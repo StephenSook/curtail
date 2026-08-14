@@ -254,11 +254,18 @@ class TestTheFactSheetAgreesWithTheRecordAboutTheRegistry:
                 "none is. The generated line was a hardcoded string, which is why "
                 "--check could not see it."
             )
-            assert f"{count} Curtail agents are registered" in facts, (
-                "the fact sheet does not state the recorded registry count"
+            assert f"{count} Curtail agents were registered" in facts, (
+                "the fact sheet does not state the recorded registry count in the PAST "
+                "tense. A present-tense claim asserts live external state from a stored "
+                "snapshot, and nothing in CI can refresh it."
             )
+            for label in ("as recorded by", "against revision", "snapshot, not a live reading"):
+                assert label in facts, (
+                    f"the registry claim is missing its provenance stamp ({label!r}). "
+                    "A figure quoted without saying when it was taken reads as current."
+                )
         else:
-            assert "No Curtail agent is registered" in facts, (
+            assert "No Curtail agent was registered" in facts, (
                 "no agent is registered and the fact sheet does not say so"
             )
 
@@ -281,3 +288,53 @@ class TestTheFactSheetAgreesWithTheRecordAboutTheRegistry:
                 "nothing in agents/src imports opentelemetry and the fact sheet does "
                 "not say so, which overstates the governance wrap"
             )
+
+
+class TestTheRecordSaysWhenItWasTaken:
+    """A snapshot without a timestamp reads as current, which is the whole problem.
+
+    A second-model review pointed out that `_registry_claim()` trusts any committed
+    record, so `FACTS.md` could keep asserting a count after the live registry changed,
+    and the guard reading the same record would stay green.
+
+    **That is inherent to the split and cannot be fixed by a check CI can run**, because
+    CI deliberately never queries the network: a deliberately powered-down service must
+    not redden the build. What CAN be fixed is the framing. A claim scoped to a moment
+    stays true forever; a present-tense claim from a snapshot silently becomes false.
+
+    So the record carries a probe time and the serving revision, the fact sheet quotes
+    both in the past tense, and `make deployed-check` is the freshness mechanism. It
+    re-probes and compares the registry section, verified: corrupting the recorded count
+    makes it exit non-zero.
+    """
+
+    def test_the_record_carries_a_probe_time_and_a_serving_revision(self, record: str) -> None:
+        assert "Probed at: `" in record, (
+            "the record has no probe timestamp, so a reader cannot tell how old it is"
+        )
+        assert "Serving revision at probe time: `" in record, (
+            "the record does not name the revision that answered. A repository commit "
+            "says when the record was WRITTEN; the revision says what was PROBED, and "
+            "they come apart because nothing here deploys on merge."
+        )
+        assert "This is a SNAPSHOT" in record, "the record does not tell a reader it is historical"
+
+    def test_the_recorded_revision_is_not_a_placeholder(self, record: str) -> None:
+        """`unknown` is honest but must not pass silently into a judged artifact.
+
+        The probe degrades to `unknown` when gcloud is unavailable rather than failing,
+        which is right for generation. This is where that becomes unacceptable.
+        """
+        for line in record.splitlines():
+            if "Serving revision at probe time:" in line:
+                value = line.split(":", 1)[1].strip().strip("`")
+                assert value != "unknown", (
+                    "the record could not determine the serving revision, so it does "
+                    "not identify what was probed. Re-run the probe with gcloud "
+                    "available."
+                )
+                assert value.startswith("curtail-console-api-"), (
+                    f"the recorded revision {value!r} is not a revision of this service"
+                )
+                return
+        pytest.fail("the record names no serving revision")

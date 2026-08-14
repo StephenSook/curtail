@@ -173,6 +173,22 @@ def _otel_claim() -> str:
     )
 
 
+def _stamp_from(text: str, label: str) -> str:
+    """Pull one stamped value out of the probe record, or say it is missing.
+
+    Returns a legible placeholder rather than raising, because a record written before
+    stamps existed should degrade to "unrecorded" rather than break generation. The test
+    asserts the stamp IS present, so an unrecorded value fails there instead, which is
+    the right place: generation should describe what it found, and the guard should
+    decide whether that is acceptable.
+    """
+    for line in text.splitlines():
+        if label in line:
+            value = line.split(label, 1)[1].strip().strip("`")
+            return value or "unrecorded"
+    return "unrecorded"
+
+
 def _registry_claim() -> str:
     """What the Agent Registry holds, read from the recorded probe.
 
@@ -201,18 +217,25 @@ def _registry_claim() -> str:
             "Agent Registry contents UNKNOWN: the last probe could not read the "
             "registry, and an unreadable registry is not an empty one."
         )
+    stamp = _stamp_from(text, "Probed at:")
+    revision = _stamp_from(text, "Serving revision at probe time:")
+    provenance = (
+        f"as recorded by `scripts/probe_deployment.py` at {stamp} against revision "
+        f"{revision}. **This is a snapshot, not a live reading.** Nothing re-probes on "
+        "its own and CI never queries the network, so run `make deployed-check` to "
+        "re-probe and fail on drift before quoting this anywhere that cannot be "
+        "corrected."
+    )
     for line in text.splitlines():
         if line.endswith("Curtail agents are discoverable in the registry."):
             count = line.split()[0]
-            return (
-                f"{count} Curtail agents are registered and discoverable in Agent "
-                "Registry, as recorded in `docs/DEPLOYMENT.md` by "
-                "`scripts/probe_deployment.py`. This file computes from repository "
-                "source, which cannot see a registry, so the figure is cited rather "
-                "than derived here."
-            )
+            # PAST tense on purpose. The previous wording said agents "are registered",
+            # which asserts present external state from a stored snapshot, and nothing
+            # in CI can refresh it. A claim scoped to a moment stays true; a
+            # present-tense claim from a snapshot silently becomes false.
+            return f"{count} Curtail agents were registered in Agent Registry, {provenance}"
     if "**No Curtail agent is registered.**" in text:
-        return "No Curtail agent is registered in Agent Registry."
+        return f"No Curtail agent was registered in Agent Registry, {provenance}"
     return "Agent Registry contents UNKNOWN: `docs/DEPLOYMENT.md` records no registry section."
 
 
