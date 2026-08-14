@@ -120,7 +120,48 @@ class Placement:
 
 def _scott_group(right: WaterRight) -> tuple[ScottGroup, str, str]:
     """Place a Scott right. Returns (group, citation, reason)."""
+    # THE BOARD'S OWN COLUMN WINS, and the reason says so.
+    #
+    # Where Attachment A states the grouping, that is 875.5(a)(1)(A) applied by the
+    # agency that administers it, and inference from whatever attributes we happen to
+    # hold is a worse answer. The provenance travels into the ledger so an official
+    # reading one line can tell a read value from a derived one.
+    if right.stated_group is not None:
+        if right.stated_group not in {int(g) for g in ScottGroup}:
+            raise PlacementError(
+                f"{right.right_id}: the record states group {right.stated_group}, which "
+                "is not one of the nine groupings 875.5(a)(1)(A) defines. A misread "
+                "column must reach a human rather than be placed on a guess."
+            )
+        group = ScottGroup(right.stated_group)
+        return (
+            group,
+            "23 CCR 875.5(a)(1)(A)",
+            "grouping stated by the State Water Board in Attachment A, not inferred",
+        )
+
     # (i) post-Adjudication appropriative
+    #
+    # **A KNOWN AMBIGUITY, recorded rather than silently fixed under a freeze.**
+    # `is_in_decree` is derived from `adjudication is not None`, which defaults to None,
+    # so a right whose record simply does not state an adjudication is indistinguishable
+    # here from one known to sit outside all three decrees. Both land in group 1, the
+    # rung curtailed FIRST. Two branches below, this module refuses on exactly that
+    # reasoning for `is_surplus_class` and `is_post_1914` under the comment "Unknown is
+    # not False"; this flag was missed.
+    #
+    # Measured on the Board's own Attachment A rather than argued: placing its 384 Scott
+    # rights from a bare appropriative class agrees with the Board on 8. Inference puts
+    # all 384 in group 1; the Board puts 258 in group 8, curtailed nearly last.
+    #
+    # Refusing here is the correct end state and it is NOT done now: it changes the
+    # semantics of the most safety-critical module in the project days before a
+    # submission freeze, and nineteen tests encode the current reading as intended for a
+    # right genuinely outside the decrees. What removes the risk without the churn is
+    # upstream: real Scott rights are loaded with `stated_group` set from the Board's
+    # column, so production data never reaches this inference at all, and a test asserts
+    # that the loader always sets it. Expressing "known outside the decrees" separately
+    # from "not stated" is the real fix and belongs after the deadline.
     if not right.is_in_decree and right.right_class is RightClass.APPROPRIATIVE:
         return (
             ScottGroup.POST_ADJUDICATION_APPROPRIATIVE,

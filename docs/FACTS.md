@@ -35,6 +35,8 @@ returns its input unchanged.
 - 71 placed on the priority ladder (Tier A: 65, Tier B: 6), 14 refused placement because the record
   states no priority precise enough to establish decree membership
 
+**The Scott rights table.** Read from the Board's own attachment to Order WR 2024-0024-DWR, Addendum 12, Attachment A, issued 2026-06-09, sha256 `c8d0d764615c5052...`. 384 rights, reconciled against 384 application numbers found anywhere in the document. **The grouping is the Board's own column, not this project's inference** (group 1: 8, group 3: 96, group 4: 1, group 5: 4, group 6: 9, group 7: 8, group 8: 258). Placing these rights from attributes alone instead agrees with the Board on 8 of 384: inference lands them at group 1: 384, while the Board puts 258 in group 8. Group 1 is curtailed first and group 8 is curtailed nearly last, so the gap is not a rounding difference, it is the difference between a ranch irrigating and a ranch shutting off.
+
 **Not wired in the DEPLOYED service, named so it cannot be implied away.**
 
 - The session service is in memory and built PER REQUEST, so nothing a traversal

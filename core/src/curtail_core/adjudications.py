@@ -157,7 +157,15 @@ class WaterRight:
 
     right_id: str
     basin: Basin
-    right_class: RightClass
+    #: How the right relates to the land and the source, when the source states it.
+    #:
+    #: **None means NOT STATED, and it is not a fourth class.** The Scott Attachment A
+    #: prints a curtailment group and an application number and says nothing about
+    #: class, so a loader reading it has three choices: invent one, refuse the record,
+    #: or record that it is unknown. Inventing is a false claim in the data, and
+    #: refusing would discard a table the Board publishes and administers. Rights
+    #: carrying a stated group are placed from that group and never consult this field.
+    right_class: RightClass | None = None
     #: None means the right is not in any of the four decrees, which for the
     #: Scott means post-Adjudication and for the Shasta means initiated after
     #: the Shasta Adjudication.
@@ -178,6 +186,19 @@ class WaterRight:
     #: unknown and forces a PlacementError rather than a guess.
     is_surplus_class: bool | None = None
     is_post_1914: bool | None = None
+    #: The grouping the ISSUING AGENCY assigned, when the source states one.
+    #:
+    #: **This is not a hint, it is the authority.** 23 CCR 875.5(a)(1)(A) defines the
+    #: nine Scott groupings and the Board's own Attachment A prints which one each right
+    #: sits in. Where that column exists, inferring the grouping from attributes we
+    #: happen to hold is a worse answer than reading the one the administering agency
+    #: published.
+    #:
+    #: Measured, not assumed: placing the 384 rights of Addendum 12 from attributes
+    #: alone agrees with the Board on 8 of them. Inference puts all 384 in Group 1,
+    #: which is curtailed FIRST, while the Board puts 258 in Group 8, which is curtailed
+    #: nearly LAST.
+    stated_group: int | None = None
     #: Shared-source key. Monotonicity is only meaningful within one source, so
     #: there is deliberately no default: a shared fallback literal would silently
     #: merge every ingestion-failed right into one giant pseudo-source.

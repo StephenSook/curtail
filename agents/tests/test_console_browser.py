@@ -884,13 +884,32 @@ class TestTheLedgerCard:
         self, page: Page, console_url: str
     ) -> None:
         """An empty ledger would read as "no right is affected", which is a real answer
-        and the wrong one."""
+        and the wrong one.
+
+        **The default basin used to BE the fixture, because Scott had no rights table.**
+        It has one now, 384 rights from the Board's own Attachment A, so loading the page
+        exercises the happy path and this assertion started measuring the wrong thing. The
+        refusal still matters, so the gap is served deliberately instead of borrowed.
+        """
+        page.route(
+            "**/api/recommendation/**",
+            _fulfil({"detail": "no rights table could be loaded for this basin"}, status=503),
+        )
         page.goto(console_url)
         _settle_after(page, "#rec", "")
 
         assert page.locator("#rec tbody tr").count() == 0
         assert "REFUSED" in page.locator("#rec .status").inner_text().upper()
         assert "no rights table" in page.locator("#rec .refusal").inner_text()
+
+    def test_the_default_basin_now_renders_a_full_ledger(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The other half: the basin that used to refuse now paints the Board's own
+        groups, which is what a judge opening the console sees first."""
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+        assert page.locator("#rec tbody tr").count() == 384
 
     def test_an_unreachable_engine_says_unavailable_on_the_ledger_card_too(
         self, page: Page, console_url: str

@@ -40,6 +40,12 @@ REPO = Path(__file__).resolve().parents[1]
 SOURCE = REPO / "data" / "corpus" / "scott_2024__addenda__12.pdf"
 RECORD = REPO / "data" / "rights_scott_addendum12.json"
 
+#: The packaged copy, which is the one a DEPLOYED service reads. Written by the same run,
+#: because a container has no repository: the Shasta record, the fact sheet and the
+#: console page all ship inside the package for that reason, each after a review found
+#: the repository-relative path resolving to nothing in a wheel.
+PACKAGED = REPO / "core" / "src" / "curtail_core" / "data" / "rights_scott_addendum12.json"
+
 #: The four-column row. The owner column is matched and DISCARDED: `.+?` consumes it so
 #: the status can be anchored, and nothing from it reaches the record.
 ROW = re.compile(
@@ -180,19 +186,24 @@ def main() -> int:
 
     fresh = build()
     if args.check:
-        if not RECORD.exists():
-            print(f"MISSING: {RECORD.relative_to(REPO)}", file=sys.stderr)
-            return 1
-        if json.loads(RECORD.read_text()) != fresh:
-            print(
-                f"STALE: {RECORD.relative_to(REPO)} disagrees with a fresh parse of {SOURCE.name}.",
-                file=sys.stderr,
-            )
-            return 1
-        print(f"{RECORD.name} matches a fresh parse of {SOURCE.name}")
+        for target in (RECORD, PACKAGED):
+            if not target.exists():
+                print(f"MISSING: {target.relative_to(REPO)}", file=sys.stderr)
+                return 1
+            if json.loads(target.read_text()) != fresh:
+                print(
+                    f"STALE: {target.relative_to(REPO)} disagrees with a fresh parse of "
+                    f"{SOURCE.name}.",
+                    file=sys.stderr,
+                )
+                return 1
+        print(f"both copies of {RECORD.name} match a fresh parse of {SOURCE.name}")
         return 0
 
-    RECORD.write_text(json.dumps(fresh, indent=2) + "\n")
+    payload = json.dumps(fresh, indent=2) + "\n"
+    PACKAGED.parent.mkdir(parents=True, exist_ok=True)
+    RECORD.write_text(payload)
+    PACKAGED.write_text(payload)
     counts = fresh["counts"]
     print(f"wrote {RECORD.relative_to(REPO)}")
     print(

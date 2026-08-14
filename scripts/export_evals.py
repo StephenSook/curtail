@@ -144,12 +144,9 @@ def build_eval_set() -> dict[str, Any]:
     }
 
 
-#: Rights are needed to run the Core, and only one basin has a committed record.
-#:
-#: Scott's Attachment A has not been parsed yet, so two of the six Board cases cannot be
-#: replayed through the Core. That is REPORTED per case rather than quietly excluded:
-#: an eval set that silently drops what it cannot run reports a denominator it chose.
-RIGHTS_BASIN = "shasta"
+#: Both basins have a committed rights record now. Scott's arrived on 2026-08-14, which
+#: took this suite's denominator from 4 to 6: the two Scott cases had been reported as
+#: blocked, with the reason, rather than dropped.
 
 #: Which way each of the Core's recommendations points, in the shared vocabulary.
 #:
@@ -237,12 +234,23 @@ def _run_core() -> list[dict[str, Any]]:
     from curtail_core.backtest import ACTION_DIRECTION as _AD
     from curtail_core.basins import Basin
     from curtail_core.rights_record import load_rights
+    from curtail_core.scott_rights import load_scott_rights
 
-    loaded = load_rights()
+    # **Both basins now, and the blocked branch is kept rather than deleted.** It
+    # reported "no committed rights table for scott" for exactly as long as that was
+    # true, which is what made the gap visible in a judged artifact instead of invisible.
+    # It stays because a record can go missing from a build, and the honest answer then
+    # is the same one it gave before.
+    shasta = [r for r in load_rights().converted.rights if r.basin is Basin.SHASTA]
+    scott = list(load_scott_rights().rights)
+    by_basin = {Basin.SHASTA: shasta, Basin.SCOTT: scott}
+
     scored = []
     for case in _load_cases():
         expected = _AD[case["board_action"]]
-        if case["basin"] != RIGHTS_BASIN:
+        basin = Basin(case["basin"])
+        rights = by_basin.get(basin) or []
+        if not rights:
             scored.append(
                 {
                     "eval_id": case["id"],
@@ -257,10 +265,10 @@ def _run_core() -> list[dict[str, Any]]:
             )
             continue
         recommendation = recommend(
-            basin=Basin(case["basin"]),
+            basin=basin,
             when=date.fromisoformat(case["decision_date"]),
             observed_cfs=float(case["reading_cfs"]),
-            rights=[r for r in loaded.converted.rights if r.basin is Basin(case["basin"])],
+            rights=rights,
         )
         actual = CORE_ACTION_DIRECTION.get(recommendation.action)
         scored.append(

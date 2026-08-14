@@ -583,13 +583,39 @@ class TestTheRecommendationEndpoint:
         assert reading["source"] == "unsourced"
         assert "not from USGS" in reading["note"]
 
-    def test_a_basin_with_no_ingested_table_refuses(self) -> None:
+    def test_a_basin_whose_record_cannot_be_loaded_refuses(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """An empty rights list is a valid input to the Core and produces a well-formed
         recommendation that reaches nobody. That reads exactly like a real answer, which
-        makes it the most dangerous output available here."""
+        makes it the most dangerous output available here.
+
+        **This used to point at Scott, because Scott had no table.** It does now, 384
+        rights from the Board's own Attachment A, so the old fixture stopped exercising
+        the guard and started asserting a gap that had closed. The guard still matters,
+        so the fixture became a record that genuinely cannot be loaded rather than a
+        basin that happens to be missing one. Deleting the test would have removed a
+        real protection along with an obsolete assumption.
+        """
+        from curtail_core.rights_record import RightsRecordUnavailableError
+
+        def _unavailable(_basin: object) -> None:
+            raise RightsRecordUnavailableError("no rights table could be loaded")
+
+        monkeypatch.setattr("curtail_agents.api.rights_for", _unavailable)
         response = TestClient(app).get("/api/recommendation/scott?cfs=100")
-        assert response.status_code == 422
+        assert response.status_code == 503
         assert "no rights table" in response.json()["detail"]
+
+    def test_scott_now_answers_on_the_boards_own_groups(self) -> None:
+        """The other half of the change above: the basin that used to refuse now runs."""
+        body = TestClient(app).get("/api/recommendation/scott?cfs=100").json()
+        assert len(body["ledger"]) == 384, "the Scott table did not reach the endpoint"
+        assert all(
+            "stated by the State Water Board" in line["citation"]
+            or "875.5(a)(1)(A)" in line["citation"]
+            for line in body["ledger"]
+        )
 
     def test_an_unknown_basin_is_404_not_an_empty_answer(self) -> None:
         assert TestClient(app).get("/api/recommendation/nowhere?cfs=10").status_code == 404

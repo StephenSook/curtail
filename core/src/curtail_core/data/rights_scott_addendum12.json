@@ -1,0 +1,1950 @@
+{
+  "source": {
+    "file": "scott_2024__addenda__12.pdf",
+    "sha256": "c8d0d764615c505222c08844b833ac00ac56df0b8d85f3cda2caa99264c1a4ec",
+    "document": "Order WR 2024-0024-DWR, Addendum 12, Attachment A",
+    "issued": "2026-06-09",
+    "basin": "scott"
+  },
+  "provenance": "Curtailment groups are the BOARD'S OWN column, not this project's inference. 23 CCR 875.5(a)(1)(A) defines nine groupings and the attachment states which one each right sits in.",
+  "privacy": "The attachment's Primary Owner column is deliberately not read. No third-party personal data enters this repository, and a public source does not change that.",
+  "counts": {
+    "rows_parsed": 384,
+    "application_numbers_in_document": 384,
+    "by_group": {
+      "1": 8,
+      "3": 96,
+      "4": 1,
+      "5": 4,
+      "6": 9,
+      "7": 8,
+      "8": 258
+    },
+    "by_status": {
+      "Curtailed": 384
+    },
+    "rights_sha256": "9ec9b6e46ba123c9879645a615ae367eda07fdfc6fb00fcb7eb55b03bea66835"
+  },
+  "rights": [
+    {
+      "application_number": "A027331",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A028183",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A028483",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A028875",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A028967",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A029099",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A029159",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A029575",
+      "curtailment_group": 1,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A000512",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A001492",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A007529",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A007825",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A007884",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A008053",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A008219",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A009529",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A009656",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A010165",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A010185",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A010312",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A010789",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A011463",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A012738",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A012929",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A013446",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A015212",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A015613",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A015769",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A015770",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A015994",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A016304",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A016536",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A016711",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A016916",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A017651",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A018457",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A018922",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A019353",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A020124",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A021199",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A021767",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A021890",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A021903",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022466",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022482",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022521",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022553",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022882",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022951",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A022954",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A023362",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A023631",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A023635",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A023996",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024148",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024149",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024150",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024151",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024153",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024154",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024162",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024176",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024177",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024179",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024180",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024249",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024291",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024303",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024407",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024413",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024414",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024417",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024424",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024430",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024435",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024437",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024438",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024450",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024451",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024454",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024458",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024466",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024495",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024546",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024547",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024549",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024550",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024737",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "A024907",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C000248",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C000900",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C001969",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C001970",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C001971",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C001972",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C001973",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C004086",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "C004540",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D029991",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D030039",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D030419",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D030524",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D030763",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "D030849",
+      "curtailment_group": 3,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010896",
+      "curtailment_group": 4,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010231",
+      "curtailment_group": 5,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010232",
+      "curtailment_group": 5,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010233",
+      "curtailment_group": 5,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022472",
+      "curtailment_group": 5,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001223",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010281",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010282",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010302",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010303",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021810",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S023325",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S023326",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S029197",
+      "curtailment_group": 6,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S002514",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010274",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010276",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010279",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S015280",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S017376",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S017379",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S023974",
+      "curtailment_group": 7,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000312",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000407",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000419",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000428",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000429",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000430",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000485",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000519",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000699",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000701",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S000774",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001129",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001364",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001365",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001539",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001540",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S001809",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S002374",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S004986",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006191",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006202",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006203",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006205",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006206",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006207",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006210",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006211",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006212",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006213",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006214",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006215",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006216",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S006217",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008066",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008068",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008070",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008087",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008111",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008336",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008432",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008433",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S008434",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S009419",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010158",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010228",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010230",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010234",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010235",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010237",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010240",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010243",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010247",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010250",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010253",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010254",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010257",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010268",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010271",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010273",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010275",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010277",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010278",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010308",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010428",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010429",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010430",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010431",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010569",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010572",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010583",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010587",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010673",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010677",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010678",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010679",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010681",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010682",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010683",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010690",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010719",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S010854",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S012475",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S012551",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S013785",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S013919",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S014405",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S014708",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S014709",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S014912",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S016310",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S016588",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S017367",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S017373",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S017385",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S018116",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S018119",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S018122",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S018897",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S019169",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S019230",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S019640",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S019936",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S020340",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S020457",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021512",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021517",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021518",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021730",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S021762",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022044",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022111",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022115",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022720",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S022915",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S023329",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S023479",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024037",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024049",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024106",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024360",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024361",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024496",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S024629",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S025108",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S025109",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S025620",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S025622",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S026181",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S026182",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S027410",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S027847",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S027941",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028058",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028059",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028060",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028061",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028062",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028063",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028064",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028065",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028066",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028067",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028068",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028069",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028076",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028082",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028117",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028235",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S028571",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "S029183",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002909",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002910",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002911",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002912",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002913",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002914",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002915",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002916",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002917",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002918",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002919",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002920",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002921",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002922",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002923",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002924",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002925",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002926",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002927",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002928",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002929",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002930",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002931",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002932",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002933",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002934",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002935",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002936",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002937",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002938",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002939",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002940",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002941",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002942",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002943",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002944",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002945",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002946",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002947",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002948",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002949",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002950",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002951",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002952",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002953",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002954",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002955",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002956",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002957",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002958",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002959",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002960",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002961",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002962",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002963",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002964",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002965",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002966",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002967",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002968",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002969",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002970",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002971",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002972",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002973",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002974",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002975",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002976",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002977",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002978",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002979",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002980",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002981",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002982",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002983",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002984",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002985",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG002986",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005121",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005122",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005123",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005124",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005125",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005126",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005127",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005128",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005129",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005130",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005131",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005132",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005133",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005134",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005135",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005136",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005137",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005138",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005139",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005140",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005141",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005142",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005143",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005144",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005145",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005146",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005147",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005148",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005149",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    },
+    {
+      "application_number": "SG005150",
+      "curtailment_group": 8,
+      "status_as_printed": "Curtailed"
+    }
+  ]
+}

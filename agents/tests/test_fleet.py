@@ -1217,7 +1217,9 @@ class TestTheCoreNodeIsWired:
         with pytest.raises(SentinelError, match="no gage event"):
             await _core({"correlation_id": "test-core-3"})
 
-    async def test_a_basin_with_no_table_carries_the_gap_rather_than_aborting(self) -> None:
+    async def test_a_basin_with_no_table_carries_the_gap_rather_than_aborting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Two failures pull in opposite directions here.
 
         Recommending from an empty rights list produces a well-formed answer reaching
@@ -1243,14 +1245,47 @@ class TestTheCoreNodeIsWired:
         observation = Observation(
             Basin.SCOTT, 48.7, datetime(2025, 7, 20, 12, tzinfo=UTC), Provenance.UNSOURCED
         )
+        from curtail_core.rights_record import RightsRecordUnavailableError
+
+        # **The fixture changed and the guard did not.** This pointed at Scott because
+        # Scott had no rights table. It has one now, 384 rights from the Board's own
+        # Attachment A, so pointing at that basin would assert a gap that has closed
+        # rather than exercise the behaviour. The behaviour still matters: a record can
+        # go missing from a build. So the gap is made real instead of borrowed.
+        def _unavailable(_basin: object) -> None:
+            raise RightsRecordUnavailableError("no rights table could be loaded")
+
+        monkeypatch.setattr("curtail_agents.fleet.rights_for", _unavailable)
+
         carried = await _sentinel(observation, correlation_id="test-core-4")
         out = await _core(carried)
 
         assert out[RECOMMENDATION] is None
-        assert "no rights table has been ingested" in out[RECOMMENDATION_UNAVAILABLE]
+        assert "no rights table could be loaded" in out[RECOMMENDATION_UNAVAILABLE]
         assert out["event"] is carried["event"], (
             "the Sentinel's classification was lost because allocation was unavailable"
         )
+
+    async def test_scott_now_runs_on_the_boards_own_groups(self) -> None:
+        """The other half: the basin that used to carry a gap now computes."""
+        from datetime import UTC, datetime
+
+        from curtail_agents.events import Provenance
+        from curtail_agents.fleet import RECOMMENDATION, _core, _sentinel
+        from curtail_agents.sentinel import Observation
+        from curtail_core.basins import Basin
+
+        carried = await _sentinel(
+            Observation(
+                Basin.SCOTT, 117.0, datetime(2026, 6, 10, 12, tzinfo=UTC), Provenance.UNSOURCED
+            ),
+            correlation_id="test-core-scott",
+        )
+        out = await _core(carried)
+        recommendation = out[RECOMMENDATION]
+        assert recommendation is not None, "Scott still carries a gap after its table landed"
+        assert len(recommendation.ledger) == 384
+        assert all("875.5(a)(1)(A)" in line.placement.citation for line in recommendation.ledger)
 
 
 class TestTheScribeNodeActuallyDrafts:
