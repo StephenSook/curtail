@@ -79,7 +79,8 @@ from curtail_core.backtest import direction_for
 from curtail_core.basins import Basin
 from curtail_core.clocks import SignatoryRole
 from curtail_core.flow_minimums import ScheduleGapError, minimum_flow
-from curtail_core.rights_record import RightsRecordUnavailableError, load_rights
+from curtail_core.rights import rights_for
+from curtail_core.rights_record import RightsRecordUnavailableError
 
 #: Structured JSON, because Cloud Logging parses it and a human reading a terminal
 #: does not have to. Configured once here rather than per call site.
@@ -258,12 +259,12 @@ def recommendation(basin: str, cfs: float, at: str | None = None) -> dict[str, A
     moment = datetime.now(UTC) if at is None else _parse(at)
 
     try:
-        loaded = load_rights()
+        loaded = rights_for(which)
     except RightsRecordUnavailableError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    in_basin = [r for r in loaded.converted.rights if r.basin is which]
-    if not in_basin:
+    in_basin = list(loaded.rights)
+    if not in_basin:  # pragma: no cover - the dispatcher refuses before this is reachable
         raise HTTPException(
             status_code=422,
             detail=(
@@ -343,8 +344,8 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
                 "issued": loaded.issued.isoformat(),
                 "source_sha256": loaded.source_sha256,
                 "summary": loaded.provenance,
-                "not_placed": list(loaded.converted.unplaceable),
-                "open_questions": list(loaded.converted.open_questions),
+                "not_placed": list(loaded.not_placed),
+                "open_questions": list(loaded.open_questions),
             },
         },
         "ledger": [
@@ -440,9 +441,13 @@ def draft_into_queue(basin: str, cfs: float, at: str | None = None) -> dict[str,
     which = Basin(basin)
     moment = datetime.now(UTC) if at is None else _parse(at)
 
-    loaded = load_rights()
-    in_basin = [r for r in loaded.converted.rights if r.basin is which]
-    result = recommend(basin=which, when=moment.date(), observed_cfs=cfs, rights=in_basin)
+    try:
+        loaded = rights_for(which)
+    except RightsRecordUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    result = recommend(
+        basin=which, when=moment.date(), observed_cfs=cfs, rights=list(loaded.rights)
+    )
 
     try:
         outcome = draft_order(result)

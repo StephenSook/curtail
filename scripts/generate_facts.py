@@ -230,6 +230,81 @@ def _stamp_from(text: str, label: str) -> str:
     return "unrecorded"
 
 
+def _scott_rights_claim() -> str:
+    """The Scott table, counted from the committed record rather than described.
+
+    Kept separate from the Shasta paragraph above because the two records answer
+    different questions. Shasta's states priority dates and the ladder places each right;
+    Scott's states the grouping and the ladder reads it. Collapsing them into one
+    sentence would hide that difference, and the difference is the interesting part.
+    """
+    record = REPO / "data" / "rights_scott_addendum12.json"
+    if not record.exists():
+        return (
+            "**The Scott rights table is NOT present**, so the Core cannot run on that "
+            "basin. Generate it with `scripts/extract_scott_attachment_a.py`."
+        )
+    raw = json.loads(record.read_text())
+    counts = raw["counts"]
+    groups = ", ".join(
+        f"group {k}: {v}" for k, v in sorted(counts["by_group"].items(), key=lambda kv: int(kv[0]))
+    )
+    return (
+        "**The Scott rights table.** Read from the Board's own attachment to "
+        f"{raw['source']['document']}, issued {raw['source']['issued']}, sha256 "
+        f"`{raw['source']['sha256'][:16]}...`. {counts['rows_parsed']} rights, "
+        f"reconciled against {counts['application_numbers_in_document']} application "
+        "numbers found anywhere in the document. **The grouping is the Board's own "
+        f"column, not this project's inference** ({groups}). {_inference_gap(raw)}"
+    )
+
+
+def _inference_gap(raw: dict[str, Any]) -> str:
+    """How far attribute-based placement lands from the Board's own column, MEASURED.
+
+    **The first version of this sentence carried the figures as literals**, which is the
+    false-constant defect this repository found inside this very generator a day earlier:
+    a hardcoded claim in generated output looks derived and drifts silently. So the
+    comparison is run here, against the same ladder the Core uses.
+
+    The rights are placed as bare appropriative, which is what a loader that read only
+    the application numbers would produce.
+    """
+    from curtail_core.adjudications import RightClass, WaterRight
+    from curtail_core.basins import Basin
+    from curtail_core.priority import place
+
+    total = len(raw["rights"])
+    agreed = 0
+    inferred_ranks: dict[int, int] = {}
+    for row in raw["rights"]:
+        placement = place(
+            WaterRight(
+                right_id=row["application_number"],
+                basin=Basin.SCOTT,
+                right_class=RightClass.APPROPRIATIVE,
+            )
+        )
+        inferred_ranks[placement.rank] = inferred_ranks.get(placement.rank, 0) + 1
+        if placement.rank == row["curtailment_group"]:
+            agreed += 1
+
+    biggest_rank, biggest_count = max(
+        ((int(k), v) for k, v in raw["counts"]["by_group"].items()), key=lambda kv: kv[1]
+    )
+    where_inference_puts_them = ", ".join(
+        f"group {r}: {n}" for r, n in sorted(inferred_ranks.items())
+    )
+    return (
+        f"Placing these rights from attributes alone instead agrees with the Board on "
+        f"{agreed} of {total}: inference lands them at {where_inference_puts_them}, "
+        f"while the Board puts {biggest_count} in group {biggest_rank}. Group 1 is "
+        "curtailed first and group 8 is curtailed nearly last, so the gap is not a "
+        "rounding difference, it is the difference between a ranch irrigating and a "
+        "ranch shutting off."
+    )
+
+
 def _armor_claim() -> str:
     """Whether Model Armor is CALLED, in three parts, all required.
 
@@ -479,6 +554,8 @@ def build() -> str:
         + f"), {len(rights_record['unplaceable'])} refused placement because the record"
     )
     add("  states no priority precise enough to establish decree membership")
+    add("")
+    add(_scott_rights_claim())
     add("")
     add("**Not wired in the DEPLOYED service, named so it cannot be implied away.**")
     add("")

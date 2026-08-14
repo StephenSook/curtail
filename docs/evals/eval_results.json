@@ -56,27 +56,27 @@
       "measures": "the direction the Core's recommended action points, on the committed rights table",
       "judge_model_required": false,
       "cases_total": 6,
-      "cases_scored": 4,
-      "cases_blocked": 2,
-      "matched": 4,
+      "cases_scored": 6,
+      "cases_blocked": 0,
+      "matched": 6,
       "score": 1.0,
-      "blocked_reasons": [
-        "no committed rights table for scott, so the Core cannot be replayed on this case"
-      ],
+      "blocked_reasons": [],
       "cases": [
         {
           "eval_id": "scott_2024/addenda/7",
           "expected": "restrict",
-          "actual": null,
-          "match": false,
-          "blocked": "no committed rights table for scott, so the Core cannot be replayed on this case"
+          "actual": "restrict",
+          "match": true,
+          "recommended_action": "field_verification_first",
+          "rights_reached": 384
         },
         {
           "eval_id": "scott_2024/addenda/8",
           "expected": "relieve",
-          "actual": null,
-          "match": false,
-          "blocked": "no committed rights table for scott, so the Core cannot be replayed on this case"
+          "actual": "relieve",
+          "match": true,
+          "recommended_action": "consider_suspension",
+          "rights_reached": 0
         },
         {
           "eval_id": "shasta_2024/addenda/2",

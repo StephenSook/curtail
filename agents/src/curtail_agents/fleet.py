@@ -107,7 +107,8 @@ from curtail_core.allocation import Recommendation, RecommendedAction, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.clocks import RecipientClass
 from curtail_core.order_parser import OrderAction
-from curtail_core.rights_record import load_rights
+from curtail_core.rights import rights_for
+from curtail_core.rights_record import RightsRecordUnavailableError
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
 #:
@@ -676,8 +677,16 @@ async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
             "from one computed on a real river."
         )
 
-    loaded = load_rights()
-    in_basin = [r for r in loaded.converted.rights if r.basin is event.basin]
+    # One question, asked through the dispatcher, so this node does not have to know
+    # which of the two records holds which basin. The dispatcher REFUSES on an empty
+    # result rather than returning one, and that refusal is caught here and carried
+    # forward, because the node's judgement about what to do with a gap is different
+    # from the loader's judgement about whether a gap exists.
+    try:
+        loaded = rights_for(event.basin)
+        in_basin, loaded_document = list(loaded.rights), loaded.document
+    except RightsRecordUnavailableError as exc:
+        in_basin, loaded_document = [], str(exc)
     if not in_basin:
         # A STATED GAP, carried forward, not an abort and not an empty recommendation.
         #
@@ -694,8 +703,8 @@ async def _core(node_input: dict[str, Any]) -> dict[str, Any]:
             **node_input,
             RECOMMENDATION: None,
             RECOMMENDATION_UNAVAILABLE: (
-                f"no rights table has been ingested for the {event.basin.value} basin, so "
-                f"no allocation can be computed. The loaded record is {loaded.document}. "
+                f"no rights table could be loaded for the {event.basin.value} basin, so "
+                f"no allocation can be computed. {loaded_document} "
                 "The gage classification above stands on its own."
             ),
         }
