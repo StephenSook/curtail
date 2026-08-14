@@ -59,6 +59,17 @@ rights: ## Re-parse Attachment A from the fetched corpus into the committed reco
 rights-check: ## Fail if the committed rights record has drifted from the source PDF
 	uv run python scripts/extract_attachment_a.py --check
 
+.PHONY: deployed
+deployed: ## Probe the live service and record what it actually serves
+# Deliberately NOT part of `verify`. This needs the network and the deployed service,
+# and a gate that reddens when a service is intentionally powered down is a gate people
+# learn to override. The offline half runs in `test`: it reads the record this writes
+# and fails when the repository claims a capability production does not serve.
+	uv run python scripts/probe_deployment.py
+
+deployed-check: ## Fail if the committed deployment record has drifted from the live service
+	uv run python scripts/probe_deployment.py --check
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that
