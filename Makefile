@@ -124,6 +124,10 @@ season: ## Prove the Season Ledger survives the process, with a SECOND Firestore
 	uv run python scripts/probe_season_store.py
 	uv run python scripts/generate_facts.py
 
+.PHONY: submission
+submission: ## Regenerate the submission sheet from what the repository actually contains
+	uv run python scripts/generate_submission.py
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # **Set GOOGLE_CLOUD_PROJECT before recording.** Without it the poisoned-document
