@@ -157,19 +157,60 @@ def _console_runs_the_graph() -> bool:
 
 
 def _otel_claim() -> str:
-    """Whether the SHIPPED source exports telemetry, computed rather than asserted.
+    """Whether the shipped source EXPORTS telemetry, in three parts, all required.
 
-    Scans `agents/src` only. `opentelemetry` appears in `uv.lock` as a transitive
-    dependency of `google-adk`, so a lockfile grep would report it wired when nothing
-    imports it. The question is what the code does, not what resolved.
+    **"Imports opentelemetry" is the wrong question and would have been a false green.**
+    ADK creates `invoke_node` and `invoke_workflow` spans by itself, so the library is
+    present and spans exist whether or not anything routes them anywhere. An import
+    check would have reported telemetry wired while every span was created and dropped,
+    which is the structure-present-force-absent shape this project keeps finding.
+
+    So three things are checked, and all three are required:
+
+    1. the Cloud Trace exporter is imported by the shipped source,
+    2. a tracer provider is actually INSTALLED (`set_tracer_provider`), because building
+       one and never registering it exports nothing,
+    3. the entrypoint CALLS the configuration, because a function nobody invokes is the
+       same defect one layer out.
+
+    Scoped to `agents/src`. `opentelemetry` also appears in `uv.lock` as a transitive
+    dependency of `google-adk`, so a lockfile grep answers a different question.
     """
     shipped = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
-    if "opentelemetry" in shipped:
-        return "OpenTelemetry is imported by the shipped source."
+    entrypoint = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+    tree = ast.parse(entrypoint)
+    called = {
+        n.func.id
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+    }
+
+    exporter = "opentelemetry.exporter.cloud_trace" in shipped
+    installed = "set_tracer_provider" in shipped
+    reached = "configure_tracing" in called
+
+    if exporter and installed and reached:
+        return (
+            "OpenTelemetry export to Cloud Trace is WIRED: the shipped source imports "
+            "the Cloud Trace exporter, installs a tracer provider, and the HTTP "
+            "entrypoint calls `configure_tracing` at import. ADK opens an "
+            "`invoke_node` span per fleet node and an `invoke_workflow` span around "
+            "the traversal, so the agent-hop trace is a property of the graph. It "
+            "exports only where a project id is present, and the fleet response says "
+            "so either way."
+        )
+    missing = [
+        name
+        for name, ok in (
+            ("the Cloud Trace exporter is not imported", exporter),
+            ("no tracer provider is installed", installed),
+            ("the entrypoint never calls `configure_tracing`", reached),
+        )
+        if not ok
+    ]
     return (
-        "No OpenTelemetry export: `opentelemetry` appears in the lockfile as a "
-        "transitive dependency of `google-adk` and is imported by nothing in "
-        "`agents/src`."
+        "No OpenTelemetry export: " + "; ".join(missing) + ". ADK creates spans "
+        "regardless, so without this they are created and dropped."
     )
 
 

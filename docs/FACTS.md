@@ -44,7 +44,7 @@ returns its input unchanged.
 - No Cloud SQL, and the approval queue lives in the serving process.
 - No Pub/Sub broker, and no delivery vendor: the transport is explicitly
   synthetic and every report says so.
-- No OpenTelemetry export: `opentelemetry` appears in the lockfile as a transitive dependency of `google-adk` and is imported by nothing in `agents/src`.
+- OpenTelemetry export to Cloud Trace is WIRED: the shipped source imports the Cloud Trace exporter, installs a tracer provider, and the HTTP entrypoint calls `configure_tracing` at import. ADK opens an `invoke_node` span per fleet node and an `invoke_workflow` span around the traversal, so the agent-hop trace is a property of the graph. It exports only where a project id is present, and the fleet response says so either way.
 - 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-14T04:48:53+00:00 against revision curtail-console-api-00027-vbj. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
 
 ## 1. The backtest

@@ -66,6 +66,14 @@ from curtail_agents.fleet import (
 from curtail_agents.herald import DeliveryReport, TransportUnavailableError
 from curtail_agents.scribe import ScribeUnavailableError, draft_order
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
+from curtail_agents.telemetry import (
+    CORRELATION_ATTRIBUTE,
+    configure_tracing,
+    flush,
+    is_exporting,
+    tracer,
+    why_not_exporting,
+)
 from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.basins import Basin
@@ -105,6 +113,13 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+# At import, so a span opened by the very first request already has somewhere to go.
+# Returns False and records a reason in every environment without a project id, which
+# is the test suite and any local run, so nothing here reaches the network by accident.
+# The return value is deliberately unused: a telemetry failure must never stop the
+# surface that serves the curtailment recommendation from answering.
+configure_tracing()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -770,17 +785,24 @@ async def fleet(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]
     await sessions.create_session(app_name=APP_NAME, user_id="console", session_id=session_id)
 
     observation = Observation(which, cfs, moment, Provenance.UNSOURCED)
+    # ONE root span per request, so the four `invoke_node` spans ADK opens hang off a
+    # parent that carries the correlation id. Without it the node spans are orphans and
+    # a Cloud Trace view cannot be filtered to the traversal a judge just ran.
     try:
-        run = await run_fleet(
-            observation,
-            runner=build_fleet_runner(sessions),
-            correlation_id=correlation_id,
-            user_id="console",
-            session_id=session_id,
-            recipients=DEMO_RECIPIENTS,
-            transport_name=DEMO_TRANSPORT,
-            deadline=FLEET_HTTP_DEADLINE_SECONDS,
-        )
+        with tracer().start_as_current_span("curtail.fleet_request") as span:
+            span.set_attribute(CORRELATION_ATTRIBUTE, correlation_id)
+            span.set_attribute("curtail.basin", which.value)
+            span.set_attribute("curtail.observed_cfs", float(cfs))
+            run = await run_fleet(
+                observation,
+                runner=build_fleet_runner(sessions),
+                correlation_id=correlation_id,
+                user_id="console",
+                session_id=session_id,
+                recipients=DEMO_RECIPIENTS,
+                transport_name=DEMO_TRANSPORT,
+                deadline=FLEET_HTTP_DEADLINE_SECONDS,
+            )
     except InvocationDeadlineError as exc:
         # 504 with OUR reason in it. The whole point of a deadline below the
         # platform's is that the caller is told which stage was still running.
@@ -793,6 +815,15 @@ async def fleet(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (NoClassificationError, RightsRecordUnavailableError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    finally:
+        # Batched spans can outlive an idle Cloud Run container, which would leave the
+        # traversal a judge just ran missing from Cloud Trace. Flush on the way out,
+        # including on every error path, because a FAILED traversal is the one most
+        # worth looking at and the one whose span would otherwise be lost.
+        #
+        # Outside the `with`, so the root span is closed before it is flushed: flushing
+        # a span that is still open exports nothing and the trace arrives empty.
+        flush()
 
     log.info(
         "fleet ran",
@@ -868,6 +899,11 @@ def _fleet_json(run: FleetRun, which: Basin, moment: datetime) -> dict[str, Any]
         "delivery": None if delivery is None else _delivery_json(delivery),
         "delivery_unavailable": herald.get(DELIVERY_UNAVAILABLE),
         "recipients_are_synthetic": True,
+        # Stated either way. A response silent about telemetry lets a reader assume it
+        # is on, and "no spans left this process" is the single most useful thing to
+        # know when a trace a judge went looking for is not there.
+        "traces_exported": is_exporting(),
+        "traces_not_exported_because": why_not_exporting(),
         "persistence": (
             "in-process and per-request: a fresh in-memory session service is built for "
             "each call, so nothing this traversal recorded survives the response"

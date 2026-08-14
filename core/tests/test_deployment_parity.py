@@ -270,23 +270,43 @@ class TestTheFactSheetAgreesWithTheRecordAboutTheRegistry:
             )
 
     def test_the_telemetry_claim_matches_the_shipped_source(self) -> None:
-        """The other half of the sentence that went stale, and it is still TRUE.
+        """Three conditions, all required, because "imports opentelemetry" is a lie.
 
-        Split from the registry claim because one is computable from source and the
-        other is not, and a single sentence asserting both could only ever be half
-        checked. Scoped to `agents/src`: `opentelemetry` is in the lockfile as a
-        transitive dependency of `google-adk`, so a lockfile grep would call it wired.
+        ADK opens `invoke_node` and `invoke_workflow` spans on its own, so the library
+        is imported and spans exist whether or not anything routes them anywhere. A
+        guard keyed on the import would have reported telemetry wired while every span
+        was created and dropped: structure present, force absent.
+
+        So: exporter imported, provider actually installed, and the ENTRYPOINT calling
+        the configuration. A function nobody invokes is the same defect one layer out.
         """
+        import ast as _ast
+
         shipped = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+        called = {
+            n.func.id
+            for n in _ast.walk(_ast.parse(API.read_text()))
+            if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
+        }
+        wired = (
+            "opentelemetry.exporter.cloud_trace" in shipped
+            and "set_tracer_provider" in shipped
+            and "configure_tracing" in called
+        )
         facts = " ".join(self.FACTS.read_text().split())
-        if "opentelemetry" in shipped:
+        if wired:
             assert "No OpenTelemetry export" not in facts, (
-                "the shipped source imports opentelemetry and the fact sheet denies it"
+                "the exporter is imported, a provider is installed and the entrypoint "
+                "configures it, and the fact sheet still denies any export"
+            )
+            assert "export to Cloud Trace is WIRED" in facts, (
+                "telemetry is wired and the fact sheet does not say so, which "
+                "understates the governance wrap on the axis worth 30 percent"
             )
         else:
             assert "No OpenTelemetry export" in facts, (
-                "nothing in agents/src imports opentelemetry and the fact sheet does "
-                "not say so, which overstates the governance wrap"
+                "telemetry is not fully wired and the fact sheet does not say so, "
+                "which overstates the governance wrap"
             )
 
 
