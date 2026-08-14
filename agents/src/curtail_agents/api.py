@@ -67,6 +67,7 @@ from curtail_agents.herald import DeliveryReport, TransportUnavailableError
 from curtail_agents.ledger import LedgerIntegrityError, record_order
 from curtail_agents.scribe import ScribeUnavailableError, draft_order
 from curtail_agents.season_store import (
+    SeasonStore,
     SeasonStoreUnavailableError,
     season_payload,
     store_for,
@@ -109,11 +110,31 @@ log = structlog.get_logger("curtail.api")
 #: stays as a development fallback rather than as the primary.
 CONSOLE = Path(__file__).resolve().parent / "data" / "console.html"
 
-#: The Season Ledger's store. Built once at import, because the client is expensive and
-#: the season is read on a hot path. `store_for` never downgrades silently: when there
-#: is no project, or Firestore is switched off, it returns an in-process store that
-#: reports `durable: False` and says why, and every response carries that word.
-SEASON_STORE = store_for()
+#: The Season Ledger's store, built LAZILY and cached on first success.
+#:
+#: **Not at import, and the difference is a whole class of outage.** `store_for` now
+#: fails closed when a project is configured and Firestore cannot be reached, so
+#: building at import would mean one transient failure during a cold start takes the
+#: container down, or worse, that the container comes up permanently attached to
+#: whatever the first attempt produced. Lazily, a failure degrades the REQUEST: the
+#: season endpoint answers 503, the signing path reports the gap, and the next request
+#: tries again.
+_SEASON_STORE: SeasonStore | None = None
+
+
+def season_store() -> SeasonStore:
+    """The store, or an error. Never a volatile stand-in for a durable one.
+
+    Raises:
+        SeasonStoreUnavailableError: a project is configured and its store is not
+            reachable.
+    """
+    global _SEASON_STORE
+    if _SEASON_STORE is None:
+        _SEASON_STORE = store_for()
+    return _SEASON_STORE
+
+
 _PACKAGED = Path(__file__).resolve().parent / "data" / "FACTS.md"
 _IN_REPO = Path(__file__).resolve().parents[3] / "docs" / "FACTS.md"
 FACTS = _PACKAGED if _PACKAGED.exists() else _IN_REPO
@@ -678,18 +699,19 @@ def sign_queue_item(order_id: str, body: dict[str, Any]) -> dict[str, Any]:
                     "be filed. Refusing rather than filing them under a guess: a "
                     "statutory deadline in the wrong season is worse than none."
                 )
-            ledger = SEASON_STORE.append_entry(basin, entry)
+            store = season_store()
+            ledger = store.append_entry(basin, entry)
             recorded = {
                 "recorded": True,
-                "durable": SEASON_STORE.durable,
-                "store": SEASON_STORE.describe(),
+                "durable": store.durable,
+                "store": store.describe(),
                 "orders_on_record": len(ledger.entries),
                 "clocks_started": [c.clock_type.value for c in entry.clocks],
             }
         except SeasonStoreUnavailableError as exc:
             recorded = {
                 "recorded": False,
-                "durable": SEASON_STORE.durable,
+                "durable": False,
                 "reason": (f"the signature stands and its clocks were NOT recorded: {exc}"),
             }
         except (LedgerIntegrityError, ValueError) as exc:
@@ -741,7 +763,7 @@ def season(basin: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from exc
 
     try:
-        payload = season_payload(SEASON_STORE, which)
+        payload = season_payload(season_store(), which)
     except SeasonStoreUnavailableError as exc:
         # 503 rather than an empty season. An unreachable store is an outage, and
         # returning `{"orders": []}` would report it as a quiet river.

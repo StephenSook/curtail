@@ -508,6 +508,37 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
                     "direction nobody guards for."
                 )
 
+    def test_the_durability_claim_is_backed_by_failing_closed(
+        self, readme: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A file existing is not durability, and this test exists because it was.
+
+        The first version of the check above concluded "season_store.py exists,
+        therefore the README may claim production durability". A review pointed out
+        that `store_for` caught an unreachable Firestore and returned the in-memory
+        store, so a configured deployment could serve a volatile season for its whole
+        life while this README said durable. **The guard could not see the
+        contradiction because it was checking for a FILE and the claim is about
+        BEHAVIOUR.**
+
+        So this asserts the behaviour the claim rests on: a deployment that asked for a
+        durable store and cannot have one raises, rather than quietly substituting.
+        """
+        if "durable" not in _flat(readme).lower():
+            pytest.skip("the README makes no durability claim to back")
+
+        import curtail_agents.season_store as store_module
+
+        monkeypatch.delenv("CURTAIL_DISABLE_FIRESTORE", raising=False)
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "a-configured-project")
+
+        def _unreachable(project: str, client: object | None = None) -> object:
+            raise store_module.SeasonStoreUnavailableError("unreachable")
+
+        monkeypatch.setattr(store_module, "FirestoreSeasonStore", _unreachable)
+        with pytest.raises(store_module.SeasonStoreUnavailableError):
+            store_module.store_for()
+
     def test_the_fact_sheet_agrees_with_the_readme_about_persistence(self) -> None:
         """The two artifacts must not be able to contradict each other, which is what
         happened: one said state persists, the other said there is no database."""

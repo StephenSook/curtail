@@ -195,3 +195,71 @@ class TestTheDurableRoundTripRecordIsHonest:
             "the record shows no statutory clock, so it demonstrates storage rather "
             "than the thing storage is for"
         )
+
+
+class TestAConfiguredProjectFailsClosed:
+    """The defect a review found: `store_for` promised no silent downgrade, and did one.
+
+    Its own docstring said "never a silent downgrade" three lines above a `except
+    SeasonStoreUnavailableError: return InMemorySeasonStore(...)`. An operator who sets
+    GOOGLE_CLOUD_PROJECT has asked for a durable legal record, and quietly handing them a
+    volatile one decides on their behalf that losing the season beats an error. The
+    container would start, serve for hours, and lose every clock it recorded.
+    """
+
+    def test_an_unreachable_firestore_raises_rather_than_degrading(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("CURTAIL_DISABLE_FIRESTORE", raising=False)
+        monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "a-project-that-is-configured")
+
+        import curtail_agents.season_store as module
+
+        def _explode(project: str, client: Any | None = None) -> Any:
+            raise SeasonStoreUnavailableError("the client could not be built")
+
+        monkeypatch.setattr(module, "FirestoreSeasonStore", _explode)
+        with pytest.raises(SeasonStoreUnavailableError):
+            module.store_for()
+
+    def test_no_project_is_still_an_explicit_in_memory_store(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The other branch, so failing closed did not simply break every path.
+
+        No project configured is the operator saying they do not want a durable store,
+        which is different from asking for one and not getting it.
+        """
+        monkeypatch.delenv("CURTAIL_DISABLE_FIRESTORE", raising=False)
+        monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+        store = store_for()
+        assert store.durable is False
+        assert "GOOGLE_CLOUD_PROJECT" in store.describe()
+
+    def test_the_endpoint_answers_503_rather_than_an_empty_season(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An outage must never render as a river with no orders on it."""
+        import curtail_agents.api as api
+
+        monkeypatch.setattr(api, "_SEASON_STORE", None)
+
+        def _explode() -> Any:
+            raise SeasonStoreUnavailableError("the store is unreachable")
+
+        monkeypatch.setattr(api, "store_for", _explode)
+        response = TestClient(api.app).get("/api/season/shasta")
+        assert response.status_code == 503
+        assert "unreachable" in response.json()["detail"]
+
+    def test_the_store_is_not_built_at_import(self) -> None:
+        """Built lazily on purpose: failing closed AND building at import would mean a
+        transient failure during a cold start permanently attaches the container to
+        whatever the first attempt produced."""
+        import curtail_agents.api as api
+
+        assert hasattr(api, "season_store"), "the lazy accessor is gone"
+        assert not hasattr(api, "SEASON_STORE"), (
+            "an import-time store is back, so a cold-start failure would outlive the "
+            "request that caused it"
+        )
