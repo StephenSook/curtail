@@ -91,6 +91,10 @@ class RightLedgerEntry:
     #: dates are not verified as a condition of the record existing, so a missing
     #: date is reported as missing.
     priority_date: date | None = None
+    #: The priority year where the record states one and no full date. An official
+    #: reading a ledger line is owed the difference between "we know the year" and "the
+    #: record says nothing", and those rendered identically before.
+    priority_year_only: int | None = None
 
     @property
     def would_be_curtailed(self) -> bool:
@@ -190,6 +194,7 @@ def recommend(
     # Priority dates, keyed by right, so the ledger can carry each one. A right
     # whose record states no date maps to None and stays None.
     _priority_dates: dict[str, date | None] = {r.right_id: r.priority_date for r in rights}
+    _priority_years: dict[str, int | None] = {r.right_id: r.priority_year_only for r in rights}
 
     minimum = Decimal(str(minimum_flow(basin, when, override=flow_override)))
     shortfall = max(Decimal("0"), minimum - observed)
@@ -247,6 +252,7 @@ def recommend(
                     lcs_id=getattr(_protecting_lcs(rid, lcs_solutions, when), "lcs_id", None),
                     diversion_cfs=rates.get(rid),
                     priority_date=_priority_dates.get(rid),
+                    priority_year_only=_priority_years.get(rid),
                     note="not reached: flow is at or above the operative minimum",
                 )
                 for rid, p in placements.items()
@@ -306,6 +312,7 @@ def recommend(
             lcs_id=getattr(_protecting_lcs(rid, lcs_solutions, when), "lcs_id", None),
             diversion_cfs=rates.get(rid),
             priority_date=_priority_dates.get(rid),
+            priority_year_only=_priority_years.get(rid),
             note=_ledger_note(p, extent, _protecting_lcs(rid, lcs_solutions, when), rates.get(rid)),
         )
         for rid, p in by_rank

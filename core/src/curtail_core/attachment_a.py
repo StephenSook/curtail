@@ -475,6 +475,7 @@ def to_water_rights(report: AttachmentReport) -> ConversionResult:
                 adjudication=AdjudicationId.SHASTA if in_decree else None,
                 priority_date=row.priority_date,
                 priority_date_missing=row.priority_date_missing,
+                priority_year_only=row.priority_year_only,
                 source=row.source_as_printed,
             )
         )

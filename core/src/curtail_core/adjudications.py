@@ -176,6 +176,19 @@ class WaterRight:
     #: claims are self-reported Statements, not permits reviewed by the
     #: Division, so a missing date is recorded as missing and never imputed.
     priority_date_missing: bool = False
+    #: The priority YEAR, where the record states a year and no month or day.
+    #:
+    #: **Carried because it is legally operative, and it was being discarded.** A year
+    #: alone can settle decree membership whenever it falls clearly either side of the
+    #: decree date: 1977 is unambiguously after the 1932 Shasta Adjudication, so a right
+    #: bearing it places in Tier A on evidence, not on a guess. `decree_membership`
+    #: already reasons that way and returns None only for the decree year itself.
+    #:
+    #: The parser read the year, used it to place the right, and then dropped it, so the
+    #: order text said "priority not stated" about a right whose year the record holds.
+    #: A value good enough to decide placement is good enough to appear in the document
+    #: that records the placement.
+    priority_year_only: int | None = None
     #: TRI-STATE, and the None matters. These two flags are read BEFORE the
     #: Schedule D branch, so a bare False means "definitely not surplus" and
     #: sends the right onward to a more SENIOR grouping. When ingestion could
