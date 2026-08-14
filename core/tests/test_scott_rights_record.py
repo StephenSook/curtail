@@ -15,8 +15,6 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -84,17 +82,14 @@ class TestNoPersonalDataEntersTheRepository:
         assert "not read" in record["privacy"]
 
 
-class TestTheRecordCannotGoStale:
-    def test_regenerating_it_produces_no_diff(self) -> None:
-        """The corpus is fetched rather than vendored, so this skips when the source PDF
-        is absent rather than failing for a reason unrelated to the record."""
-        source = REPO / "data" / "corpus" / "scott_2024__addenda__12.pdf"
-        if not source.exists():
-            pytest.skip("the source PDF is not in this checkout, so a fresh parse cannot run")
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--check"],
-            capture_output=True,
-            text=True,
-            cwd=REPO,
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
+# **The regeneration check is NOT here, and that is deliberate.**
+#
+# It lived here for one commit and CI rejected it, correctly: the corpus is fetched
+# rather than vendored, so the source PDF is absent on a CI runner, the test skipped, and
+# this repository's browser job fails the build on ANY skip with "a skipped guard is a
+# false green". That is the same rule that let an unscanned bundle ship on a previous
+# project.
+#
+# So it follows the Shasta record's pattern instead: `make scott-rights-check` re-parses
+# the PDF and fails on drift, run by a human who has the corpus. Everything above needs
+# no PDF and therefore never skips.
