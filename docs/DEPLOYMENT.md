@@ -8,7 +8,7 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `4f1af7ff103da01dba1c34e079cdf2569dbe0a4f`
+- Probed at repository commit: `7fe475b36eb40d5aca1f92f4619c1a4fbaa9eb04`
 
 ## Routes the live service advertises
 
