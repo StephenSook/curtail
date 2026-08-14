@@ -156,6 +156,66 @@ def _console_runs_the_graph() -> bool:
     return {"build_fleet_runner", "run_fleet"} <= called
 
 
+def _otel_claim() -> str:
+    """Whether the SHIPPED source exports telemetry, computed rather than asserted.
+
+    Scans `agents/src` only. `opentelemetry` appears in `uv.lock` as a transitive
+    dependency of `google-adk`, so a lockfile grep would report it wired when nothing
+    imports it. The question is what the code does, not what resolved.
+    """
+    shipped = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+    if "opentelemetry" in shipped:
+        return "OpenTelemetry is imported by the shipped source."
+    return (
+        "No OpenTelemetry export: `opentelemetry` appears in the lockfile as a "
+        "transitive dependency of `google-adk` and is imported by nothing in "
+        "`agents/src`."
+    )
+
+
+def _registry_claim() -> str:
+    """What the Agent Registry holds, read from the recorded probe.
+
+    **This file computes from repository source, and repository source cannot see a
+    registry.** The line this replaces was a hardcoded string saying no Curtail agent
+    was registered. Four were registered, the sentence became false, and
+    `--check` still passed because it compares this file against THIS GENERATOR: both
+    were wrong together. **A generated-artifact check cannot catch a false constant
+    inside the generator**, which is the sharper form of the rule that a hand-written
+    line inside a generated file is the one line nothing checks.
+
+    So the fact comes from `docs/DEPLOYMENT.md`, which a networked probe writes, and the
+    provenance is stated rather than implied. A missing or unreadable record is reported
+    as unknown, never as zero: an absent record and an empty registry are different
+    claims.
+    """
+    record = REPO / "docs" / "DEPLOYMENT.md"
+    if not record.exists():
+        return (
+            "Agent Registry contents UNKNOWN: `docs/DEPLOYMENT.md` has not been "
+            "generated, and this file cannot query a registry."
+        )
+    text = record.read_text()
+    if "The registry could not be read:" in text:
+        return (
+            "Agent Registry contents UNKNOWN: the last probe could not read the "
+            "registry, and an unreadable registry is not an empty one."
+        )
+    for line in text.splitlines():
+        if line.endswith("Curtail agents are discoverable in the registry."):
+            count = line.split()[0]
+            return (
+                f"{count} Curtail agents are registered and discoverable in Agent "
+                "Registry, as recorded in `docs/DEPLOYMENT.md` by "
+                "`scripts/probe_deployment.py`. This file computes from repository "
+                "source, which cannot see a registry, so the figure is cited rather "
+                "than derived here."
+            )
+    if "**No Curtail agent is registered.**" in text:
+        return "No Curtail agent is registered in Agent Registry."
+    return "Agent Registry contents UNKNOWN: `docs/DEPLOYMENT.md` records no registry section."
+
+
 def _is_passthrough(fn: ast.AST) -> bool:
     """Whether a node returns its input unchanged, ignoring its docstring.
 
@@ -331,7 +391,8 @@ def build() -> str:
     add("- No Cloud SQL, and the approval queue lives in the serving process.")
     add("- No Pub/Sub broker, and no delivery vendor: the transport is explicitly")
     add("  synthetic and every report says so.")
-    add("- No OpenTelemetry export, and no Curtail agent registered in Agent Registry.")
+    add(f"- {_otel_claim()}")
+    add(f"- {_registry_claim()}")
     add("")
 
     add("## 1. The backtest")

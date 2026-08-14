@@ -216,3 +216,68 @@ class TestTheGovernanceTableMatchesTheLiveRegistry:
         )
         for row in rows:
             assert SERVICE_URL in row, f"a cataloged agent does not point at the service: {row}"
+
+
+class TestTheFactSheetAgreesWithTheRecordAboutTheRegistry:
+    """The defect this class exists for got past `generate_facts.py --check`.
+
+    That check compares `docs/FACTS.md` against its GENERATOR, and the generator held a
+    hardcoded string: "No OpenTelemetry export, and no Curtail agent registered in Agent
+    Registry." Four agents were registered, the sentence became false, and the check
+    stayed green because the file and the generator were wrong TOGETHER.
+
+    **A generated-artifact check cannot catch a false constant inside the generator.**
+    It proves the artifact was regenerated, never that what it says is true. So the
+    claim now comes from the probe's record, and this binds the two together.
+    """
+
+    FACTS = REPO / "docs" / "FACTS.md"
+
+    def _recorded_count(self, record: str) -> int | None:
+        if REGISTRY_UNREADABLE in record:
+            return None
+        for line in record.splitlines():
+            if line.endswith("Curtail agents are discoverable in the registry."):
+                return int(line.split()[0])
+        if "**No Curtail agent is registered.**" in record:
+            return 0
+        return None
+
+    def test_the_fact_sheet_does_not_deny_a_populated_registry(self, record: str) -> None:
+        count = self._recorded_count(record)
+        if count is None:
+            pytest.skip("the registry could not be read, so this proves nothing")
+        facts = " ".join(self.FACTS.read_text().split())
+        if count > 0:
+            assert "no Curtail agent registered" not in facts, (
+                f"{count} Curtail agents are registered and the fact sheet still says "
+                "none is. The generated line was a hardcoded string, which is why "
+                "--check could not see it."
+            )
+            assert f"{count} Curtail agents are registered" in facts, (
+                "the fact sheet does not state the recorded registry count"
+            )
+        else:
+            assert "No Curtail agent is registered" in facts, (
+                "no agent is registered and the fact sheet does not say so"
+            )
+
+    def test_the_telemetry_claim_matches_the_shipped_source(self) -> None:
+        """The other half of the sentence that went stale, and it is still TRUE.
+
+        Split from the registry claim because one is computable from source and the
+        other is not, and a single sentence asserting both could only ever be half
+        checked. Scoped to `agents/src`: `opentelemetry` is in the lockfile as a
+        transitive dependency of `google-adk`, so a lockfile grep would call it wired.
+        """
+        shipped = "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
+        facts = " ".join(self.FACTS.read_text().split())
+        if "opentelemetry" in shipped:
+            assert "No OpenTelemetry export" not in facts, (
+                "the shipped source imports opentelemetry and the fact sheet denies it"
+            )
+        else:
+            assert "No OpenTelemetry export" in facts, (
+                "nothing in agents/src imports opentelemetry and the fact sheet does "
+                "not say so, which overstates the governance wrap"
+            )

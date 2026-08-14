@@ -44,7 +44,8 @@ returns its input unchanged.
 - No Cloud SQL, and the approval queue lives in the serving process.
 - No Pub/Sub broker, and no delivery vendor: the transport is explicitly
   synthetic and every report says so.
-- No OpenTelemetry export, and no Curtail agent registered in Agent Registry.
+- No OpenTelemetry export: `opentelemetry` appears in the lockfile as a transitive dependency of `google-adk` and is imported by nothing in `agents/src`.
+- 4 Curtail agents are registered and discoverable in Agent Registry, as recorded in `docs/DEPLOYMENT.md` by `scripts/probe_deployment.py`. This file computes from repository source, which cannot see a registry, so the figure is cited rather than derived here.
 
 ## 1. The backtest
 
