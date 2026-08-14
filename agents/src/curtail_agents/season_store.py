@@ -182,7 +182,7 @@ class FirestoreSeasonStore:
 
             transactional = firestore.transactional(_txn)
             state = transactional(self._client.transaction())
-        except (SeasonStoreUnavailableError, LedgerIntegrityError, ValueError):
+        except (SeasonStoreUnavailableError, LedgerIntegrityError):
             # **A domain refusal is not an outage, and conflating them tells an operator
             # the database is down when the order is simply already on record.** The
             # ledger raises LedgerIntegrityError from inside the transaction body when an
@@ -194,6 +194,13 @@ class FirestoreSeasonStore:
             # in-memory store let the refusal through and the durable one masked it, so
             # a behaviour every test exercised in memory was different in production.
             # Found by testing the Firestore path with a fake client.
+            #
+            # **`LedgerIntegrityError` ONLY, and the first version of this fix also
+            # re-raised `ValueError`, which was an overcorrection.** A ValueError here
+            # comes from stored data that will not parse, or from the SDK, and both are
+            # infrastructure problems: letting them through makes the API report
+            # "the ledger refused the entry" for a corrupt season. Exactly one exception
+            # means "this order is already on record", and only that one is a refusal.
             raise
         except Exception as exc:
             raise SeasonStoreUnavailableError(
