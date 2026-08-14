@@ -957,12 +957,34 @@ def _nothing_to_deliver(node_input: dict[str, Any], recipients: Any) -> str | No
             "near-threshold reading flagged for field verification asks a human to go "
             "and measure, and it is not something anybody is served with."
         )
-    if node_input.get(DRAFT) is None:
+    draft = node_input.get(DRAFT)
+    if draft is None:
         return str(
             node_input.get(
                 DRAFT_UNAVAILABLE,
                 "no draft was produced, so there is nothing to distribute.",
             )
+        )
+    # **A DRAFT EXISTING IS NOT A DRAFT BEING FIT TO SEND.** This checked only for
+    # absence, and an escalated draft is not absent: `draft_order` deliberately RETURNS
+    # the text on escalation, because a watermaster reviewing why a draft was refused
+    # needs to see what was written. The Scribe's contract says the label is what keeps
+    # it out of the PDF generator. Nothing was enforcing the same for distribution, so a
+    # draft that had just failed the hallucination guard twice was handed to Herald and
+    # SERVED, which is worse than reaching a PDF: certified mail marks it
+    # `constitutes_legal_service`. Observed live before this fix, on a production
+    # traversal where the model drafted a Shasta order in Scott's ladder vocabulary,
+    # the guard escalated it, and a recipient was still recorded as legally served.
+    #
+    # Asked through `may_reach_pdf` on purpose. The Scribe states that as the ONE
+    # question, asked one way, so a caller cannot consult the looser of two conditions;
+    # re-deriving it here from `verdict` alone would miss `escalated`.
+    if not draft.may_reach_pdf:
+        return (
+            "the draft did not pass its guards, so it is not distributed. It reaches "
+            "the human queue labelled UNVERIFIED instead: an escalated draft still "
+            "carries its text so a reviewer can see what was written, and that is a "
+            f"reason to show it to one official, never to serve it. Guard: {draft.guard.reason}"
         )
     if not recipients:
         return (
