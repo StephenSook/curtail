@@ -220,3 +220,49 @@ class TestTheDrillReportsFailureRatherThanSwallowingIt:
         printed = capsys.readouterr().out
         assert "DRILL FAILED" in printed
         assert "FABRICATED CITATION SURVIVED" in printed
+
+
+class TestAHalfDemonstratedGuardIsNotAPass:
+    """The drill printed PASS for a scenario that exercised half its guard.
+
+    Run without GOOGLE_CLOUD_PROJECT, the poisoned-document scenario cannot reach Model
+    Armor. It said so in an evidence line, then reported `[PASS]` and the summary said
+    "all 3 scenarios demonstrated their guard". The strong run and the weak run were
+    distinguishable only by reading the small print.
+
+    That is the exact false green this drill exists to disprove, occurring inside the
+    drill, and it matters more here than almost anywhere: this is the artifact that gets
+    recorded on camera, so a degraded run that looks identical to a full one is a
+    recording that overstates the system.
+    """
+
+    def test_an_unexercised_layer_downgrades_the_verdict(self) -> None:
+        from curtail_agents.chaos import ScenarioResult
+
+        partial = ScenarioResult(
+            name="x",
+            injected="y",
+            guard="z",
+            demonstrated=True,
+            unexercised=("layer 2 of 2",),
+        )
+        assert partial.complete is False
+        assert "[PARTIAL]" in partial.render()
+        assert "NOT EXERCISED" in partial.render()
+
+    def test_a_fully_exercised_scenario_still_passes(self) -> None:
+        """Non-vacuity: if nothing could earn PASS the downgrade would be worthless."""
+        from curtail_agents.chaos import ScenarioResult
+
+        full = ScenarioResult(name="x", injected="y", guard="z", demonstrated=True)
+        assert full.complete is True
+        assert "[PASS]" in full.render()
+        assert "NOT EXERCISED" not in full.render()
+
+    def test_a_failed_scenario_is_still_a_failure_not_a_partial(self) -> None:
+        from curtail_agents.chaos import ScenarioResult
+
+        failed = ScenarioResult(
+            name="x", injected="y", guard="z", demonstrated=False, unexercised=("a",)
+        )
+        assert "[FAIL]" in failed.render(), "a failure must never soften into PARTIAL"
