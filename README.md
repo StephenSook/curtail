@@ -43,7 +43,7 @@ The Fortified Enterprise Fleet track names seven platform components. This proje
 | Agent Registry | **Reachable, not yet populated.** The API is enabled and `agents.list` returns 200 on a non-organization account ([ADR 0001](docs/adr/0001-governance-platform.md)). The only entry is the registry's own system agent; no Curtail agent is registered yet |
 | Agent Identity | Native. API confirmed, write path scheduled |
 | Model Armor | **Provisioned during the spike, NOT called by the shipped Scribe.** A template was created in us-central1 and confirmed at the time; the drafting path does not invoke it, and `gcloud model-armor templates list` now returns PERMISSION_DENIED on this account, so the template cannot be re-verified either. The injection defence that IS wired is application-side: untrusted order text is normalised, matched against injection patterns, fenced and stripped from the payload before it can reach a prompt ([sanitize.py](agents/src/curtail_agents/sanitize.py)), and every drafted citation is checked against a verified allowlist ([routing.py](agents/src/curtail_agents/routing.py)). Google's own guidance is never to rely on a single layer; what this row must not do is imply a layer that is not running |
-| Agent Runtime / Memory Bank | **Partial, and narrower than this row used to claim.** The ledger serialises to ADK session state and a test injects a real `DatabaseSessionService`, writing with one and reading with a second against the same file, which proves the state survives a restart ([test_ledger.py](agents/tests/test_ledger.py)). **Nothing in `agents/src` constructs a session service**, so the deployed console persists no season state at all. Vertex AI Agent Engine hosting *(not built yet)* |
+| Agent Runtime / Memory Bank | **Partial, and narrower than this row used to claim.** The ledger serialises to ADK session state and a test injects a real `DatabaseSessionService`, writing with one and reading with a second against the same file, which proves the state survives a restart ([test_ledger.py](agents/tests/test_ledger.py)). The deployed console constructs an `InMemorySessionService` **per request**, so a traversal has real session state while it runs and **nothing persists** once the response is sent: no season state survives in production, and the response says so in its own body rather than leaving a reader to assume a ledger exists. Vertex AI Agent Engine hosting *(not built yet)* |
 | Agent Observability | OpenTelemetry to Cloud Trace, Logging, Monitoring *(not built yet)* |
 | Agent Gateway | **Substituted.** No first-party API is exposed to a non-organization account. Its role is covered by per-agent least-privilege service accounts, API Gateway, egress allowlisting, and Model Armor called inline. Reasoning in [ADR 0001](docs/adr/0001-governance-platform.md) |
 
@@ -83,20 +83,26 @@ computed recommendation behind it. **All four nodes act on their input**, and th
 sentence is generated rather than written: [FACTS section 0](docs/FACTS.md) inspects
 each node's source and reports whether it returns its input unchanged.
 
-**The graph is exercised by the test suite; the HTTP surface calls three of the four
-node's domain functions directly.** `api.py` imports `evaluate`, `recommend`,
-`draft_order` and the approval queue and runs them in that order. Those are the
-functions the nodes wrap, not the node functions, and it does not construct the ADK
-runner, so what a judge exercises through the console is the agents' logic without
-ADK's orchestration around it.
+**The console runs the graph.** `POST /api/fleet/{basin}` builds the ADK runner and
+drives one real traversal, so a judge clicking through the console exercises the fleet
+itself rather than the domain functions the nodes wrap. Until this was wired, `api.py`
+called `evaluate`, `recommend` and `draft_order` in order and never built a runner, so
+what the console exercised was the agents' logic without ADK's orchestration around it,
+and `deliver_order` had no call site at all: Herald, and with it the two service lanes,
+could not be reached by anyone who was not running the test suite.
 
-**Herald is not reachable through the console at all**: `deliver_order` has no call
-site in `api.py`, so the two service lanes are demonstrable by the test suite and the
-chaos drill and not by clicking. Wiring the HTTP path through the graph, which would
-also put Herald on it, is the next build task and is not done. The per-node table in
-[FACTS section 0](docs/FACTS.md) is computed from the source and reports this, because
-the hand-written version of this paragraph said "the four node functions" when it is
-three domain functions and one that is never called.
+The response is attributed **per node**, read off ADK's own `node_info.path` rather
+than inferred from arrival order, because a retried node emits twice and position would
+then name the wrong member. That attribution is the point: a payload carrying only the
+final answer is indistinguishable from one function computing it, which is precisely
+the claim being checked.
+
+Two columns in [FACTS section 0](docs/FACTS.md) keep this honest, and they are separate
+on purpose. One asks whether each node **runs the domain function it is named for**,
+the other whether the **console reaches it**. Collapsing them is what once hid the
+Scribe, which acted on its input for several revisions while sanitizing rather than
+drafting: "acts on its input" was true and useless while the graph could not produce an
+order at all.
 
 That check exists because this section went stale in the understating direction and no
 guard could see it. The claim was prose, the guards checked markers, and a description

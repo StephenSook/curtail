@@ -403,27 +403,78 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
     def _shipped_source() -> str:
         return "\n".join(path.read_text() for path in (REPO / "agents" / "src").rglob("*.py"))
 
-    def test_the_readme_says_the_http_path_bypasses_the_graph(self, readme: str) -> None:
-        """40 percent of this track is whether the agent acts end to end. If the console
-        does not run the graph, the honest sentence has that qualifier in it."""
+    def test_the_readme_says_whether_the_http_path_runs_the_graph(self, readme: str) -> None:
+        """40 percent of this track is whether the agent acts end to end, so the README
+        has to say which of the two is true. It must never be able to say neither.
+
+        **This guard went VACUOUS rather than red, and that is why it is shaped like
+        this now.** It asserted the honest qualifier only `if not runs_graph`, so the
+        moment `api.py` gained `build_fleet_runner` the whole body was skipped: the
+        suite stayed green while the README went on saying the console "does not
+        construct the ADK runner", which had just become false. A guard whose only
+        assertion sits inside an `if` stops guarding at exactly the commit that
+        changes the thing it watches.
+
+        Both branches assert now, so whichever way the source goes, the README is
+        checked against it.
+        """
         runs_graph = "build_fleet_runner" in self._api_source()
-        if not runs_graph:
-            assert "does not construct the ADK runner" in _flat(readme), (
+        flat = _flat(readme)
+        if runs_graph:
+            assert "does not construct the ADK runner" not in flat, (
+                "api.py builds the fleet runner and the README still says it does not"
+            )
+            assert "runs the graph" in flat, (
+                "the console runs the fleet and the README does not say so, which "
+                "understates the project on the axis worth 40 percent"
+            )
+        else:
+            assert "does not construct the ADK runner" in flat, (
                 "api.py never builds the fleet runner and the README does not say so"
             )
 
     def test_no_session_service_claim_beyond_what_the_source_constructs(self, readme: str) -> None:
-        constructs = "DatabaseSessionService(" in self._shipped_source()
-        if not constructs:
-            assert "Nothing in `agents/src` constructs a session service" in _flat(readme), (
+        """ANY session service, not one named class.
+
+        Keyed on `DatabaseSessionService(` alone, this passed happily when the fleet
+        endpoint began constructing an `InMemorySessionService` per request, leaving
+        both artifacts asserting that nothing in `agents/src` constructs one. The
+        question was never which class: it is whether the deployed service builds a
+        session store at all, and what it therefore persists.
+        """
+        source = self._shipped_source()
+        constructed = sorted(
+            name
+            for name in ("DatabaseSessionService", "InMemorySessionService")
+            if f"{name}(" in source
+        )
+        flat = _flat(readme)
+        if not constructed:
+            assert "Nothing in `agents/src` constructs a session service" in flat, (
                 "the README claims persistence the shipped service cannot provide"
+            )
+        else:
+            assert "Nothing in `agents/src` constructs a session service" not in flat, (
+                f"{constructed} is constructed in agents/src and the README denies it"
+            )
+        if "InMemorySessionService" in constructed and "DatabaseSessionService" not in constructed:
+            assert "nothing persists" in flat or "persists nothing" in flat, (
+                "the only session service constructed is in memory, so the README must "
+                "say that nothing survives the response rather than leaving a reader to "
+                "assume a season ledger exists"
             )
 
     def test_the_fact_sheet_agrees_with_the_readme_about_persistence(self) -> None:
         """The two artifacts must not be able to contradict each other, which is what
         happened: one said state persists, the other said there is no database."""
         facts = (REPO / "docs" / "FACTS.md").read_text()
-        assert "No session service is constructed anywhere in `agents/src`" in facts
+        source = self._shipped_source()
+        if "InMemorySessionService(" in source or "DatabaseSessionService(" in source:
+            assert "No session service is constructed anywhere in `agents/src`" not in facts, (
+                "a session service is constructed and the fact sheet still denies it"
+            )
+        else:
+            assert "No session service is constructed anywhere in `agents/src`" in facts
         assert "no database" not in facts.lower().replace("no database, and", ""), (
             "the fact sheet still makes the blunt claim that contradicts the ledger test"
         )
@@ -451,13 +502,20 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
 
 
 class TestTheReachabilityTableIsComputed:
-    """The correction to the correction.
+    """The correction to the correction to the correction.
 
-    The first fix said the HTTP surface calls "the four node functions". It calls THREE
-    domain functions that the nodes wrap, and `deliver_order` has no call site at all, so
-    Herald is unreachable through the console. A hand-written count inside a generated
-    file is the one line nothing checks, which is how the same defect recurred one
-    sentence later.
+    Version one said the HTTP surface calls "the four node functions"; it called three
+    domain functions the nodes wrap, and `deliver_order` had no call site at all.
+    Version two computed that per node and was right about the wrong question: it asked
+    whether `api.py` calls each node's function DIRECTLY, which stopped being the
+    interesting question the moment the console started running the graph. A node
+    reached through a traversal is reached.
+
+    So the table answers two separable questions now, because collapsing them is what
+    hid the Scribe: whether the node RUNS THE FUNCTION IT IS NAMED FOR, and whether the
+    CONSOLE reaches it. The Scribe was acting on its input, and sanitizing rather than
+    drafting, so a single column reported it green while the graph could not produce an
+    order at all.
     """
 
     #: The domain function each node wraps, mirrored from the generator on purpose: if
@@ -480,18 +538,72 @@ class TestTheReachabilityTableIsComputed:
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
         }
 
-    def test_the_table_matches_what_the_api_calls(self) -> None:
+    def test_the_table_says_whether_the_console_runs_the_graph(self) -> None:
+        """Asserted in BOTH directions, because the guard that this replaces asserted in
+        one and went silent at the commit that mattered."""
         facts = (REPO / "docs" / "FACTS.md").read_text()
         called = self._called_in_api()
         assert called, "no calls parsed out of api.py, so this proves nothing"
-        for node, function in self.NODE_LOGIC.items():
+        runs_graph = {"build_fleet_runner", "run_fleet"} <= called
+        for node in self.NODE_LOGIC:
             line = _line_containing(facts, f"| `{node}` |")
-            if function in called:
-                assert f"yes, via `{function}`" in line, (
-                    f"{node} is reached and the table denies it"
+            if runs_graph:
+                assert "yes, the console runs the graph" in line, (
+                    f"the console runs the graph and the table denies it for {node}"
                 )
             else:
-                assert "**no**" in line, f"{node} is NOT reached and the table claims it is"
+                assert "does not run the graph" in line, (
+                    f"the console does not run the graph and the table claims it does for {node}"
+                )
+
+    def test_a_node_that_does_not_run_its_own_function_is_named(self) -> None:
+        """The column that would have caught the Scribe.
+
+        It acted on its input for several revisions while never calling `draft_order`,
+        so "acts on its input" was true and useless. This asks the sharper question and
+        follows helpers, because both the Scribe and the Herald dispatch their domain
+        function through `asyncio.to_thread`, where it is an argument rather than a call.
+        """
+        import ast
+
+        module = ast.parse((REPO / "agents" / "src" / "curtail_agents" / "fleet.py").read_text())
+        edges: dict[str, set[str]] = {}
+        for fn in ast.walk(module):
+            if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            names: set[str] = set()
+            for call in ast.walk(fn):
+                if not isinstance(call, ast.Call):
+                    continue
+                if isinstance(call.func, ast.Name):
+                    names.add(call.func.id)
+                names.update(a.id for a in call.args if isinstance(a, ast.Name))
+            edges[fn.name] = names
+
+        def reaches(start: str, target: str) -> bool:
+            seen: set[str] = set()
+            queue = [start]
+            while queue:
+                current = queue.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                if target in edges.get(current, set()):
+                    return True
+                queue.extend(edges.get(current, set()))
+            return False
+
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        for node, function in self.NODE_LOGIC.items():
+            line = _line_containing(facts, f"| `{node}` |")
+            if reaches(f"_{node}", function):
+                assert f"yes, `{function}`" in line, (
+                    f"{node} runs {function} and the table denies it"
+                )
+            else:
+                assert f"**no**, `{function}` is never called" in line, (
+                    f"{node} never calls {function} and the table claims it does"
+                )
 
     def test_the_generator_and_this_test_agree_on_the_mapping(self) -> None:
         """Both hold the node-to-function map. If they drift, the check above would be
@@ -502,13 +614,25 @@ class TestTheReachabilityTableIsComputed:
                 f"the generator maps {node} differently, so this test checks the wrong function"
             )
 
-    def test_an_unreachable_node_is_named_in_both_artifacts(self, readme: str) -> None:
-        """A capability that cannot be demonstrated through the console must say so in
-        the README too, not only in the fact sheet a judge may not open."""
+    def test_the_readme_agrees_with_the_fact_sheet_about_the_console(self, readme: str) -> None:
+        """A judge may never open the fact sheet, so the README carries the same claim.
+
+        Both branches assert. The predecessor only spoke when a node was unreachable,
+        which meant the README's stale "Herald is not reachable through the console"
+        sentence would have survived the commit that made it reachable.
+        """
         called = self._called_in_api()
-        for node, function in self.NODE_LOGIC.items():
-            if function in called:
-                continue
-            assert f"{node.capitalize()} is not reachable through the console" in _flat(readme), (
-                f"{node} cannot be exercised through the console and the README does not say so"
-            )
+        flat = _flat(readme)
+        runs_graph = {"build_fleet_runner", "run_fleet"} <= called
+        if runs_graph:
+            for node in self.NODE_LOGIC:
+                assert f"{node.capitalize()} is not reachable through the console" not in flat, (
+                    f"the console runs the graph and the README still says {node} is not reachable"
+                )
+        else:
+            for node, function in self.NODE_LOGIC.items():
+                if function in called:
+                    continue
+                assert f"{node.capitalize()} is not reachable through the console" in flat, (
+                    f"{node} cannot be exercised through the console and the README is silent"
+                )
