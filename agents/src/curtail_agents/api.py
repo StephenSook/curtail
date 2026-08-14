@@ -352,6 +352,13 @@ def _as_json(result: Recommendation, loaded: Any) -> dict[str, Any]:
             {
                 "right_id": entry.right_id,
                 "priority_date": (entry.priority_date.isoformat() if entry.priority_date else None),
+                # `priority_date` alone reported null for a right whose YEAR the record
+                # states, which reads as "we know nothing" about a right the ladder
+                # placed on the strength of that very year. The Scribe was fixed and
+                # this was not, so the order document and the API disagreed about the
+                # same right. Both now render through one property on the entry.
+                "priority_year_only": entry.priority_year_only,
+                "priority_as_stated": entry.priority_as_stated,
                 "grouping": entry.placement.grouping_label,
                 "rank": entry.placement.rank,
                 "citation": entry.placement.citation,

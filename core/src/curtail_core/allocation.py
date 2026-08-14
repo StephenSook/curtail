@@ -97,6 +97,27 @@ class RightLedgerEntry:
     priority_year_only: int | None = None
 
     @property
+    def priority_as_stated(self) -> str:
+        """The one rendering of this right's priority that every consumer shares.
+
+        **Why this lives on the entry rather than in each consumer.** The Scribe grew
+        this logic first, and the API kept serialising `priority_date` alone, so an
+        order document said "1977 (year only)" about the same right the API reported as
+        `null`. Two renderings of one fact drift the moment only one of them is fixed,
+        which is exactly what happened. Putting it here means a new consumer gets the
+        distinction for free instead of having to remember it.
+
+        Never returns a bare year that could be mistaken for a date. "The record states
+        a year" and "the record says nothing" are different claims, and an official
+        deciding whether to shut off a diversion is owed the difference.
+        """
+        if self.priority_date is not None:
+            return self.priority_date.isoformat()
+        if self.priority_year_only is not None:
+            return f"{self.priority_year_only} (year only, no month or day in the record)"
+        return "not stated"
+
+    @property
     def would_be_curtailed(self) -> bool:
         """Reached by the extent AND not shielded by a Local Cooperative Solution."""
         return self.reached_by_extent and not self.lcs_protected
