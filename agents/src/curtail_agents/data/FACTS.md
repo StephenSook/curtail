@@ -17,15 +17,16 @@ published artifact ends up contradicting its own repository.
 Computed from the source, not described. Each node is inspected for whether it
 returns its input unchanged.
 
-| Fleet node | Acts on its input | Its logic runs on the HTTP surface |
-|---|---|---|
-| `sentinel` | yes | yes, via `evaluate` |
-| `core` | yes | yes, via `recommend` |
-| `scribe` | yes | yes, via `draft_order` |
-| `herald` | yes | **no**, `deliver_order` is never called |
+| Fleet node | Acts on its input | Runs the function it is named for | Reached by the console |
+|---|---|---|---|
+| `sentinel` | yes | yes, `evaluate` | yes, the console runs the graph |
+| `core` | yes | yes, `recommend` | yes, the console runs the graph |
+| `scribe` | yes | yes, `draft_order` | yes, the console runs the graph |
+| `herald` | yes | yes, `deliver_order` | yes, the console runs the graph |
 
-4 of 4 nodes act on their input, and 3 of 4 have their logic reached by the deployed HTTP
-surface.
+4 of 4 nodes act on their input and 4 of 4 run the domain function they are named for.
+
+**The console runs the graph.** `POST /api/fleet/{basin}` builds the ADK runner and drives one real traversal, so every node above is exercised by clicking rather than only by the test suite. The response names which node produced each part, read from ADK's own attribution.
 
 **The rights table.** Read from the Board's own attachment to Order WR 2024-0006-DWR, Addendum 6, Updated Attachment, issued 2026-06-16, sha256 `e65b1e5dc5474d22...`.
 
@@ -36,15 +37,10 @@ surface.
 
 **Not wired in the DEPLOYED service, named so it cannot be implied away.**
 
-- The HTTP surface calls 3 domain functions directly (`draft_order`, `evaluate`, `recommend`) plus the approval queue, and does
-  not construct the ADK runner. Those are the functions the nodes WRAP, not the
-  node functions, so the graph is exercised by the test suite rather than by the
-  console. Wiring the HTTP path through the graph is the next build task.
-- `herald` is not reachable through the console at all, so its
-  behaviour is demonstrable only by the test suite and the chaos drill.
-- No session service is constructed anywhere in `agents/src`, so no season state
-  persists in production. A test injects a real `DatabaseSessionService` and
-  proves the ledger round-trips across a restart, which is a different claim.
+- The session service is in memory and built PER REQUEST, so nothing a traversal
+  records survives the response and no season state persists in production. A
+  test injects a real `DatabaseSessionService` and proves the ledger round-trips
+  across a restart, which is a different claim about a different deployment.
 - No Cloud SQL, and the approval queue lives in the serving process.
 - No Pub/Sub broker, and no delivery vendor: the transport is explicitly
   synthetic and every report says so.
