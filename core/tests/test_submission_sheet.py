@@ -11,13 +11,38 @@ judge with the repository open would.
 
 from __future__ import annotations
 
-import ast
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
+
+
+def _generator() -> Any:
+    """The real generator module, imported once.
+
+    **The stripper used to be duplicated here, and a review caught what that costs.**
+    Copying the EVIDENCE TABLES is deliberate: they are claims, and two independent
+    statements of a claim mean one wrong edit cannot propagate into the check that
+    guards it. Copying the STRIPPER is the opposite, because it is a mechanism rather
+    than a claim: the tests exercised this file's copy while production ran the
+    generator's, so the generator's could regress with every test still green.
+
+    Data gets duplicated on purpose. Machinery gets imported.
+    """
+    import importlib.util
+
+    path = REPO / "scripts" / "generate_submission.py"
+    spec = importlib.util.spec_from_file_location("generate_submission", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_executable = _generator().executable_source
 SHEET = REPO / "docs" / "SUBMISSION.md"
 SOURCE_DIRS = (REPO / "agents" / "src", REPO / "core" / "src")
 
@@ -89,38 +114,6 @@ def source() -> str:
     if docker.exists():
         parts.append(_executable(docker.read_text(), python=False))
     return "\n".join(parts)
-
-
-def _executable(text: str, *, python: bool) -> str:
-    """The part of a file that RUNS, with comments and docstrings removed.
-
-    **A comment naming a requirement is not the requirement.** This project's Dockerfile
-    carries the line `# --proxy-headers is not optional behind Cloud Run`, and while the
-    evidence search read whole files, deleting `--proxy-headers` from the actual `CMD`
-    left the claim standing on that comment. The prose about a contract was satisfying a
-    check on the contract.
-
-    Python goes through `ast`, which drops comments on unparse, plus an explicit pass to
-    remove module, class and function docstrings. A Dockerfile drops `#` lines, which is
-    the whole of its comment syntax.
-    """
-    if not python:
-        return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
-    tree = ast.parse(text)
-    for node in ast.walk(tree):
-        body = getattr(node, "body", None)
-        if not isinstance(body, list) or not body:
-            continue
-        if not isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
-            continue
-        first = body[0]
-        if (
-            isinstance(first, ast.Expr)
-            and isinstance(first.value, ast.Constant)
-            and isinstance(first.value.value, str)
-        ):
-            body.pop(0)
-    return ast.unparse(tree)
 
 
 def _ticked(sheet: str, row: str) -> str:
@@ -237,13 +230,7 @@ class TestTheGuardCoversEverythingTheGeneratorCanClaim:
 
     @staticmethod
     def _generator_tables() -> tuple[set[str], set[str]]:
-        import importlib.util
-
-        path = REPO / "scripts" / "generate_submission.py"
-        spec = importlib.util.spec_from_file_location("generate_submission", path)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _generator()
         return set(module.CLOUD_SERVICES), set(module.SDKS)
 
     def test_no_service_the_generator_knows_is_unguarded(self) -> None:
@@ -308,3 +295,39 @@ class TestProseAboutARequirementIsNotTheRequirement:
         real = "import google.cloud.firestore as firestore\nX = firestore.Client()\n"
         stripped = _executable(real, python=True)
         assert "google.cloud.firestore" in stripped
+
+
+class TestTheGeneratorsOwnPipelineIsWhatIsTested:
+    """End to end through the generator, not through a copy of its logic.
+
+    The stripper tests above now import the real function, which closes the gap a review
+    found. This closes the rest of it: they exercise one helper, and what actually
+    matters is that the GENERATOR's source pipeline excludes comments, since that is what
+    decides the sheet's contents.
+    """
+
+    def test_the_generator_source_excludes_dockerfile_comments(self) -> None:
+        source = _generator()._source()
+        assert "is not optional behind Cloud Run" not in source, (
+            "the generator's own source pipeline is reading Dockerfile comments, so a "
+            "comment naming a flag can satisfy a claim about that flag"
+        )
+
+    def test_the_generator_source_still_contains_the_real_contract(self) -> None:
+        """Non-vacuity, and it also proves the Dockerfile is read at all."""
+        source = _generator()._source()
+        assert "--proxy-headers" in source, "the CMD's real flag was stripped too"
+        assert "CLOUD_RUN_REQUEST_TIMEOUT_SECONDS" in source
+
+    def test_the_generator_source_excludes_python_docstrings(self) -> None:
+        """`season_store.py`'s module docstring names Cloud SQL while explaining why it
+        was NOT chosen. Read as evidence, that sentence would tick a box for a service
+        this project deliberately does not use."""
+        source = _generator()._source()
+        assert "Why Firestore and not Cloud SQL" not in source
+
+    def test_the_sheet_on_disk_matches_what_the_generator_produces(self) -> None:
+        """The drift half, so the two checks together cover both failure directions:
+        the sheet saying something the code does not, and the sheet being stale."""
+        module = _generator()
+        assert module.main(["--check"]) == 0, "docs/SUBMISSION.md has drifted"
