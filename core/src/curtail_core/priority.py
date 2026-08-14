@@ -370,7 +370,16 @@ def place(right: WaterRight) -> Placement:
     #
     # `stated_group` is the one exemption and only Scott has it: where the Board prints the
     # grouping, there is nothing left to be unknown about and the column is read directly.
-    if right.decree_membership_unknown and right.stated_group is None:
+    # The exemption is SCOTT-ONLY, and that qualifier is the fix for a real bypass.
+    #
+    # Written without it, any right carrying a stated group escaped the refusal, including
+    # a Shasta one whose ladder then ignored the group entirely and placed it at Tier A.
+    # `WaterRight` now rejects that combination at construction, so this branch should be
+    # unreachable; it is written defensively anyway, because this project's own rule is
+    # never to rely on a single layer, and because the cost of being wrong here is a
+    # diverter curtailed on a guess.
+    exempt = right.basin is Basin.SCOTT and right.stated_group is not None
+    if right.decree_membership_unknown and not exempt:
         rung = "Group 1" if right.basin is Basin.SCOTT else "Tier A"
         raise PlacementError(
             f"{right.right_id}: cannot place on the {right.basin.value} ladder because "
