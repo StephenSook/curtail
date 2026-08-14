@@ -28,14 +28,12 @@ PLANNED_MARKER = "PLANNED, NOT WIRED."
 #: quietly become a place to hide drift.
 DOCUMENTED_ELSEWHERE = {
     # Read by the Google SDKs themselves, not by this code.
-    "GOOGLE_CLOUD_PROJECT": "read by google-genai and gcloud, not by our modules",
     "GOOGLE_CLOUD_REGION": "deploy-time value for gcloud run deploy",
     "GOOGLE_CLOUD_LOCATION": "read by the ADK and Vertex clients",
     "GOOGLE_GENAI_USE_VERTEXAI": "read by google-genai",
     "GEMINI_API_KEY": "read by google-genai when not using Vertex",
     "MODEL_SENTINEL": "reserved for the Sentinel's model, not yet wired",
     "MODEL_HERALD": "reserved for the Herald's model, not yet wired",
-    "MODEL_NORMALIZER": "reserved for the Gemma normalizer, not yet wired",
     "MODEL_EMBEDDING": "reserved for semantic search, not yet wired",
     "AGENT_REGISTRY_ENDPOINT": "governance wiring, blank runs the documented Plan B2",
     "AGENT_GATEWAY_ENDPOINT": "governance wiring, blank runs the documented Plan B2",
@@ -150,3 +148,23 @@ class TestTheTemplateAndTheCodeAgree:
                 )
                 return
         pytest.fail("CURTAIL_SIGNING_KEY is not in .env.example")
+
+
+def test_no_exemption_outlives_the_gap_it_excused() -> None:
+    """An allowlist entry for a variable the code now READS is a stale exemption.
+
+    The guard's failing direction only asked whether an unread variable was excused. It
+    never asked whether an excuse was still true, so `MODEL_NORMALIZER` sat here reading
+    "reserved for the Gemma normalizer, not yet wired" while the normalizer shipped and
+    read it. A stale exemption is worse than a missing one: it is a written statement,
+    in the test suite, that a capability does not exist, and someone auditing the
+    project's claims would have believed it.
+
+    Same shape as the vacuous guards this project has already found. Checking one
+    direction of a two-directional invariant leaves the other free to drift.
+    """
+    stale = sorted(name for name in DOCUMENTED_ELSEWHERE if name in referenced())
+    assert not stale, (
+        f"{stale} are excused here as unread, and the source reads them. Delete the "
+        "entry: the gap it described has closed."
+    )

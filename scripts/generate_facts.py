@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -305,6 +306,57 @@ def _inference_gap(raw: dict[str, Any]) -> str:
     )
 
 
+def _normalizer_claim() -> str:
+    """Whether Gemma is WIRED, and whether it has actually been run.
+
+    Three parts, all required, mirroring the Model Armor claim above:
+
+    1. the module exists in the shipped source,
+    2. it names an open-weights model rather than a managed endpoint, which is the
+       whole data-sovereignty argument and not a detail,
+    3. a REAL local run has left a record. Without the third this is a capability the
+       repository describes rather than one anybody has exercised, and describing is
+       exactly what this fact sheet exists to stop.
+    """
+    module = REPO / "agents" / "src" / "curtail_agents" / "normalizer.py"
+    record = REPO / "docs" / "NORMALIZER.md"
+
+    if not module.exists():
+        return (
+            "**Gemma is NOT wired.** No normalizer module ships, so no artifact may "
+            "name Gemma as a technology this project uses."
+        )
+
+    source = module.read_text()
+    model = re.search(r'DEFAULT_MODEL = "([^"]+)"', source)
+    verbatim_guard = "_appears_verbatim(" in source
+
+    if not record.exists():
+        return (
+            f"**Gemma ({model.group(1) if model else 'unknown'}) is wired but has not "
+            "been RUN.** `docs/NORMALIZER.md` is absent, so nothing records a real "
+            "extraction. Run `make normalizer` where the local model lives."
+        )
+
+    text = record.read_text()
+    fields = len(re.findall(r"^\| `", text, re.MULTILINE))
+    stamp = re.search(r"Read at: `([^`]+)`", text)
+    rejected = re.search(r"Rejected by the guard: (.+)", text)
+
+    return (
+        f"Gemma **{model.group(1) if model else 'unknown'}** ran locally through Ollama "
+        f"over a published Board order and returned **{fields} fields, each verified "
+        "verbatim against the source text** before being accepted, recorded at "
+        f"{stamp.group(1) if stamp else 'an unrecorded time'}. "
+        f"Guard rejections on that run: {rejected.group(1).strip() if rejected else 'unrecorded'}. "
+        "**No document left the machine**, which is the point: an agency that cannot "
+        "send landowner records to a third-party inference API can host these weights "
+        "itself. The model identifies and files a document; it is not permitted to read "
+        "law out of one, and `priority_cutoff` was removed from its schema for exactly "
+        f"that reason. Values are {'verbatim-checked' if verbatim_guard else 'NOT CHECKED'}."
+    )
+
+
 def _armor_claim() -> str:
     """Whether Model Armor is CALLED, in three parts, all required.
 
@@ -577,6 +629,7 @@ def build() -> str:
     add(f"- {_otel_claim()}")
     add(f"- {_armor_claim()}")
     add(f"- {_registry_claim()}")
+    add(f"- {_normalizer_claim()}")
     add("")
 
     add("## 1. The backtest")
