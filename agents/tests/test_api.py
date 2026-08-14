@@ -8,6 +8,7 @@ the guard at the bottom is what stops the list going false again.
 from __future__ import annotations
 
 import json
+import re
 import tomllib
 from pathlib import Path
 from typing import ClassVar
@@ -16,6 +17,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from curtail_agents.api import app
+from curtail_core.allocation import RightLedgerEntry
+from curtail_core.basins import Basin
+from curtail_core.priority import Placement
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -546,6 +550,51 @@ class TestTheRecommendationEndpoint:
         }
         assert "judgment_inputs" in body
         assert isinstance(body["judgment_inputs"], list)
+
+    def test_the_console_expects_the_wording_the_core_produces(self) -> None:
+        """The console compares the year-only rendering EXACTLY, so it holds a copy.
+
+        Two attempts at a shape-based check were both too loose. `startsWith(year + ' (')`
+        admitted "1977 (approximately)", and adding "contains year only, ends with )"
+        still admitted "1977 (year only, actually a full date)". No pattern detects a
+        self-contradicting qualifier, because contradiction is not a shape, so the guard
+        requires the one string that is correct.
+
+        That buys exactness at the price of the same prose living in two languages. This
+        test is the price being paid: it reads the expected wording out of the shipped
+        page and asserts the Core produces it, so a change to either side fails here
+        rather than in front of a judge. A duplicated constant is safe only while
+        something compares the copies.
+        """
+        page = (REPO / "agents" / "src" / "curtail_agents" / "data" / "console.html").read_text()
+        match = re.search(r"function yearOnlyRendering\(year\) \{\s*return `([^`]+)`;", page)
+        assert match, "the console no longer defines yearOnlyRendering, so nothing is pinned"
+
+        expected = match.group(1).replace("${year}", "1977")
+        assert "1977" in expected, "the extracted template does not interpolate the year"
+
+        entry = RightLedgerEntry(
+            right_id="SG005441",
+            placement=Placement(
+                right_id="SG005441",
+                basin=Basin.SHASTA,
+                rank=1,
+                grouping_label="Tier A",
+                citation="23 CCR 875.5(b)(1)(A)",
+                reason="stated for this test",
+            ),
+            reached_by_extent=True,
+            lcs_protected=False,
+            lcs_id=None,
+            diversion_cfs=None,
+            note="",
+            priority_date=None,
+            priority_year_only=1977,
+        )
+        assert entry.priority_as_stated == expected, (
+            "the console would refuse every year-only line the Core produces: "
+            f"page expects {expected!r}, core produces {entry.priority_as_stated!r}"
+        )
 
     def test_a_year_only_priority_survives_to_the_response(self) -> None:
         """The API used to report `null` for a right whose YEAR the record states.

@@ -559,6 +559,35 @@ class TestTheLedgerCard:
             ),
             pytest.param(
                 {
+                    "priority_date": None,
+                    "priority_year_only": 1977,
+                    "priority_as_stated": "1977 (year only, actually a full date)",
+                },
+                "does not say its year is a year alone",
+                id="a qualifier that contradicts itself",
+            ),
+            pytest.param(
+                {
+                    "priority_date": None,
+                    "priority_year_only": 1977,
+                    "priority_as_stated": (
+                        "1977 (year only, no month or day in the record) and probably July"
+                    ),
+                },
+                "does not say its year is a year alone",
+                id="the correct wording with an assertion appended",
+            ),
+            pytest.param(
+                {
+                    "priority_date": None,
+                    "priority_year_only": 1977,
+                    "priority_as_stated": "1978 (year only, no month or day in the record)",
+                },
+                "does not say its year is a year alone",
+                id="a rendering naming a different year than its own field",
+            ),
+            pytest.param(
+                {
                     "priority_date": "2003-07-30",
                     "priority_year_only": 1977,
                     "priority_as_stated": "2003-07-30",

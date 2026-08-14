@@ -439,6 +439,15 @@
     return value === null || (nonEmptyString(value) && /^\d{4}-\d{2}-\d{2}$/.test(value));
   }
 
+  //: The ONE correct rendering of a priority the record states as a year alone. This
+  //: mirrors `RightLedgerEntry.priority_as_stated` in curtail_core, deliberately, so the
+  //: guard below can compare exactly instead of guessing at an acceptable shape. Keep it
+  //: identical to the Python: a test in the default suite reads this function out of
+  //: this file and asserts the Core produces the same string.
+  function yearOnlyRendering(year) {
+    return `${year} (year only, no month or day in the record)`;
+  }
+
   function whyRecUntrustworthy(body) {
     if (!body || typeof body !== "object") return "the service did not return an object";
     for (const field of REC_REQUIRED) {
@@ -494,16 +503,19 @@
       if (entry.priority_date !== null && entry.priority_as_stated !== entry.priority_date) {
         return `the ledger line for ${entry.right_id} renders a priority its date contradicts`;
       }
-      // The one that matters most: a bare year would read as a date, and silence about
-      // a known year is the denial this guard exists to catch. Checking only that the
-      // string STARTS with the year admitted any parenthetical after it, so
-      // "1977 (approximately)" passed, which asserts a precision the record does not
-      // support. The qualifier has to say the thing that is actually true, that this is
-      // a year with no month or day, so the phrase is required rather than the shape.
-      if (yearOnly !== null
-          && !(entry.priority_as_stated.startsWith(`${yearOnly} (`)
-               && entry.priority_as_stated.includes("year only")
-               && entry.priority_as_stated.endsWith(")"))) {
+      // EXACT, like the other two branches. Two successive attempts to describe the
+      // acceptable shape were both too loose: `startsWith(year + " (")` admitted
+      // "1977 (approximately)", and adding "contains year only, ends with )" still
+      // admitted "1977 (year only, actually a full date)". There is no pattern that
+      // detects a self-contradicting qualifier, because contradiction is not a shape.
+      //
+      // There is exactly ONE correct rendering of a year-only priority, so the guard
+      // requires exactly it. The cost is that this page holds a copy of the server's
+      // wording; `test_the_console_expects_the_wording_the_core_produces` fails if the
+      // two ever diverge, so a wording change breaks a test rather than production. And
+      // when it does diverge the console REFUSES, which is the failure this whole
+      // surface prefers over displaying a priority nobody composed on purpose.
+      if (yearOnly !== null && entry.priority_as_stated !== yearOnlyRendering(yearOnly)) {
         return `the ledger line for ${entry.right_id} does not say its year is a year alone`;
       }
       if (entry.priority_date === null && yearOnly === null
