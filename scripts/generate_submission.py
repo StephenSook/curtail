@@ -100,7 +100,37 @@ def _source() -> str:
     return "\n".join(parts)
 
 
+def _is_shallow() -> bool:
+    result = subprocess.run(
+        ["git", "rev-parse", "--is-shallow-repository"],
+        capture_output=True,
+        text=True,
+        cwd=REPO,
+        check=False,
+    )
+    return result.stdout.strip() == "true"
+
+
 def _first_commit_date() -> str:
+    """The project's start date, which is an ELIGIBILITY field on the form.
+
+    **Refuses on a shallow clone rather than answering.** `actions/checkout` defaults to
+    depth 1, so `git log --reverse` there returns the newest commit, and this function
+    would have reported the date of whatever merge CI was building as the date the
+    project began. That is a wrong answer to the one field that decides whether the
+    entry is eligible at all, produced silently, in the environment nobody watches.
+
+    It is the shape this project has hit before: a check whose precondition holds only
+    on the machine where it was written. Caught by CI going red, which is the good
+    version of finding it.
+    """
+    if _is_shallow():
+        raise SystemExit(
+            "this is a shallow clone, so the first commit cannot be read and the "
+            "project start date would be wrong. Fetch full history "
+            "(actions/checkout with fetch-depth: 0) before generating or checking "
+            "the submission sheet."
+        )
     result = subprocess.run(
         ["git", "log", "--reverse", "--format=%ad", "--date=format:%m-%d-%y"],
         capture_output=True,
