@@ -42,7 +42,18 @@ ORDER_ID = "PROBE-SCOTT-2026-06-10"
 
 
 def main() -> int:
-    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or "curtail-505118"
+    # **No fallback project.** This WRITES to a real Firestore collection. Substituting
+    # a hardcoded project when the operator set none would aim a write at a database
+    # they never chose, and the thing being written is a legal record. Refusing costs a
+    # sentence; guessing costs somebody else's season.
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    if not project:
+        print(
+            "GOOGLE_CLOUD_PROJECT is not set, and this probe WRITES a season to "
+            "Firestore. Refusing to pick a project: set it to the one you mean.",
+            file=sys.stderr,
+        )
+        return 1
 
     try:
         writer = FirestoreSeasonStore(project)

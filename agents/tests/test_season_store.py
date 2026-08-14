@@ -330,3 +330,50 @@ class TestTheDurabilityContractHoldsOnEveryPath:
         shapes = {frozenset(b) for b in branches}
         assert len(shapes) == 1, f"branches answer different questions: {shapes}"
         assert all(set(b) == set(self.REQUIRED) for b in branches)
+
+
+class TestNoScriptPicksAProjectForYou:
+    """A silent default project is an ambient default, and this account has been bitten.
+
+    `make chaos-recording` substituted `curtail-505118` when GOOGLE_CLOUD_PROJECT was
+    unset, which contradicted the target's own contract: a step whose purpose is "set
+    the project before recording" cannot set it for you. The season probe did the same
+    thing while WRITING a legal record to a real Firestore collection.
+
+    On any machine but the author's, both would aim authenticated live requests at a
+    project the operator never chose.
+    """
+
+    REPO_ROOT: ClassVar[Path] = Path(__file__).resolve().parents[2]
+
+    def test_no_shell_or_script_substitutes_a_project_when_none_is_set(self) -> None:
+        """Catches the PATTERN, not the one instance, in the files that can act."""
+        offenders: list[str] = []
+        for relative in ("Makefile", "scripts/probe_season_store.py"):
+            body = (self.REPO_ROOT / relative).read_text()
+            for pattern in (
+                "${GOOGLE_CLOUD_PROJECT:-",
+                '"GOOGLE_CLOUD_PROJECT") or "',
+                "'GOOGLE_CLOUD_PROJECT') or '",
+            ):
+                if pattern in body:
+                    offenders.append(f"{relative}: {pattern}")
+        assert not offenders, (
+            f"{offenders} substitute a project id when the operator set none. Refuse "
+            "instead: a recorded drill must call the project you meant, and a probe "
+            "that writes a legal record must write it to the database you meant."
+        )
+
+    def test_the_probe_refuses_rather_than_guessing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Exercised, not just grepped, because a pattern check alone is a shape test."""
+        import runpy
+        import sys
+
+        monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+        monkeypatch.setattr(sys, "argv", ["probe_season_store.py"])
+        with pytest.raises(SystemExit) as exit_info:
+            runpy.run_path(
+                str(self.REPO_ROOT / "scripts" / "probe_season_store.py"),
+                run_name="__main__",
+            )
+        assert exit_info.value.code == 1
