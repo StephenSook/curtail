@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from curtail_agents.ledger import (
     LedgerEntry,
+    LedgerIntegrityError,
     LoadedLedger,
     append,
     from_state,
@@ -181,7 +182,18 @@ class FirestoreSeasonStore:
 
             transactional = firestore.transactional(_txn)
             state = transactional(self._client.transaction())
-        except SeasonStoreUnavailableError:
+        except (SeasonStoreUnavailableError, LedgerIntegrityError, ValueError):
+            # **A domain refusal is not an outage, and conflating them tells an operator
+            # the database is down when the order is simply already on record.** The
+            # ledger raises LedgerIntegrityError from inside the transaction body when an
+            # order id already exists, which is correct behaviour and the reason a
+            # Firestore retry on contention is safe to run twice. The broad handler below
+            # was catching it and reporting a write failure.
+            #
+            # It also made the two implementations of this protocol DIVERGE: the
+            # in-memory store let the refusal through and the durable one masked it, so
+            # a behaviour every test exercised in memory was different in production.
+            # Found by testing the Firestore path with a fake client.
             raise
         except Exception as exc:
             raise SeasonStoreUnavailableError(
