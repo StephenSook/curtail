@@ -139,6 +139,26 @@
   </section>
 
   <section class="card">
+    <h2>One traversal of the agent fleet</h2>
+    <p class="note">
+      Every other control on this page calls a domain function directly. This one runs
+      the ADK graph itself, Gage Sentinel to Allocation Core to Order Scribe to Herald,
+      and reports which member produced each part. The node names below are read from
+      ADK's own attribution rather than from the order the answers arrived in, because a
+      retried node emits twice and position would then credit the wrong member.
+    </p>
+    <div class="row" style="margin-bottom:14px">
+      <button id="fleet">Run the fleet</button>
+      <span class="note" style="margin:0">
+        Uses the basin, reading and date above. Calls a model, so it takes a moment.
+      </span>
+    </div>
+    <div id="fleetout">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Not run</span></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>Approval queue, signed by a named officer</h2>
     <div class="row" style="margin-bottom:14px">
       <div>
@@ -252,7 +272,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -842,9 +862,147 @@
     await loadQueue();
   }
 
+  // ---- one traversal of the fleet ----------------------------------------------
+  //
+  // The only control on this page that runs the GRAPH rather than a function the graph
+  // wraps. Everything it renders is attributed to the node ADK says produced it.
+  const fleetBox = document.getElementById("fleetout");
+
+  //: What must be present before any of it is drawn. Same refusal discipline as the
+  //: other two cards: a traversal missing its attribution is not a weaker answer, it is
+  //: a different claim, and drawing it would let a partial response read as a fleet run.
+  const FLEET_REQUIRED = ["correlation_id", "nodes", "recipients_are_synthetic", "disclaimer"];
+
+  function whyFleetUntrustworthy(body) {
+    if (!body || typeof body !== "object") return "the service did not return an object";
+    for (const field of FLEET_REQUIRED) {
+      if (!(field in body)) return `the traversal did not report ${field}`;
+    }
+    if (!Array.isArray(body.nodes) || body.nodes.length === 0) {
+      return "the traversal named no nodes, so nothing can be attributed";
+    }
+    for (const entry of body.nodes) {
+      if (!entry || !nonEmptyString(entry.node)) {
+        return "a node emitted output without naming itself";
+      }
+    }
+    // Never draw a synthetic distribution as though it might be real. If the service
+    // stops asserting this, the card refuses rather than quietly dropping the label.
+    if (body.recipients_are_synthetic !== true) {
+      return "the traversal did not confirm its recipients are synthetic";
+    }
+    return null;
+  }
+
+  function fleetState(glyph, label, detail) {
+    // s-system, not a river hue. These say something about the SYSTEM and must never
+    // read as a statement about the river.
+    fleetBox.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    fleetBox.querySelector(".glyph").textContent = glyph;
+    fleetBox.querySelector(".status span:last-child").textContent = label;
+    fleetBox.querySelector(".refusal").textContent = detail;
+  }
+
+  function fleetLine(glyph, label, detail) {
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.innerHTML =
+      '<div class="status s-system" style="margin:0"><span class="glyph"></span>' +
+      '<span></span></div><p class="note" style="margin:4px 0 0"></p>';
+    wrap.querySelector(".glyph").textContent = glyph;
+    wrap.querySelector(".status span:last-child").textContent = label;
+    wrap.querySelector(".note").textContent = detail;
+    return wrap;
+  }
+
+  async function runFleet() {
+    const mine = ++generation.fleet;
+    const basin = document.getElementById("basin").value;
+    const cfs = document.getElementById("cfs").value;
+    const at = document.getElementById("at").value;
+    fleetBox.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span>' +
+      '<span>Running the graph, which calls a model and distributes the result</span></div>';
+
+    let body;
+    try {
+      body = await ask(
+        `/api/fleet/${basin}?cfs=${encodeURIComponent(cfs)}&at=${encodeURIComponent(at)}T12:00:00%2B00:00`,
+        { method: "POST" });
+    } catch (error) {
+      if (mine !== generation.fleet) return;
+      fleetState("⊘", "Refused", String(error.message || error));
+      stamp(fleetBox, mine);
+      return;
+    }
+    if (mine !== generation.fleet) return;
+
+    const wrong = whyFleetUntrustworthy(body);
+    if (wrong) {
+      fleetState("⚠", "Unavailable", `This traversal is not shown because ${wrong}.`);
+      stamp(fleetBox, mine);
+      return;
+    }
+
+    fleetBox.innerHTML = "";
+    const table = document.createElement("table");
+    table.innerHTML =
+      "<thead><tr><th>Member</th><th>Produced</th><th>Error</th></tr></thead><tbody></tbody>";
+    const rows = table.querySelector("tbody");
+    for (const entry of body.nodes) {
+      const row = document.createElement("tr");
+      row.append(text(entry.node));
+      row.append(text(Array.isArray(entry.produced) && entry.produced.length
+        ? entry.produced.join(", ") : "nothing"));
+      row.append(text(nonEmptyString(entry.error) ? entry.error : "none"));
+      rows.append(row);
+    }
+    fleetBox.append(table);
+
+    const draft = body.draft;
+    if (draft && nonEmptyString(draft.verdict)) {
+      // Glyph plus label plus reason, never colour alone, and the reason is the guard's
+      // own words rather than a restatement.
+      const glyph = draft.verdict === "pass" ? "✓" : "◐";
+      fleetBox.append(fleetLine(glyph, `Draft ${draft.verdict}`,
+        `${draft.guard_reason} Attempts: ${draft.attempts}. ` +
+        `${draft.may_reach_pdf ? "May reach the PDF generator." :
+          "Held back from the PDF generator and escalated to the queue."}`));
+    } else if (nonEmptyString(body.draft_unavailable)) {
+      fleetBox.append(fleetLine("⚠", "No draft", body.draft_unavailable));
+    }
+
+    const delivery = body.delivery;
+    if (delivery && nonEmptyString(delivery.lane)) {
+      // The whole point of the two lanes. A delivery on the notification lane can be
+      // entirely successful and is never service, so the word is gated on its own field
+      // rather than inferred from a records list that looks green.
+      fleetBox.append(fleetLine(
+        delivery.may_report_as_served ? "✓" : "◐",
+        delivery.may_report_as_served
+          ? `Reportable as served, ${delivery.lane.replace("_", " ")} lane`
+          : `NOT reportable as served, ${delivery.lane.replace("_", " ")} lane`,
+        `${delivery.lane_note} ` +
+        (delivery.escalations.length ? delivery.escalations.join(" ") : "")));
+    } else if (nonEmptyString(body.delivery_unavailable)) {
+      fleetBox.append(fleetLine("⚠", "No distribution", body.delivery_unavailable));
+    }
+
+    const note = document.createElement("p");
+    note.className = "note";
+    note.textContent =
+      `${body.disclaimer} Recipients are synthetic. ${body.persistence}. ` +
+      `Correlation id ${body.correlation_id}.`;
+    fleetBox.append(note);
+    stamp(fleetBox, mine);
+  }
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
+  document.getElementById("fleet").addEventListener("click", runFleet);
   run();
   loadQueue();
 </script>

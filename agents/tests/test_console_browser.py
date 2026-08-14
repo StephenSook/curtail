@@ -1079,3 +1079,150 @@ class TestTheApprovalQueueCard:
         page.goto(console_url)
         _settle_after(page, "#queue", "")
         assert "not durable" in page.locator("#queue").inner_text()
+
+
+def _sound_traversal() -> dict[str, Any]:
+    """One full traversal that passes every check, so a test can break exactly one thing.
+
+    The reading is 45.3 cfs, which Addendum 6 actually records, against the 50 cfs June
+    minimum. **The obvious candidate was 39.3, and it is retired**: it propagated out of
+    a research haul into the constitution and four artifacts, and reading the primary
+    document showed it appears nowhere in it. The constitution still carries it, so the
+    citation guard, not the constitution, is what a fixture should be checked against.
+
+    The distribution below mirrors the shape the deployed service returns: the party
+    served by certified mail counts, the diverter reached by email does not, so the
+    result is NOT reportable as service.
+    """
+    return {
+        "correlation_id": "fleet-shasta-2026-06-16T12:00:00+00:00",
+        "basin": "shasta",
+        "observed_cfs": 45.3,
+        "observed_at": "2026-06-16T12:00:00+00:00",
+        "nodes": [
+            {"node": "gage_sentinel", "error": "", "produced": ["direction", "event"]},
+            {"node": "allocation_core", "error": "", "produced": ["recommendation"]},
+            {"node": "order_scribe", "error": "", "produced": ["draft"]},
+            {"node": "herald", "error": "", "produced": ["artifact_action", "delivery"]},
+        ],
+        "classification": {
+            "event_type": "flow_below_minimum",
+            "observed_cfs": 45.3,
+            "minimum_cfs": 50.0,
+            "direction": "restrict",
+        },
+        "recommendation": {
+            "action": "consider_curtailment",
+            "determination_belongs_to": "deputy_director",
+            "recommended_extent_rank": 2,
+            "rights_considered": 71,
+            "rights_reached": 71,
+            "judgment_inputs": [],
+        },
+        "recommendation_unavailable": None,
+        "draft": {
+            "verdict": "pass",
+            "guard_reason": "draft matches the computed ledger",
+            "attempts": 1,
+            "model": "gemini-3.5-flash",
+            "may_reach_pdf": True,
+            "text": "DRAFT CURTAILMENT ORDER",
+        },
+        "draft_unavailable": None,
+        "artifact_action": "impose",
+        "delivery": {
+            "lane": "legal_service",
+            "may_report_as_served": False,
+            "synthetic": True,
+            "legally_served": ["SYNTHETIC-party-1"],
+            "escalations": [
+                "SYNTHETIC-diverter-1 was reached over email but that did not effect "
+                "service under Water Code 1121: the channel is not a permitted method"
+            ],
+            "attempts": [],
+            "skipped_as_duplicate": [],
+            "possible_duplicate_service": [],
+            "records": [],
+            "lane_note": "Water Code 1121 permits four methods and an email is none of them.",
+        },
+        "delivery_unavailable": None,
+        "recipients_are_synthetic": True,
+        "persistence": "in-process and per-request",
+        "disclaimer": "A recommendation and a draft.",
+    }
+
+
+class TestTheFleetCardNeverDrawsATraversalItCannotTrust:
+    """The only control that runs the GRAPH rather than a function the graph wraps.
+
+    It carries the same refusal discipline as the other two cards, and one obligation
+    they do not have: it must never draw a synthetic distribution as though it might be
+    real, and it must never let a successful notification read as legal service.
+    """
+
+    def _run(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.get_by_role("button", name="Run the fleet").click()
+        _settle_after(page, "#fleetout", "")
+
+    def test_a_traversal_is_attributed_to_each_member_by_name(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Attribution is the product. A payload carrying only the final answer is
+        indistinguishable from one function computing it."""
+        page.route("**/api/fleet/**", _fulfil(_sound_traversal()))
+        self._run(page, console_url)
+        shown = page.locator("#fleetout").inner_text()
+        for member in ("gage_sentinel", "allocation_core", "order_scribe", "herald"):
+            assert member in shown, f"{member} produced output and the card does not name it"
+
+    def test_a_delivery_that_is_not_service_is_never_labelled_served(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The sharpest claim this project makes. A notification-lane delivery can be
+        entirely successful and is never service, so the word is gated on its own field
+        rather than inferred from a records list that looks green."""
+        page.route("**/api/fleet/**", _fulfil(_sound_traversal()))
+        self._run(page, console_url)
+        shown = page.locator("#fleetout").inner_text()
+        assert "NOT reportable as served".upper() in shown.upper()
+        assert "Water Code 1121" in shown, "the card does not say why it is not service"
+
+    def test_a_refused_traversal_says_why_rather_than_waiting(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The calm-grey defect. A refusal left on the waiting label reads as calm."""
+        page.route(
+            "**/api/fleet/**",
+            _fulfil({"detail": "the Scribe is unavailable: the model refused"}, status=503),
+        )
+        self._run(page, console_url)
+        assert "REFUSED" in page.locator("#fleetout .status").inner_text().upper()
+        assert "the model refused" in page.locator("#fleetout .refusal").inner_text()
+
+    def test_a_traversal_that_names_no_nodes_is_not_drawn(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Attribution missing is a DIFFERENT claim, not a weaker one. Drawing it would
+        let a partial response read as a fleet run."""
+        body = _sound_traversal()
+        body["nodes"] = []
+        page.route("**/api/fleet/**", _fulfil(body))
+        self._run(page, console_url)
+        text_shown = page.locator("#fleetout").inner_text().upper()
+        assert "UNAVAILABLE" in text_shown
+        assert "gage_sentinel".upper() not in text_shown
+
+    def test_a_distribution_not_confirmed_synthetic_is_not_drawn(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Rule 4 permits synthetic notification contacts only and requires that they be
+        visibly labelled. If the service stops asserting it, the card refuses rather than
+        quietly dropping the label, which is the shape that lets a demo imply real
+        recipients."""
+        body = _sound_traversal()
+        body["recipients_are_synthetic"] = False
+        page.route("**/api/fleet/**", _fulfil(body))
+        self._run(page, console_url)
+        assert "UNAVAILABLE" in page.locator("#fleetout .status").inner_text().upper()
+        assert "synthetic" in page.locator("#fleetout .refusal").inner_text()
