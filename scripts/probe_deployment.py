@@ -31,8 +31,9 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "docs" / "DEPLOYMENT.md"
@@ -59,6 +60,10 @@ TIMEOUT_SECONDS = 30
 #: which the governance ADR requires: Registry, Gateway and app co-located.
 REGISTRY_PROJECT = "curtail-505118"
 REGISTRY_LOCATION = "us-central1"
+
+#: How far back the trace probe looks. Long enough that an ordinary session has run a
+#: traversal, short enough that a stale trace is not read as current evidence.
+TRACE_WINDOW_HOURS = 6
 
 #: Labels other artifacts read the stamp back by. Named constants because a test asserts
 #: the stamp survives, and a guard keyed on a phrase that a later edit rewords is a guard
@@ -171,6 +176,69 @@ def _registered_agents() -> tuple[list[dict[str, str]], str | None]:
             }
         )
     return sorted(found, key=lambda a: a["displayName"]), None
+
+
+def _recent_trace() -> tuple[list[str], str | None]:
+    """Span names from the most recent fleet traversal in Cloud Trace.
+
+    **The fact sheet's telemetry claim is computed from SOURCE, and source cannot see
+    whether a span ever landed.** Exactly the repo-versus-production gap this file
+    exists for, one layer over: the exporter can be imported, installed and reached,
+    and still export into a project that drops it.
+
+    **The pagination quirk here cost a real diagnosis, so it is handled explicitly.**
+    Cloud Trace v1 `traces.list` returns an EMPTY FIRST PAGE carrying a
+    `nextPageToken`. A single-page query therefore reports zero traces for a project
+    that has them, which is what happened: `export()` was returning
+    `SpanExportResult.SUCCESS` while the check said nothing had arrived, and the
+    verifier was the broken thing rather than the exporter. Follow the tokens.
+    """
+    try:
+        token = subprocess.run(
+            ["gcloud", "auth", "print-access-token"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as exc:
+        return [], f"no gcloud access token ({type(exc).__name__})"
+
+    now = datetime.now(UTC)
+    start = (now - timedelta(hours=TRACE_WINDOW_HOURS)).isoformat().replace("+00:00", "Z")
+    end = (now + timedelta(minutes=5)).isoformat().replace("+00:00", "Z")
+    base = (
+        f"https://cloudtrace.googleapis.com/v1/projects/{REGISTRY_PROJECT}/traces"
+        f"?startTime={start}&endTime={end}&view=COMPLETE&pageSize=100"
+    )
+
+    traces: list[dict[str, Any]] = []
+    page_token = ""
+    for _ in range(12):
+        request = urllib.request.Request(f"{base}&pageToken={page_token}")
+        request.add_header("Authorization", f"Bearer {token}")
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+                payload = json.load(response)
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            return [], f"Cloud Trace could not be read: {exc}"
+        traces.extend(payload.get("traces") or [])
+        page_token = payload.get("nextPageToken") or ""
+        if not page_token:
+            break
+
+    fleet = [
+        t
+        for t in traces
+        if any(s.get("name") == "curtail.fleet_request" for s in (t.get("spans") or []))
+    ]
+    if not fleet:
+        return [], (
+            f"no fleet traversal was traced in the last {TRACE_WINDOW_HOURS} hours. "
+            "This is not evidence that telemetry is broken: nobody may have run one."
+        )
+    newest = max(fleet, key=lambda t: min(s.get("startTime", "") for s in t["spans"]))
+    return [str(s.get("name")) for s in newest["spans"]], None
 
 
 def _served_routes() -> tuple[list[str], str | None]:
@@ -292,6 +360,25 @@ def build() -> str:
         add("constraint is correct: an address identifies an agent. Herald has no direct")
         add("route because `deliver_order` has no HTTP call site; it is reached only as")
         add("the final node of a full traversal, and its card says exactly that.")
+
+    add("")
+    add("## The most recent traversal in Cloud Trace")
+    add("")
+    spans, no_trace = _recent_trace()
+    if no_trace is not None:
+        add(no_trace)
+        add("")
+        add("Recorded as unknown rather than as a failure. The fact sheet's telemetry")
+        add("claim is computed from source, and source cannot see whether a span landed;")
+        add("this section is the other half of that question and it can only answer when")
+        add("somebody has actually driven the fleet.")
+    else:
+        for name in spans:
+            add(f"- `{name}`")
+        add("")
+        add(f"{len(spans)} spans. ADK opens `invoke_node` per fleet member and")
+        add("`invoke_workflow` around the traversal; the root `curtail.fleet_request`")
+        add("span carries the correlation id, so a trace and a log line join on one key.")
     return "\n".join(lines) + "\n"
 
 
@@ -323,10 +410,27 @@ def main() -> int:
     return 0
 
 
+#: Where the compared region ends. Everything from here down is VOLATILE by design.
+TRACE_SECTION = "## The most recent traversal in Cloud Trace"
+
+
 def _capability_block(text: str) -> str:
+    """The part of the record that must not drift, which is not all of it.
+
+    Capabilities and the registry catalog are stable facts about a deployment, so a
+    change there is real drift and `--check` should fail. **The trace section names the
+    MOST RECENT traversal, so it changes every time anybody runs one.** Comparing it
+    would make the check fail for the system working normally, and a gate that fails on
+    correct behaviour is a gate people learn to override, which is how a real drift
+    later goes unnoticed.
+
+    So the comparison starts at the capabilities marker and stops at the trace section.
+    Freshness for the volatile part is the timestamp in the header, not this check.
+    """
     marker = "## Capabilities the repository may claim"
     _, _, tail = text.partition(marker)
-    return tail.strip()
+    stable, _, _ = tail.partition(TRACE_SECTION)
+    return stable.strip()
 
 
 if __name__ == "__main__":
