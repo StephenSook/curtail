@@ -22,7 +22,8 @@
     },
     "by_status": {
       "Curtailed": 384
-    }
+    },
+    "rights_sha256": "9ec9b6e46ba123c9879645a615ae367eda07fdfc6fb00fcb7eb55b03bea66835"
   },
   "rights": [
     {

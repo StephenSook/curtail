@@ -59,6 +59,47 @@ class TestTheRecordReconcilesWithItsSource:
         assert source["basin"] == "scott"
 
 
+class TestTheRecordCannotBeEditedByHandWithoutCINoticing:
+    """The guard CI can actually run, because it needs no PDF.
+
+    **Every other assertion here reads numbers the record reports about itself**, which
+    is a total derived from its own parts and therefore cannot fail. That was
+    demonstrated rather than theorised: hand-editing the record to move one right from
+    group 8 to group 1, and adjusting the two counts to match, passed the entire suite.
+    That single move is the difference between curtailed first and curtailed last.
+
+    The corpus is gitignored, so `make scott-rights-check` only runs where somebody has
+    the source PDF, which is a human's machine and never a CI runner. This binds the
+    committed counts to the committed rows instead, the same way the backtest quote
+    record is checked in CI without shipping the documents.
+    """
+
+    def test_the_digest_matches_the_rights_it_covers(self, record: dict[str, Any]) -> None:
+        import hashlib
+
+        canonical = json.dumps(record["rights"], sort_keys=True, separators=(",", ":"))
+        recomputed = hashlib.sha256(canonical.encode()).hexdigest()
+        assert recomputed == record["counts"]["rights_sha256"], (
+            "the rights array does not match its committed digest, so this record was "
+            "edited without re-running scripts/extract_scott_attachment_a.py"
+        )
+
+    def test_the_group_counts_sum_to_the_row_count(self, record: dict[str, Any]) -> None:
+        """A partial edit that fixes one count and not the other is the likeliest shape
+        of a hand edit, and it is cheap to refuse."""
+        counts = record["counts"]
+        assert sum(counts["by_group"].values()) == counts["rows_parsed"]
+        assert sum(counts["by_status"].values()) == counts["rows_parsed"]
+
+    def test_the_group_counts_match_the_rights_themselves(self, record: dict[str, Any]) -> None:
+        """Counts and rows are two statements of the same fact, so they are compared
+        rather than trusted separately."""
+        from collections import Counter
+
+        actual = Counter(str(r["curtailment_group"]) for r in record["rights"])
+        assert dict(actual) == record["counts"]["by_group"]
+
+
 class TestNoPersonalDataEntersTheRepository:
     #: The only keys a right may carry. An owner column would arrive as a new key long
     #: before anybody noticed a name in the values, so the shape is asserted first.
