@@ -15,11 +15,15 @@ its transactional read-modify-write is exactly the primitive an append-only ledg
 when two instances sign two orders at the same moment.
 
 **The rule this module exists to obey.** An unavailable store is NOT an empty season.
-If the durable store cannot be reached, callers are told, in words, that the record they
-are looking at is not the record. The in-memory implementation is real and useful for
-tests, and it never substitutes itself silently for the durable one: a season that
-quietly forgets is indistinguishable from a season in which nothing happened, and a
-watermaster reading "no open clocks" would take it as good news.
+A season that quietly forgets is indistinguishable from a season in which nothing
+happened, and a watermaster reading "no open clocks" would take the second as good news.
+
+So there are exactly two ways to get the in-memory store, and both are the operator
+asking for it: Firestore explicitly disabled, or no project configured. A configured
+project whose store is unreachable RAISES. It used to fall back with the reason
+attached, which sounds careful and is not: the container would start, serve for hours,
+and lose every clock it recorded, while the response said `durable: false` in a field
+nobody reads during an incident.
 """
 
 from __future__ import annotations
@@ -189,11 +193,31 @@ class FirestoreSeasonStore:
 
 
 def store_for(project: str | None = None, *, client: Any | None = None) -> SeasonStore:
-    """The store this deployment actually has, and never a silent downgrade.
+    """The store this deployment actually has. **Fails closed rather than degrading.**
 
-    Returns the in-memory store only when there is no project to talk to or Firestore
-    is explicitly disabled, and in both cases the returned store SAYS why in
-    `describe()`, so a response built from it cannot imply durability it does not have.
+    Two cases return the in-memory store, and both are the operator saying they do not
+    want a durable one: Firestore explicitly disabled, or no project configured at all.
+    Each says which in `describe()`.
+
+    **A configured project whose Firestore cannot be reached RAISES.** An earlier
+    version caught that and returned the in-memory store with the reason attached, which
+    reads reasonable and is the exact failure this module was written against. An
+    operator who set `GOOGLE_CLOUD_PROJECT` asked for a durable legal record. Handing
+    them a volatile one because a client failed to build is deciding, on their behalf,
+    that losing the season is preferable to an error, and it is invisible at the moment
+    it matters: the container starts, serves for hours, and every statutory clock it
+    records dies with it.
+
+    A review caught it by noticing this function's own docstring promised "never a
+    silent downgrade" three lines above the downgrade. **A comment claiming a property
+    is not that property**, which is a lesson this project keeps relearning at a
+    different layer each time.
+
+    Raises:
+        SeasonStoreUnavailableError: a project is configured and its store is not
+            reachable. Callers decide what to do; `api.py` answers 503 on the season
+            endpoint and reports the gap on the signing path, rather than serving a
+            season that looks empty because it is lost.
     """
     if os.environ.get(DISABLE_ENV):
         return InMemorySeasonStore(f"{DISABLE_ENV} is set")
@@ -202,10 +226,7 @@ def store_for(project: str | None = None, *, client: Any | None = None) -> Seaso
         return InMemorySeasonStore(f"{PROJECT_ENV} is not set")
     if client is not None:
         return FirestoreSeasonStore(resolved, client=client)
-    try:
-        return FirestoreSeasonStore(resolved)
-    except SeasonStoreUnavailableError as exc:
-        return InMemorySeasonStore(f"Firestore was unreachable ({exc})")
+    return FirestoreSeasonStore(resolved)
 
 
 def season_payload(store: SeasonStore, basin: Basin, *, now: Any = None) -> dict[str, Any]:

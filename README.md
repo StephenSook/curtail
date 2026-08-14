@@ -178,6 +178,13 @@ object that just wrote is satisfied by a dictionary. An unreachable store answer
 rather than an empty season, and every response carries `durable` and names its store,
 because an empty season and a lost season look identical and mean opposite things.
 
+**It fails closed.** A deployment with a project configured and an unreachable Firestore
+raises rather than substituting the in-process store: an operator who asked for a durable
+legal record is not quietly given a volatile one. The store is built lazily so that a
+transient failure degrades the request rather than attaching the container to it, and
+`test_the_durability_claim_is_backed_by_failing_closed` asserts that behaviour rather
+than asserting a file exists.
+
 **The approval boundary.** Nothing self-executes. An approval binds to the digest of
 the exact draft reviewed, the officer identity comes from an HMAC-verified token
 rather than a caller-supplied string, the clock is read at the point of decision so
