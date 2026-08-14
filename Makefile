@@ -126,6 +126,11 @@ season: ## Prove the Season Ledger survives the process, with a SECOND Firestore
 
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
+# **Set GOOGLE_CLOUD_PROJECT before recording.** Without it the poisoned-document
+# scenario cannot reach Model Armor, reports PARTIAL, and loses the strongest evidence
+# it produces: that the vendor filter matches the bare payload and MISSES the same
+# payload embedded in an order, while layer 1 catches both. The drill says so and
+# refuses to call that run complete, but a recording is made once.
 # Bare, like every other target. This one especially: the drill's whole value is that
 # it can go RED, so a pipe swallowing its exit code would turn the demonstration into
 # the exact theatre it exists to disprove.
