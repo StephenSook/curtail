@@ -186,6 +186,25 @@ class WaterRight:
     #: unknown and forces a PlacementError rather than a guess.
     is_surplus_class: bool | None = None
     is_post_1914: bool | None = None
+    #: TRUE when ingestion could not determine decree membership at all.
+    #:
+    #: **`adjudication=None` is a CLAIM, and this flag is the absence of one.** The field
+    #: above documents None as "not in any of the four decrees", which for the Scott
+    #: means post-Adjudication and therefore Group 1, the rung curtailed FIRST. That
+    #: contract is correct and callers rely on it: the ladder's own fixtures write
+    #: `adjudication=None` deliberately to mean a genuinely post-adjudication right.
+    #:
+    #: The hole it leaves is that an ingestion path which FAILED to determine membership
+    #: has no way to say so. It must pass the same None, and the ladder then reads a
+    #: confident "outside the decrees" where the honest answer is "we do not know". Same
+    #: shape as `is_surplus_class` and `is_post_1914`, which are tri-state for exactly
+    #: this reason under the comment "Unknown is not False"; decree membership was the
+    #: one that got a two-state field and a derived property.
+    #:
+    #: Additive rather than a semantic change: the default is False, meaning the caller
+    #: is making a claim, so every existing construction keeps its meaning. Set it and
+    #: the ladder REFUSES instead of guessing.
+    decree_membership_unknown: bool = False
     #: The grouping the ISSUING AGENCY assigned, when the source states one.
     #:
     #: **This is not a hint, it is the authority.** 23 CCR 875.5(a)(1)(A) defines the

@@ -140,28 +140,36 @@ def _scott_group(right: WaterRight) -> tuple[ScottGroup, str, str]:
             "grouping stated by the State Water Board in Attachment A, not inferred",
         )
 
+    # Unknown membership refuses BEFORE branch (i) reads it, because that branch treats
+    # "not in a decree" as Group 1 and there is no recovering from a guess afterwards.
+    if right.decree_membership_unknown:
+        raise PlacementError(
+            f"{right.right_id}: cannot place on the Scott ladder because decree "
+            "membership could not be determined. Branch (i) reads absence as "
+            "post-Adjudication and places the right in Group 1, which is curtailed "
+            "FIRST, so treating an unknown as a confident 'outside the decrees' can shut "
+            "off a diverter the ladder never actually reached. This right must reach a "
+            "human."
+        )
+
     # (i) post-Adjudication appropriative
     #
-    # **A KNOWN AMBIGUITY, recorded rather than silently fixed under a freeze.**
-    # `is_in_decree` is derived from `adjudication is not None`, which defaults to None,
-    # so a right whose record simply does not state an adjudication is indistinguishable
-    # here from one known to sit outside all three decrees. Both land in group 1, the
-    # rung curtailed FIRST. Two branches below, this module refuses on exactly that
-    # reasoning for `is_surplus_class` and `is_post_1914` under the comment "Unknown is
-    # not False"; this flag was missed.
+    # **`adjudication=None` here is a CLAIM that the right sits outside all four decrees**,
+    # which for the Scott means post-Adjudication and Group 1. That is the field's
+    # documented contract and callers rely on it deliberately.
     #
-    # Measured on the Board's own Attachment A rather than argued: placing its 384 Scott
-    # rights from a bare appropriative class agrees with the Board on 8. Inference puts
-    # all 384 in group 1; the Board puts 258 in group 8, curtailed nearly last.
+    # What used to be missing was any way for an ingestion path to say it could not
+    # determine membership: it had to pass the same None, and this branch read that as a
+    # confident "outside the decrees". `decree_membership_unknown` closes it above, and
+    # the refusal is placed BEFORE this branch because there is no recovering from a
+    # guess afterwards.
     #
-    # Refusing here is the correct end state and it is NOT done now: it changes the
-    # semantics of the most safety-critical module in the project days before a
-    # submission freeze, and nineteen tests encode the current reading as intended for a
-    # right genuinely outside the decrees. What removes the risk without the churn is
-    # upstream: real Scott rights are loaded with `stated_group` set from the Board's
-    # column, so production data never reaches this inference at all, and a test asserts
-    # that the loader always sets it. Expressing "known outside the decrees" separately
-    # from "not stated" is the real fix and belongs after the deadline.
+    # Why it matters in numbers rather than in principle: placing the Board's own 384
+    # Scott rights from attributes alone lands every one of them here, in Group 1, while
+    # the attachment puts 258 in Group 8. Group 1 is curtailed first and Group 8 nearly
+    # last, so a wrong read of this branch is the difference between a ranch irrigating
+    # and a ranch shutting off. Real Scott rights avoid it entirely by carrying the
+    # Board's stated group.
     if not right.is_in_decree and right.right_class is RightClass.APPROPRIATIVE:
         return (
             ScottGroup.POST_ADJUDICATION_APPROPRIATIVE,

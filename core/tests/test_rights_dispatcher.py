@@ -86,3 +86,67 @@ class TestItRefusesRatherThanReturningNothing:
         with pytest.raises(RightsRecordUnavailableError) as caught:
             load_scott_rights(target)
         assert "outside the nine groupings" in str(caught.value)
+
+
+class TestUnknownDecreeMembershipRefuses:
+    """The hole that `adjudication=None` could not express.
+
+    `adjudication=None` is a CLAIM that a right sits outside all four decrees, which for
+    the Scott means Group 1: the rung curtailed FIRST. That contract is deliberate and
+    the ladder's own fixtures rely on it.
+
+    An ingestion path that simply FAILED to determine membership had no way to say so. It
+    passed the same None, and the ladder read a confident "outside the decrees" where the
+    honest answer was "we do not know". Two sibling flags are tri-state for exactly this
+    reason under the comment "Unknown is not False"; this one was two-state.
+
+    Latent rather than live: the only Scott ingestion path carries the Board's stated
+    group, so nothing in production reaches the inference. This closes it for the next
+    path rather than fixing a bug that was firing.
+    """
+
+    def test_a_right_with_unknown_membership_is_refused_not_placed_in_group_one(
+        self,
+    ) -> None:
+        from curtail_core.adjudications import RightClass, WaterRight
+        from curtail_core.priority import PlacementError, place
+
+        unknown = WaterRight(
+            right_id="A000001",
+            basin=Basin.SCOTT,
+            right_class=RightClass.APPROPRIATIVE,
+            decree_membership_unknown=True,
+        )
+        with pytest.raises(PlacementError) as caught:
+            place(unknown)
+        message = str(caught.value)
+        assert "could not be determined" in message
+        assert "Group 1" in message, "the refusal does not say what the guess would cost"
+
+    def test_a_stated_claim_of_no_decree_still_places(self) -> None:
+        """The other direction, and it is why this had to be additive. A caller that
+        genuinely knows a right is post-adjudication says so with `adjudication=None`,
+        and that must keep working or the ladder loses its most common Scott case."""
+        from curtail_core.adjudications import RightClass, WaterRight
+        from curtail_core.priority import place
+
+        known = WaterRight(
+            right_id="A000002",
+            basin=Basin.SCOTT,
+            right_class=RightClass.APPROPRIATIVE,
+        )
+        assert place(known).rank == 1
+
+    def test_a_stated_group_outranks_the_unknown_flag(self) -> None:
+        """Where the Board states the grouping there is nothing left to be unknown about,
+        so the stated column is read and the refusal never fires."""
+        from curtail_core.adjudications import WaterRight
+        from curtail_core.priority import place
+
+        stated = WaterRight(
+            right_id="A000003",
+            basin=Basin.SCOTT,
+            decree_membership_unknown=True,
+            stated_group=8,
+        )
+        assert place(stated).rank == 8
