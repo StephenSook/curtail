@@ -127,6 +127,12 @@ def _sound_recommendation() -> dict[str, Any]:
             {
                 "right_id": "A031522",
                 "priority_date": "2003-07-30",
+                # A priority has three states, so the line carries the raw year field
+                # and the composed rendering the table shows. The fixture has to hold
+                # the real shape or every test mocking it would be asserting against a
+                # response the service does not produce.
+                "priority_year_only": None,
+                "priority_as_stated": "2003-07-30",
                 "grouping": "Tier A",
                 "citation": "23 CCR 875.5(b)(1)(A)",
                 "would_be_curtailed": True,
@@ -457,6 +463,64 @@ class TestTheLedgerCard:
         assert rows.count() > 50, f"only {rows.count()} ledger rows rendered"
         first = rows.first.inner_text()
         assert "23 CCR 875.5" in first, f"a ledger row carries no authority: {first!r}"
+
+    def test_a_year_only_priority_reaches_the_screen_as_a_year(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Against the REAL service, because this defect only exists where it renders.
+
+        The table read `entry.priority_date`, and `text()` turns a null into the words
+        "not stated". So `SG005441`, whose 1977 is precisely what puts it after the 1932
+        Shasta decree and therefore in Tier A, was displayed as a right with no priority
+        at all. Not blank: the console actively printed the denial. The Scribe and the
+        API were both taught the distinction before this surface was.
+        """
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+        before = _render_id(page, "#rec")
+        page.select_option("#basin", "shasta")
+        page.fill("#cfs", "46.5")
+        page.fill("#at", "2026-06-15")
+        page.click("#go")
+        _settle_after(page, "#rec", before)
+
+        row = page.locator("#rec tbody tr", has_text="SG005441")
+        assert row.count() == 1, "the year-only right is not on screen at all"
+        rendered = row.first.inner_text()
+        assert "1977" in rendered, f"the year the placement rests on is missing: {rendered!r}"
+        assert "year only" in rendered, (
+            f"a bare 1977 in a priority column reads as a date: {rendered!r}"
+        )
+        assert "not stated" not in rendered, (
+            f"the console denies knowing a year it was given: {rendered!r}"
+        )
+        assert "Tier A" in rendered
+
+    def test_a_year_only_line_rendered_as_nothing_is_refused(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The guard has to catch the original defect, not just the fixed code.
+
+        A server that states a year and renders it as "not stated" is contradicting
+        itself, and that is the exact payload the console used to produce. Refusing is
+        the only safe answer: a priority column reading "not stated" beside a curtailed
+        right is a plausible wrong answer, not a visible gap.
+        """
+        line = _sound_recommendation()["ledger"][0] | {
+            "priority_date": None,
+            "priority_year_only": 1977,
+            "priority_as_stated": "not stated",
+        }
+        page.route(
+            "**/api/recommendation/**", _fulfil(_sound_recommendation() | {"ledger": [line]})
+        )
+        page.goto(console_url)
+        _settle_after(page, "#rec", "")
+
+        assert "UNAVAILABLE" in page.locator("#rec .status").inner_text().upper()
+        assert "does not say its year is a year alone" in (
+            page.locator("#rec .refusal").inner_text()
+        )
 
     def test_it_names_the_provenance_of_both_inputs(self, page: Page, console_url: str) -> None:
         """Showing where the rights came from and not where the reading came from
