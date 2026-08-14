@@ -45,7 +45,7 @@ returns its input unchanged.
 - No Pub/Sub broker, and no delivery vendor: the transport is explicitly
   synthetic and every report says so.
 - No OpenTelemetry export: `opentelemetry` appears in the lockfile as a transitive dependency of `google-adk` and is imported by nothing in `agents/src`.
-- 4 Curtail agents are registered and discoverable in Agent Registry, as recorded in `docs/DEPLOYMENT.md` by `scripts/probe_deployment.py`. This file computes from repository source, which cannot see a registry, so the figure is cited rather than derived here.
+- 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-14T04:40:28+00:00 against revision curtail-console-api-00026-zhj. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
 
 ## 1. The backtest
 

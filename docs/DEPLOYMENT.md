@@ -8,7 +8,15 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `e3587780f7ea68ff9a8c837cb515d03038d05c64`
+- Probed at repository commit: `7cb55f462bf2b7baad949c191e2d49b95c66933b`
+- Probed at: `2026-08-14T04:40:28+00:00`
+- Serving revision at probe time: `curtail-console-api-00026-zhj`
+
+**This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
+its own, and CI deliberately never queries the network, so this record describes
+the moment above and not necessarily the moment you are reading it. Run
+`make deployed-check` to re-probe and fail on drift; that is the freshness
+mechanism, and it must be run before recording the demo or submitting.
 
 ## Routes the live service advertises
 

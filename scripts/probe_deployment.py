@@ -31,6 +31,7 @@ import subprocess
 import sys
 import urllib.error
 import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -58,6 +59,54 @@ TIMEOUT_SECONDS = 30
 #: which the governance ADR requires: Registry, Gateway and app co-located.
 REGISTRY_PROJECT = "curtail-505118"
 REGISTRY_LOCATION = "us-central1"
+
+#: Labels other artifacts read the stamp back by. Named constants because a test asserts
+#: the stamp survives, and a guard keyed on a phrase that a later edit rewords is a guard
+#: that quietly stops guarding.
+STAMP_LABEL = "Probed at:"
+REVISION_LABEL = "Serving revision at probe time:"
+
+
+def _now() -> str:
+    """Probe time, UTC, to the second.
+
+    Deliberately in the HEADER rather than in the capability or registry sections: those
+    are compared byte for byte by `--check`, and a timestamp inside them would make every
+    check fail on the clock alone, which is how a gate teaches people to override it.
+    """
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def _serving_revision() -> str:
+    """Which Cloud Run revision was serving when this was probed.
+
+    **The commit alone does not identify what was probed.** A repository commit says when
+    the record was WRITTEN; the revision says what ANSWERED. They come apart routinely,
+    because nothing here deploys on merge, and the whole reason this file exists is that
+    the repo and production drift.
+    """
+    try:
+        out = subprocess.run(
+            [
+                "gcloud",
+                "run",
+                "services",
+                "describe",
+                "curtail-console-api",
+                "--region",
+                REGISTRY_LOCATION,
+                "--project",
+                REGISTRY_PROJECT,
+                "--format=value(status.traffic[0].revisionName)",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=120,
+        ).stdout.strip()
+        return out or "unknown"
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        return "unknown"
 
 
 def _head_sha() -> str:
@@ -166,6 +215,14 @@ def build() -> str:
     add("")
     add(f"- Service: {SERVICE_URL}")
     add(f"- Probed at repository commit: `{sha}`")
+    add(f"- {STAMP_LABEL} `{_now()}`")
+    add(f"- {REVISION_LABEL} `{_serving_revision()}`")
+    add("")
+    add("**This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on")
+    add("its own, and CI deliberately never queries the network, so this record describes")
+    add("the moment above and not necessarily the moment you are reading it. Run")
+    add("`make deployed-check` to re-probe and fail on drift; that is the freshness")
+    add("mechanism, and it must be run before recording the demo or submitting.")
     add("")
 
     if unreachable is not None:
