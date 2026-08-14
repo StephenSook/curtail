@@ -139,6 +139,11 @@ class TestTheDependencyManifestStaysHonest:
         # imports on the next line over. A name-mangling rule is a heuristic, and a
         # heuristic inside a correctness guard needs an explicit escape hatch.
         "google-cloud-pubsub": "google.pubsub_v1",
+        # Distribution `opentelemetry-exporter-gcp-trace`, module
+        # `opentelemetry.exporter.cloud_trace`. Neither the hyphen rule nor the
+        # distribution name reaches it: the distribution says `gcp` and the module says
+        # `cloud`. Same class of mismatch as the pubsub entry above, and the same fix.
+        "opentelemetry-exporter-gcp-trace": "opentelemetry.exporter.cloud_trace",
     }
 
     #: Declared but never imported BY US, each with the reason it is still required.
