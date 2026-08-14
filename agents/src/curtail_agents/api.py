@@ -22,6 +22,7 @@ nothing about any water right, any order, or any officer.
 
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from math import isfinite
 from pathlib import Path
@@ -110,6 +111,9 @@ log = structlog.get_logger("curtail.api")
 #: stays as a development fallback rather than as the primary.
 CONSOLE = Path(__file__).resolve().parent / "data" / "console.html"
 
+#: Set at deploy time to the commit being shipped. Read by /api/version.
+REVISION_ENV = "CURTAIL_REVISION"
+
 #: The Season Ledger's store, built LAZILY and cached on first success.
 #:
 #: **Not at import, and the difference is a whole class of outage.** `store_for` now
@@ -196,6 +200,41 @@ def healthz() -> dict[str, str]:
     exception precisely because it returns none.
     """
     return {"status": "ok"}
+
+
+@app.get("/api/version")
+def version() -> dict[str, Any]:
+    """Which commit this container was built from, or an honest admission that nobody
+    stamped it.
+
+    **The gap this closes.** `docs/DEPLOYMENT.md` records the routes the live service
+    advertises, and it passed while production ran code twelve commits behind main,
+    because "which routes exist" and "which code serves them" are different questions.
+    A repository can be correct and the URL a judge clicks can be stale, and nothing
+    could see the difference.
+
+    Separate from `/api/healthz`, which is documented as returning nothing at all and
+    stays that way. A revision is not protected data, but liveness and provenance are
+    different questions and a probe that answers both invites one to be read as the
+    other.
+
+    `stamped: false` is the important case. It means the deploy did not set
+    CURTAIL_REVISION, so the running code is of UNKNOWN vintage, which is a different
+    thing from being current and must not be reported as one.
+    """
+    revision = os.environ.get(REVISION_ENV, "").strip()
+    return {
+        "revision": revision or None,
+        "stamped": bool(revision),
+        "note": (
+            "the commit this image was built from"
+            if revision
+            else (
+                f"{REVISION_ENV} was not set at deploy, so this container cannot say "
+                "which commit it runs. Unknown is not current."
+            )
+        ),
+    }
 
 
 @app.get("/api/basins")

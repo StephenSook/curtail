@@ -758,3 +758,36 @@ class TestTheRightsRecordSurvivesPackaging:
 
         with pytest.raises(RightsRecordUnavailableError, match="Refusing to continue"):
             load_rights(Path("/nonexistent/rights.json"))
+
+
+class TestTheServiceCanSayWhichCodeItRuns:
+    """`docs/DEPLOYMENT.md` passed its check while production ran twelve commits behind.
+
+    "Which routes exist" and "which code serves them" are different questions, and the
+    record only ever asked the first. A repository can be correct while the URL a judge
+    clicks is stale, and nothing could see the difference.
+    """
+
+    def test_an_unstamped_container_says_unknown_rather_than_current(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The important case, and the one that would otherwise read as reassuring."""
+        monkeypatch.delenv("CURTAIL_REVISION", raising=False)
+        body = client.get("/api/version").json()
+        assert body["stamped"] is False
+        assert body["revision"] is None
+        assert "Unknown is not current" in body["note"]
+
+    def test_a_stamped_container_reports_its_commit(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("CURTAIL_REVISION", "0123456789abcdef")
+        body = client.get("/api/version").json()
+        assert body["stamped"] is True
+        assert body["revision"] == "0123456789abcdef"
+
+    def test_liveness_still_says_nothing_about_provenance(self, client: TestClient) -> None:
+        """`/api/healthz` is documented as returning nothing at all, and it stays that
+        way. Liveness and provenance are different questions, and a probe answering both
+        invites one to be read as the other."""
+        assert client.get("/api/healthz").json() == {"status": "ok"}
