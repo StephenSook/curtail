@@ -45,6 +45,16 @@ EVIDENCE: dict[str, tuple[str, ...]] = {
     "Pub/Sub": ("pubsub_v1.PublisherClient", "pubsub_v1.SubscriberClient"),
 }
 
+#: Claims proved by ALL their markers, not any one. Stated separately from the
+#: generator's copy, like the evidence itself.
+#:
+#: Cloud Run has no import to point at: it is a deployment contract whose parts are
+#: separable. Under `any`, deleting `--proxy-headers` from the Dockerfile still passed
+#: because a Python constant naming the platform's request timeout remained, so the
+#: contract this row asserts was not the thing being enforced. A review caught that the
+#: tightened marker had only moved the weakness rather than removed it.
+REQUIRE_ALL: frozenset[str] = frozenset({"Cloud Run"})
+
 #: The SDK row was guarded by NOTHING. Same table shape, same independence.
 SDK_EVIDENCE: dict[str, tuple[str, ...]] = {
     "Agent Development Kit (ADK)": ("google.adk",),
@@ -98,8 +108,10 @@ class TestTheSheetTicksNothingTheCodeLacks:
         assert row, "the sheet has no cloud services row"
         if service not in row:
             return  # not claimed, nothing to prove
-        assert any(marker in source for marker in EVIDENCE[service]), (
-            f"the sheet ticks {service} and no shipped source matches "
+        test = all if service in REQUIRE_ALL else any
+        assert test(marker in source for marker in EVIDENCE[service]), (
+            f"the sheet ticks {service} and the source does not carry "
+            f"{'every' if service in REQUIRE_ALL else 'any'} marker in "
             f"{EVIDENCE[service]}. A dropdown is a claim about the stack."
         )
 
