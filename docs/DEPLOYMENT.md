@@ -8,15 +8,22 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `7cb55f462bf2b7baad949c191e2d49b95c66933b`
-- Probed at: `2026-08-14T04:40:28+00:00`
-- Serving revision at probe time: `curtail-console-api-00026-zhj`
+- Probed at repository commit: `9a0070e3712aac449b3aac7ec5e539104892f0e0`
+- Probed at: `2026-08-14T04:48:53+00:00`
+- Serving revision at probe time: `curtail-console-api-00027-vbj`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
 the moment above and not necessarily the moment you are reading it. Run
 `make deployed-check` to re-probe and fail on drift; that is the freshness
 mechanism, and it must be run before recording the demo or submitting.
+
+**The fact sheet served at `/api/facts` names the probe BEFORE its own deploy,
+and that is structural rather than a mistake.** `docs/FACTS.md` quotes the stamp
+above, the packaged copy of it ships inside the container, and deploying that
+container necessarily creates a revision newer than the one the stamp names. A
+served sheet can never name its own serving revision. It is labelled as a probe
+record for that reason, so a newer revision serving it contradicts nothing.
 
 ## Routes the live service advertises
 
