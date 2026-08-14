@@ -468,6 +468,32 @@
       if (!isNullableIsoDate(entry.priority_date)) {
         return `the ledger line for ${entry.right_id} states no readable priority date`;
       }
+      // A priority has THREE states and this guard once checked one field, so a
+      // year-only right passed validation and then rendered as "not stated". Check the
+      // rendering the table actually shows, and check it AGREES with the raw fields, so
+      // a server that composed the string wrongly is refused rather than displayed.
+      if (!nonEmptyString(entry.priority_as_stated)) {
+        return `the ledger line for ${entry.right_id} states no priority at all`;
+      }
+      const yearOnly = entry.priority_year_only;
+      if (!(yearOnly === null || (Number.isInteger(yearOnly) && yearOnly > 1500))) {
+        return `the ledger line for ${entry.right_id} states an unreadable priority year`;
+      }
+      if (entry.priority_date !== null && yearOnly !== null) {
+        return `the ledger line for ${entry.right_id} states both a date and a bare year`;
+      }
+      if (entry.priority_date !== null && entry.priority_as_stated !== entry.priority_date) {
+        return `the ledger line for ${entry.right_id} renders a priority its date contradicts`;
+      }
+      // The one that matters most: a bare year would read as a date, and silence about
+      // a known year is the denial this guard exists to catch.
+      if (yearOnly !== null && !entry.priority_as_stated.startsWith(`${yearOnly} (`)) {
+        return `the ledger line for ${entry.right_id} does not say its year is a year alone`;
+      }
+      if (entry.priority_date === null && yearOnly === null
+          && entry.priority_as_stated !== "not stated") {
+        return `the ledger line for ${entry.right_id} claims a priority the record lacks`;
+      }
     }
     if (!body.provenance || typeof body.provenance !== "object") {
       return "the answer carries no provenance at all";
@@ -603,7 +629,13 @@
     const rows = rec.querySelector("tbody");
     for (const entry of body.ledger) {
       const tr = document.createElement("tr");
-      tr.append(text(entry.right_id), text(entry.priority_date), text(entry.grouping),
+      // `priority_as_stated`, never the bare date. Reading `priority_date` here put a
+      // null through text(), which renders "not stated", so a right whose YEAR the
+      // record holds was displayed as a right with no priority at all. That is the
+      // plausible wrong answer this surface exists to refuse: the year is what settles
+      // decree membership, so the table denied the fact the placement rests on. The
+      // server composes the string so this page and the order document cannot drift.
+      tr.append(text(entry.right_id), text(entry.priority_as_stated), text(entry.grouping),
                 text(entry.citation),
                 text(entry.would_be_curtailed ? "would be curtailed" : "not reached"));
       tr.children[1].className = "num";
