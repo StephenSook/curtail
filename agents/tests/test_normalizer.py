@@ -19,6 +19,7 @@ import pytest
 from curtail_agents.normalizer import (
     ACTIONS,
     MAX_CHARS,
+    Generate,
     NormalizedOrder,
     NormalizerRefusedError,
     NormalizerUnavailableError,
@@ -41,7 +42,7 @@ November 25, 1912 and December 31, 1957 are conditionally curtailed.
 """
 
 
-def _replies(payload: dict[str, object]) -> object:
+def _replies(payload: dict[str, object]) -> Generate:
     def generate(prompt: str, *, model: str) -> str:
         assert "DOCUMENT TEXT:" in prompt, "the document never reached the model"
         return json.dumps(payload)
