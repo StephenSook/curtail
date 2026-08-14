@@ -10,6 +10,7 @@ guard against it, at three different levels of care.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -225,3 +226,60 @@ class TestUnknownDecreeMembershipRefuses:
             stated_group=8,
         )
         assert place(stated).rank == 8
+
+
+class TestAYearOnlyPriorityIsCarriedNotDiscarded:
+    """A value good enough to decide placement is good enough to appear in the record.
+
+    `SG005441` states a priority YEAR of 1977 and no month or day. That year is what
+    establishes its decree membership: 1977 is unambiguously after the 1932 Shasta
+    Adjudication, so Tier A is correct ON EVIDENCE rather than by default.
+
+    The parser read the year, placed the right with it, and then dropped it, so the
+    generated order said "priority not stated" about a right whose year the record holds.
+    The placement was never wrong. The document describing it was.
+    """
+
+    def test_the_year_survives_into_the_domain_object(self) -> None:
+        right = next(r for r in rights_for(Basin.SHASTA).rights if r.right_id == "SG005441")
+        assert right.priority_date is None
+        assert right.priority_year_only == 1977, (
+            "the year was read from the record, used to place the right, and discarded"
+        )
+
+    def test_a_year_only_right_places_on_evidence_not_by_default(self) -> None:
+        """The distinction that matters: this is not an unknown falling to the junior
+        tier, it is a known year settling membership."""
+        from curtail_core.attachment_a import decree_membership
+        from curtail_core.priority import place
+
+        right = next(r for r in rights_for(Basin.SHASTA).rights if r.right_id == "SG005441")
+        assert place(right).rank == 1
+        assert decree_membership(None, year_only=1977, decree=date(1932, 12, 29)) is False
+        assert decree_membership(None, year_only=1932, decree=date(1932, 12, 29)) is None, (
+            "a year equal to the decree year is genuinely ambiguous and must stay unknown"
+        )
+
+    def test_the_ledger_line_states_the_year_rather_than_denying_it(self) -> None:
+        from curtail_agents.scribe import _priority_as_stated
+
+        class _Entry:
+            priority_date = None
+            priority_year_only = 1977
+
+        rendered = _priority_as_stated(_Entry())
+        assert "1977" in rendered
+        assert "year only" in rendered
+        assert "not stated" not in rendered, (
+            "the order text denies knowing the fact its own placement rests on"
+        )
+
+    def test_a_right_with_neither_still_reads_as_not_stated(self) -> None:
+        """The third state has to stay distinguishable from the other two."""
+        from curtail_agents.scribe import _priority_as_stated
+
+        class _Entry:
+            priority_date = None
+            priority_year_only = None
+
+        assert _priority_as_stated(_Entry()) == "not stated"

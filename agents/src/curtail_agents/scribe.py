@@ -125,6 +125,24 @@ def _authorities() -> str:
     return "\n".join(f"- {entry['authority']}" for entry in raw["allowlist"])
 
 
+def _priority_as_stated(entry: Any) -> str:
+    """How a ledger line renders priority, including when only a year is known.
+
+    Three states, not two. A full date, a YEAR ONLY, and genuinely nothing. The middle
+    one used to render as "not stated", which understated the record: the year is what
+    established decree membership for that right in the first place, so the order text
+    denied knowing the very fact the placement rests on. `SG005441` carries 1977, which
+    is unambiguously after the 1932 Shasta Adjudication, and its Tier A placement is
+    correct BECAUSE of that year.
+    """
+    if entry.priority_date is not None:
+        text: str = entry.priority_date.isoformat()
+        return text
+    if entry.priority_year_only is not None:
+        return f"{entry.priority_year_only} (year only, no month or day in the record)"
+    return "not stated"
+
+
 def build_prompt(recommendation: Recommendation, *, feedback: str = "") -> str:
     """The drafting instruction, built entirely from the Core's computed output.
 
@@ -135,7 +153,7 @@ def build_prompt(recommendation: Recommendation, *, feedback: str = "") -> str:
     reached = [e for e in recommendation.ledger if e.would_be_curtailed]
     rows = "\n".join(
         f"- {e.right_id} | priority "
-        + (e.priority_date.isoformat() if e.priority_date else "not stated")
+        + _priority_as_stated(e)
         + f" | {e.placement.grouping_label} | {e.placement.citation}"
         for e in reached
     )
