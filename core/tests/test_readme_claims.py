@@ -794,3 +794,41 @@ class TestTheDeploymentRecordProvesCapabilityNotJustLiveness:
                 "rather than adding to it. Use --update-env-vars: the difference wiped "
                 "the signing key and silently dropped the Season Ledger to memory."
             )
+
+
+def test_the_deployment_check_compares_the_capability_facts() -> None:
+    """`--check` must actually look at the fields the record added.
+
+    The durability and stamp lines were written into the record's HEADER first, and
+    `_capability_block` starts lower down, so a deployment that lost either still
+    reported "matches the live service". **A capability check that cannot see the
+    capability is the shape this record exists to prevent**, occurring inside it.
+
+    This asserts they sit inside the compared region, and that the revision VALUE does
+    not: whether a container can name its commit is a stable fact, while which commit it
+    names changes on every deploy, and comparing that would redden the gate for the
+    system working normally.
+    """
+    import importlib.util
+
+    path = REPO / "scripts" / "probe_deployment.py"
+    spec = importlib.util.spec_from_file_location("probe_deployment", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    record = (REPO / "docs" / "DEPLOYMENT.md").read_text()
+    compared = module._capability_block(record)
+
+    assert "durable in production" in compared, (
+        "the durability fact is outside the compared region, so a production database "
+        "that vanished would still report as matching"
+    )
+    assert "reports its own commit" in compared, "the stamp fact is outside the compared region"
+
+    volatile = re.findall(r"Commit the container reports: `([0-9a-f]{40})`", record)
+    assert volatile, "the record does not carry the served commit at all"
+    assert volatile[0] not in compared, (
+        "the revision VALUE is inside the compared region, so this check goes red every "
+        "time main advances, which is how a gate teaches people to override it"
+    )
