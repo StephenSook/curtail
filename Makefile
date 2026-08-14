@@ -99,6 +99,14 @@ deployed: ## Probe the live service, record what it serves, and refresh the fact
 deployed-check: ## Fail if the committed deployment record has drifted from the live service
 	uv run python scripts/probe_deployment.py --check
 
+.PHONY: diagram
+diagram: ## Re-render the submission architecture diagram from docs/architecture.html
+# Devpost field 28092 is a REQUIRED file upload. The HTML is the source of truth and the
+# PNG is generated from it, so the diagram is regenerated rather than redrawn whenever
+# the architecture moves. Bare, like every other target: a render that silently drew no
+# connections must be able to go red.
+	uv run python scripts/render_architecture.py
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # Bare, like every other target. This one especially: the drill's whole value is that
