@@ -35,6 +35,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
+from curtail_core.order_parser import OrderAction
+
 
 class SignatoryRole(StrEnum):
     """Who signs. The regulation distinguishes these and so must the workflow.
@@ -352,16 +354,90 @@ class ServiceRecord:
         )
 
 
-def lane_for_action(action: str) -> ServiceLane:
-    """Which lane an order action belongs in.
+class UndeterminedActionError(ValueError):
+    """A document's verb could not be determined, so no lane may be chosen.
 
-    Reinstating and newly imposing curtailment are treated as candidate orders
-    requiring legal service, because whether an addendum is itself an "order"
-    triggering fresh 1121 service and a fresh 30-day clock is genuinely
-    unadjudicated. No Board guidance, adopted order, or court decision resolves
-    it, so this designs defensively: capture an immutable adoption timestamp,
-    retain verifiable distribution records, start the clock, and support
-    receipted output.
+    Raised rather than defaulted, because BOTH defaults are wrong in a way that
+    matters. Choosing notification under-serves a party, which makes the order
+    unenforceable against them. Choosing legal service over-claims, recording an
+    act that a reviewing court would find did not legally occur. An unparsed verb
+    is a question for a human, and the parser has a dedicated `UNDETERMINED`
+    member precisely so it can say it does not know.
     """
-    imposing = {"initial_order", "reinstatement", "new_curtailment", "extension"}
-    return ServiceLane.LEGAL_SERVICE if action in imposing else ServiceLane.NOTIFICATION
+
+
+#: Every verb, mapped explicitly. No default, and that is the whole design.
+#:
+#: **The predecessor of this table was unreachable code.** `lane_for_action` took
+#: a bare string and tested it against `{"initial_order", "reinstatement",
+#: "new_curtailment", "extension"}`. Not one of those is an `OrderAction` value,
+#: so `OrderAction.IMPOSE` and `OrderAction.REINSTATE` both returned NOTIFICATION,
+#: contradicting this function's own docstring in the two cases the docstring
+#: names. Two vocabularies existed in one repository and never met: the parser
+#: read the Board's corpus into one, and this function was written against
+#: another that nothing produces.
+#:
+#: The tests did not catch it because they only ever passed the literals from the
+#: function's own set, so they proved the function agreed with itself. That is a
+#: test asserting a claim rather than a reality, and the fix is not a better test:
+#: it is taking the enum, so mypy checks every call site and an unreachable branch
+#: cannot exist.
+#:
+#: Total on purpose. A `dict[OrderAction, ServiceLane]` with no `.get` default
+#: means adding a member to `OrderAction` raises here on first use rather than
+#: silently inheriting the weaker lane, and the guard in the test suite asserts
+#: the mapping covers the enum.
+_LANE_FOR_ACTION: dict[OrderAction, ServiceLane] = {
+    # Newly imposing curtailment is the paradigm case of an order under 1121.
+    OrderAction.IMPOSE: ServiceLane.LEGAL_SERVICE,
+    # Treated as a candidate order. Whether a reinstating addendum is itself an
+    # "order" triggering fresh 1121 service and a fresh 30-day clock is genuinely
+    # unadjudicated: no Board guidance, adopted order, or court decision resolves
+    # it. So this designs defensively, which means capturing an immutable adoption
+    # timestamp, retaining verifiable distribution records, starting the clock,
+    # and supporting receipted output.
+    OrderAction.REINSTATE: ServiceLane.LEGAL_SERVICE,
+    # An amendment can cut either way, and the asymmetry of being wrong decides
+    # it. Over-serving is untidy; under-serving leaves the order unenforceable
+    # against the party who was never served. The defensive choice is the one that
+    # survives being wrong.
+    OrderAction.AMEND: ServiceLane.LEGAL_SERVICE,
+    # 875(d)(2) and 875(e) expressly permit an email distribution list and a
+    # website posting for suspensions and rescissions.
+    OrderAction.SUSPEND: ServiceLane.NOTIFICATION,
+    OrderAction.RESCIND: ServiceLane.NOTIFICATION,
+    # A status notice restating what is already in force announces no new
+    # decision, so it creates no new service obligation.
+    OrderAction.CONTINUE: ServiceLane.NOTIFICATION,
+}
+
+
+def lane_for_action(action: OrderAction) -> ServiceLane:
+    """Which lane a document belongs in, decided by what the document DOES.
+
+    Takes the enum rather than a string, so the caller cannot invent a verb and
+    a typo cannot silently select the weaker lane. The previous signature accepted
+    any string and fell through to NOTIFICATION, which meant `"initial_ordr"`,
+    `"reinstatement "` with a trailing space, and `"REINSTATEMENT"` all quietly
+    downgraded legal service to a mailing list. Fail-open on a legal boundary.
+
+    Raises:
+        UndeterminedActionError: when the verb is `UNDETERMINED`, or when a new
+            enum member has been added without a lane. Both mean a human has to
+            decide, and neither may be answered by a default.
+    """
+    if action is OrderAction.UNDETERMINED:
+        raise UndeterminedActionError(
+            "the document's verb is UNDETERMINED, so no service lane can be "
+            "chosen for it. Notification would under-serve a party and leave the "
+            "order unenforceable against them; legal service would record an act "
+            "that did not legally occur. This is a question for a human."
+        )
+    try:
+        return _LANE_FOR_ACTION[action]
+    except KeyError:
+        raise UndeterminedActionError(
+            f"{action!r} has no service lane. A verb was added to OrderAction "
+            "without deciding whether it requires service under Water Code 1121, "
+            "and inheriting a default here would answer that question by accident."
+        ) from None

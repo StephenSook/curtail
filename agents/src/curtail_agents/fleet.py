@@ -24,12 +24,23 @@ its failures are transient, which invites treating a genuine data defect as
 noise. Failures there are surfaced immediately, not smoothed over.
 
 **What is wired, stated plainly, because a graph of no-op nodes carries a retry
-policy that governs nothing.** The Sentinel node calls the real
-`sentinel.evaluate`. The Core, Scribe and Herald nodes are placeholders and are
-labelled as such in their own docstrings: the Core needs a rights table the
-console will supply, the Scribe needs a model, and the Herald needs a delivery
-channel. Their GUARDS exist and are tested (`routing.py`, `messaging.py`); their
-handlers are not yet attached.
+policy that governs nothing.** All four handlers are attached. The Sentinel calls
+`sentinel.evaluate`, the Core calls `allocation.recommend` over the Board's own
+rights table, the Scribe sanitizes and then calls `scribe.draft_order` through the
+model, and the Herald calls `herald.deliver_order` down whichever lane the verb
+requires. What is NOT wired is the delivery vendor: there is no certified mail
+integration and no email provider, so a request selects the labelled synthetic
+transport and every report it produces says `synthetic`.
+
+Each of those three was a placeholder in turn, and each stated a blocker that had
+gone stale before it was removed. The Core's said it needed a rights table that
+Attachment A had already provided. The Scribe's said it needed a model that
+`scribe.py` had already reached. The Herald's read a transport out of a payload key
+nothing could populate, because a payload is built from session state and a
+callable cannot be persisted, so `deliver_order` had never once run with a
+transport. **A stub whose stated blocker is gone is a claim about the system that
+has quietly stopped being true**, and the tell in all three cases was that the
+blocker named something already sitting in the repository.
 
 **The graph IS invoked, by `app.evaluate_reading`, and getting there found a
 defect worth more than the argument that preceded it.** Four review passes said
@@ -73,7 +84,13 @@ from google.adk.runners import Runner
 from google.adk.workflow import START, Edge, RetryConfig, Workflow, node
 from google.genai import types
 
-from curtail_agents.herald import deliver_order
+from curtail_agents.herald import (
+    Recipient,
+    TransportResult,
+    deliver_order,
+    synthetic_transport,
+)
+from curtail_agents.messaging import Channel
 from curtail_agents.routing import (
     BACKOFF_FACTOR,
     INITIAL_DELAY_SECONDS,
@@ -83,9 +100,12 @@ from curtail_agents.routing import (
     NODE_TIMEOUT_SECONDS,
 )
 from curtail_agents.sanitize import check_document_size, sanitize_document
+from curtail_agents.scribe import draft_order
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
-from curtail_core.allocation import recommend
+from curtail_core.allocation import Recommendation, RecommendedAction, recommend
 from curtail_core.backtest import direction_for
+from curtail_core.clocks import RecipientClass
+from curtail_core.order_parser import OrderAction
 from curtail_core.rights_record import load_rights
 
 #: Node names, used in the graph, in the policy table and quoted in the README.
@@ -470,12 +490,78 @@ def _build_node(name: str, fn: Callable[..., Any]) -> Any:
 RECOMMENDATION = "recommendation"
 RECOMMENDATION_UNAVAILABLE = "recommendation_unavailable"
 RECIPIENTS = "recipients"
-TRANSPORT = "transport"
-SYNTHETIC_TRANSPORT = "synthetic_transport"
 DELIVERY = "delivery"
+DELIVERY_UNAVAILABLE = "delivery_unavailable"
+DRAFT = "draft"
+DRAFT_UNAVAILABLE = "draft_unavailable"
+ARTIFACT_ACTION = "artifact_action"
 SOURCE_DOCUMENT = "source_document"
 PROMPT_BLOCK = "prompt_block"
 INJECTION_HITS = "injection_hits"
+
+#: Names a registered transport. A NAME, never a callable, and that is forced.
+#:
+#: The previous key held the transport itself, read with `node_input.get(TRANSPORT)`,
+#: and nothing could ever have populated it. A payload originates from the first
+#: node's return value, which is built from session state, and session state is
+#: persisted by a real session service, so a function cannot travel there. The key
+#: was unreachable by construction, which is why `deliver_order` never once ran with
+#: a transport and every delivery on this path returned None.
+#:
+#: A name resolves through the registry below, so the only transports reachable
+#: from a request are the ones this module deliberately registered.
+TRANSPORT_NAME = "transport_name"
+
+#: True when the resolved transport was the labelled stand-in.
+SYNTHETIC_TRANSPORT = "synthetic_transport"
+
+#: The only transports a request may select, by name.
+#:
+#: **Absent means no transport, which makes `deliver_order` refuse.** That is the
+#: fail-closed direction and it is deliberate: a delivery recorded but never made is
+#: what a reviewing court would read as proof a party was served. An unknown name is
+#: therefore not an error to be smoothed over with a default, it is a request for a
+#: vendor nobody wired.
+#:
+#: `synthetic` is the demonstration stand-in and every report it produces carries
+#: `synthetic=True`, so no surface can present it as real delivery. Only notification
+#: contacts may be synthetic in this project, and they must be visibly labelled.
+TRANSPORTS: dict[str, Callable[[], Callable[[Recipient, str], TransportResult]]] = {
+    "synthetic": synthetic_transport,
+}
+
+
+class UndeliverableRecommendationError(RuntimeError):
+    """A recommendation that implies no distributable artifact reached the Herald.
+
+    Distinct from a delivery failure, and the distinction matters to the reader. A
+    failure means an artifact existed and did not arrive. This means there was
+    nothing to send, which is an ordinary and correct outcome rather than a fault.
+    """
+
+
+#: What a DRAFT built from each recommendation would DO, as the parser's verb.
+#:
+#: **Derived, never supplied by the caller, and that closes the last hole in the lane
+#: rule.** Herald's contract is that the lane follows from what the artifact IS. If a
+#: request could name the verb, a caller could hand an imposing order the verb
+#: `suspend` and route a document requiring legal service onto a mailing list, which
+#: is precisely the confusion the two state machines exist to prevent.
+#:
+#: This is NOT the official's determination and must never be read as one. The Core
+#: recommends that curtailment be considered; a human decides whether to issue. What
+#: this table says is narrower and honest: IF a draft is produced from this
+#: recommendation, this is the verb that draft carries, and therefore this is the
+#: service obligation the officer is being asked to authorise.
+#:
+#: The two absent members are absent on purpose. `NO_ACTION` and
+#: `FIELD_VERIFICATION_FIRST` imply no order at all, and a near-threshold reading
+#: flagged for field verification is a request for a human to go and measure, not a
+#: document anybody is served with.
+_ARTIFACT_ACTION_FOR: dict[RecommendedAction, OrderAction] = {
+    RecommendedAction.CONSIDER_CURTAILMENT: OrderAction.IMPOSE,
+    RecommendedAction.CONSIDER_SUSPENSION: OrderAction.SUSPEND,
+}
 
 
 #: Marks the message part carrying untrusted document text.
@@ -631,11 +717,39 @@ class UntrustedTextInSessionStateError(RuntimeError):
     """
 
 
-async def _scribe(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
-    """Draft the order. NOT YET WIRED to a model, but the injection guard IS wired.
+async def _scribe(
+    ctx: Any, node_input: dict[str, Any], produce_order: bool = False
+) -> dict[str, Any]:
+    """Sanitize any carried document, then draft the order through the model.
 
-    The only node that will call a model, so the only one that can loop rather than
+    The only node that calls a model, so the only one that can loop rather than
     fail, which is why the timeout matters here most.
+
+    **The drafting half was missing and the docstring said so for several
+    revisions: "NOT YET WIRED to a model".** That was true and it made the node a
+    sanitizer wearing a drafter's name, so the graph could not produce an order at
+    all and `draft_order` was reachable only from a separate HTTP handler that
+    bypassed the fleet entirely. A node named for an act it does not perform is the
+    same drift this module keeps finding, one layer up.
+
+    Two halves, kept as two functions on purpose. Sanitisation must hold whether or
+    not a draft is ever produced, and folding them together would mean every test of
+    the injection boundary had to stand up a model.
+
+    **`produce_order` is what the invocation ASKED FOR, and it is not a feature
+    flag.** Classifying a reading and producing an order are different jobs: the
+    eval set asks the fleet which way a reading points, and drafting a legal document
+    to answer that would burn a model call, add a failure mode, and answer a question
+    nobody asked. Every entrypoint sets it explicitly rather than inheriting a
+    default, so no path can quietly skip the drafting it meant to request. When it is
+    false the node says so in `DRAFT_UNAVAILABLE` rather than leaving an absence a
+    reader has to interpret.
+    """
+    return await _draft(_sanitize(ctx, node_input), produce_order=produce_order)
+
+
+def _sanitize(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
+    """Fence any untrusted document text, on both channels, before a model sees it.
 
     **The sanitizer runs HERE, on the node, not only in the drill.** A review found
     it implemented, tested, demonstrated, and called by nothing on the fleet path,
@@ -684,53 +798,209 @@ async def _scribe(ctx: Any, node_input: dict[str, Any]) -> dict[str, Any]:
                 "the output still looks sanitized."
             )
 
-    if SOURCE_DOCUMENT not in node_input:
-        return node_input
+    forwarded = dict(node_input)
+    if SOURCE_DOCUMENT in node_input:
+        raw = node_input[SOURCE_DOCUMENT]
+        if not isinstance(raw, str):
+            raise TypeError(
+                f"{SOURCE_DOCUMENT} must be text, got {type(raw).__name__}. A non-string "
+                "here means some caller is passing a parsed object through the untrusted "
+                "channel, and the sanitizer would silently do nothing to it."
+            )
 
-    raw = node_input[SOURCE_DOCUMENT]
-    if not isinstance(raw, str):
-        raise TypeError(
-            f"{SOURCE_DOCUMENT} must be text, got {type(raw).__name__}. A non-string "
-            "here means some caller is passing a parsed object through the untrusted "
-            "channel, and the sanitizer would silently do nothing to it."
-        )
+        check_document_size(raw)
+        sanitized = sanitize_document(raw)
+        del forwarded[SOURCE_DOCUMENT]
+        forwarded[PROMPT_BLOCK] = sanitized.fenced()
+        forwarded[INJECTION_HITS] = tuple((hit.kind.value, hit.matched) for hit in sanitized.hits)
 
-    check_document_size(raw)
-    sanitized = sanitize_document(raw)
-    forwarded = {k: v for k, v in node_input.items() if k != SOURCE_DOCUMENT}
-    forwarded[PROMPT_BLOCK] = sanitized.fenced()
-    forwarded[INJECTION_HITS] = tuple((hit.kind.value, hit.matched) for hit in sanitized.hits)
     return forwarded
 
 
-async def _herald(node_input: dict[str, Any]) -> dict[str, Any]:
+async def _draft(forwarded: dict[str, Any], *, produce_order: bool) -> dict[str, Any]:
+    """Turn the Core's recommendation into a draft, or say why there is none.
+
+    **Run on a worker thread, and that is a correctness fix rather than a
+    performance one.** `draft_order` is synchronous and spends its time inside a
+    blocking model call. Awaiting nothing while it runs would pin the event loop
+    for the duration, and the thing that stops running first is the deadline: this
+    module's whole timeout argument rests on `asyncio.timeout`, which can only fire
+    when the loop gets a chance to run. A blocking call inside an async node
+    therefore disables the very guard written to bound it, and it would also stall
+    every other request on the instance, which is cause 3 in
+    SESSION_APPEND_BUDGET_SECONDS arriving from our own code.
+
+    The honest limit, stated rather than hidden: `to_thread` cannot cancel the
+    thread it started, so a cancelled invocation returns while the model call
+    continues to completion in the background. What it buys is that the deadline
+    FIRES and the caller is told; the alternative buys neither.
+
+    A recommendation the Core could not compute yields no draft and says which,
+    because a missing draft and a refused draft are different facts to an officer.
+    """
+    if not produce_order:
+        return {
+            **forwarded,
+            DRAFT: None,
+            DRAFT_UNAVAILABLE: (
+                "this invocation asked the fleet to classify a reading, not to produce "
+                "an order, so no draft was requested and no model was called."
+            ),
+        }
+
+    recommendation = forwarded.get(RECOMMENDATION)
+    if recommendation is None:
+        return {
+            **forwarded,
+            DRAFT: None,
+            DRAFT_UNAVAILABLE: str(
+                forwarded.get(
+                    RECOMMENDATION_UNAVAILABLE,
+                    "no recommendation reached the Scribe, so there is nothing to draft "
+                    "from. A draft with no computed allocation behind it would be prose "
+                    "with the authority of an order and the backing of nothing.",
+                )
+            ),
+        }
+
+    # Refused, not coerced, and the reason is the same one the untrusted-document
+    # check gives one function up. `draft_order` reads the recommendation for the
+    # rights it reached and the tier it recommends, and anything else in this key is
+    # a caller passing something the Core did not compute. Handing that to a model
+    # would produce a draft whose facts came from whatever the object happened to
+    # stringify as, and the guard downstream compares the draft's claims against a
+    # ledger this object does not have.
+    if not isinstance(recommendation, Recommendation):
+        raise TypeError(
+            f"{RECOMMENDATION} must be a Recommendation the Core computed, got "
+            f"{type(recommendation).__name__}. Drafting from anything else would put "
+            "an order in front of an officer with facts that no allocation produced."
+        )
+
+    outcome = await asyncio.to_thread(draft_order, recommendation)
+    return {**forwarded, DRAFT: outcome}
+
+
+async def _herald(
+    node_input: dict[str, Any],
+    recipients: list[dict[str, str]] | None = None,
+    transport_name: str = "",
+) -> dict[str, Any]:
     """Route the artifact to its lane and distribute it. The Loop pattern.
+
+    `recipients` and `transport_name` are bound BY NAME from session state, the same
+    contract every other node parameter uses, rather than couriered down the payload
+    from the Sentinel. Two reasons: a node should declare what it needs, and the
+    Sentinel has no business carrying the Herald's configuration through two
+    intervening nodes that must not read it.
 
     The lane is decided by what the artifact IS, never by this node's caller, and the
     report says plainly whether anything was legally served. A notification that
     succeeded is not service, and `may_report_as_served` is the single question any
     surface must ask before showing that word.
 
-    No delivery vendor is wired. Without an injected transport the underlying call
-    REFUSES rather than recording a delivery that did not happen, and the demo passes an
-    explicitly named synthetic one whose results are marked as such.
-    """
-    recipients = node_input.get(RECIPIENTS)
-    if not recipients:
-        # Nothing to distribute is a real state on this path: a recommendation can be
-        # produced, reviewed and never served. It is reported rather than treated as a
-        # delivery of nothing.
-        return {**node_input, DELIVERY: None}
+    No delivery vendor is wired. Without a resolvable transport the underlying call
+    REFUSES rather than recording a delivery that did not happen, and a request selects
+    the explicitly named synthetic one whose results are marked as such.
 
-    report = deliver_order(
+    **The verb is DERIVED from the recommendation, never read from the request.** The
+    previous version took `node_input.get("action", "notification")`, which handed a
+    caller the power to pick the lane and, worse, defaulted an unlabelled artifact to
+    the lane with no legal consequence. A default that quietly selects notification is
+    the same shape as a `None` that quietly asserts membership: it answers a legal
+    question by accident, in the direction that makes an order unenforceable.
+    """
+    delivery_state = _nothing_to_deliver(node_input, recipients)
+    if delivery_state is not None:
+        return {**node_input, DELIVERY: None, DELIVERY_UNAVAILABLE: delivery_state}
+
+    recommendation = node_input[RECOMMENDATION]
+    action = _ARTIFACT_ACTION_FOR[recommendation.action]
+    draft = node_input[DRAFT]
+
+    factory = TRANSPORTS.get(transport_name)
+
+    report = await asyncio.to_thread(
+        deliver_order,
         order_id=str(node_input.get("order_id", "unsigned-draft")),
-        action=str(node_input.get("action", "notification")),
-        recipients=recipients,
-        artifact=str(node_input.get(PROMPT_BLOCK, node_input.get("draft_text", ""))),
-        transport=node_input.get(TRANSPORT),
-        synthetic=bool(node_input.get(SYNTHETIC_TRANSPORT, False)),
+        action=action,
+        recipients=_recipients_from(recipients),
+        # The DRAFT is the artifact. A fenced source document is untrusted input the
+        # Scribe neutralised, not the order, and sending it would distribute the thing
+        # the sanitizer was defending against.
+        artifact=draft.text,
+        transport=factory() if factory is not None else None,
+        synthetic=transport_name == "synthetic",
     )
-    return {**node_input, DELIVERY: report}
+    return {**node_input, DELIVERY: report, ARTIFACT_ACTION: action.value}
+
+
+def _nothing_to_deliver(node_input: dict[str, Any], recipients: Any) -> str | None:
+    """Why this run distributes nothing, or None when it should distribute.
+
+    Each of these is an ordinary outcome rather than a fault, and each is REPORTED
+    rather than left as a silent absence. A console that shows an empty delivery panel
+    without saying why reads as a delivery that failed.
+    """
+    recommendation = node_input.get(RECOMMENDATION)
+    if recommendation is None:
+        return str(
+            node_input.get(
+                RECOMMENDATION_UNAVAILABLE,
+                "no recommendation was computed, so there is no artifact to distribute.",
+            )
+        )
+    if recommendation.action not in _ARTIFACT_ACTION_FOR:
+        return (
+            f"the Core recommends {recommendation.action.value}, which implies no order. "
+            "Nothing is served or notified, because there is no document: a "
+            "near-threshold reading flagged for field verification asks a human to go "
+            "and measure, and it is not something anybody is served with."
+        )
+    if node_input.get(DRAFT) is None:
+        return str(
+            node_input.get(
+                DRAFT_UNAVAILABLE,
+                "no draft was produced, so there is nothing to distribute.",
+            )
+        )
+    if not recipients:
+        return (
+            "no recipients were supplied, so nothing was distributed. A drafted order "
+            "with nobody to serve is a real state: it is produced, reviewed, and held."
+        )
+    return None
+
+
+def _recipients_from(raw: Any) -> list[Recipient]:
+    """Rebuild recipients from the JSON-safe form session state can actually hold.
+
+    Session state is persisted by a real session service, so a frozen dataclass cannot
+    travel there and a request supplies plain dictionaries. Each field is converted
+    through its enum, so an unknown channel or recipient class raises here rather than
+    reaching the lane rule as an unrecognised string.
+
+    `label` and nothing else. There is deliberately no address field on `Recipient`, so
+    no personal contact detail enters session state or the event log.
+    """
+    if not isinstance(raw, list | tuple):
+        raise TypeError(f"{RECIPIENTS} must be a list, got {type(raw).__name__}")
+    built: list[Recipient] = []
+    for entry in raw:
+        if isinstance(entry, Recipient):
+            built.append(entry)
+            continue
+        if not isinstance(entry, dict):
+            raise TypeError(f"each recipient must be a mapping, got {type(entry).__name__}")
+        built.append(
+            Recipient(
+                recipient_id=str(entry["recipient_id"]),
+                recipient_class=RecipientClass(entry["recipient_class"]),
+                channel=Channel(entry["channel"]),
+                label=str(entry.get("label", "")),
+            )
+        )
+    return built
 
 
 sentinel_node = _build_node(SENTINEL, _sentinel)

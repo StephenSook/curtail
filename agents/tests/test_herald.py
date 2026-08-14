@@ -25,6 +25,7 @@ from curtail_agents.herald import (
 )
 from curtail_agents.messaging import CLAIM_LEASE_SECONDS, Channel, DedupTable
 from curtail_core.clocks import RecipientClass, ServiceLane, ServiceMethod
+from curtail_core.order_parser import OrderAction
 
 STAMP = datetime(2026, 6, 16, 12, 0, tzinfo=UTC)
 ORDER = "WR-2024-0006-DWR-A6"
@@ -39,7 +40,7 @@ def diverter(rid: str, channel: Channel = Channel.EMAIL) -> Recipient:
 
 
 def send(
-    action: str,
+    action: OrderAction,
     recipients: list[Recipient],
     *,
     transport: Callable[[Recipient, str], TransportResult] | None = None,
@@ -62,20 +63,35 @@ class TestTheLaneIsDecidedByTheArtifact:
     into a notification and skip service entirely."""
 
     @pytest.mark.parametrize(
-        "action", ["initial_order", "reinstatement", "new_curtailment", "extension"]
+        "action", [OrderAction.IMPOSE, OrderAction.REINSTATE, OrderAction.AMEND]
     )
-    def test_anything_imposing_curtailment_takes_the_legal_lane(self, action: str) -> None:
+    def test_anything_imposing_curtailment_takes_the_legal_lane(self, action: OrderAction) -> None:
+        """**These verbs used to be strings, and every one of them was wrong.**
+
+        The parameters were `"initial_order"`, `"reinstatement"`, `"new_curtailment"`
+        and `"extension"`, matching a literal set inside `lane_for_action`. None of
+        them is an `OrderAction`, which is the vocabulary the corpus parser produces
+        and the only one any caller in this repository can emit. So this test proved
+        that the lane function agreed with a set of strings written beside it, while
+        the verbs the system actually uses, `IMPOSE` and `REINSTATE`, both fell
+        through to NOTIFICATION.
+
+        Typed now, so a verb the parser cannot produce is a type error rather than a
+        silent downgrade from legal service to a mailing list.
+        """
         assert send(action, [party("holder-1")]).lane is ServiceLane.LEGAL_SERVICE
 
-    @pytest.mark.parametrize("action", ["suspension", "rescission", "drought_update"])
-    def test_anything_else_takes_the_notification_lane(self, action: str) -> None:
+    @pytest.mark.parametrize(
+        "action", [OrderAction.SUSPEND, OrderAction.RESCIND, OrderAction.CONTINUE]
+    )
+    def test_anything_else_takes_the_notification_lane(self, action: OrderAction) -> None:
         assert send(action, [diverter("d-1")]).lane is ServiceLane.NOTIFICATION
 
     def test_a_reinstating_addendum_is_treated_as_a_candidate_order(self) -> None:
         """Whether an addendum is itself an "order" triggering fresh 1121 service and a
         fresh 30-day clock is genuinely unadjudicated. The defensive choice is the one
         that survives being wrong."""
-        assert send("reinstatement", [party("holder-1")]).lane is ServiceLane.LEGAL_SERVICE
+        assert send(OrderAction.REINSTATE, [party("holder-1")]).lane is ServiceLane.LEGAL_SERVICE
 
 
 class TestANotificationIsNeverService:
@@ -83,7 +99,7 @@ class TestANotificationIsNeverService:
     believe a party was served when they were merely emailed."""
 
     def test_the_notification_lane_can_never_report_service(self) -> None:
-        report = send("drought_update", [diverter("d-1"), diverter("d-2")])
+        report = send(OrderAction.CONTINUE, [diverter("d-1"), diverter("d-2")])
         assert report.records, "nothing was delivered, so this proves nothing"
         assert report.may_report_as_served is False
         assert report.legally_served == ()
@@ -130,7 +146,7 @@ class TestANotificationIsNeverService:
     def test_an_email_on_the_legal_lane_is_not_service(self) -> None:
         """A provider reporting success does not make an email one of the four methods
         Water Code 1121 permits."""
-        report = send("initial_order", [party("holder-1", Channel.EMAIL)])
+        report = send(OrderAction.IMPOSE, [party("holder-1", Channel.EMAIL)])
         assert report.may_report_as_served is False
         assert any("not a permitted method" in e for e in report.escalations)
 
@@ -138,7 +154,7 @@ class TestANotificationIsNeverService:
         """The courier arrived and nobody signed. Accepted by the transport, and still
         not service."""
         report = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
         )
@@ -160,7 +176,7 @@ class TestANotificationIsNeverService:
     ) -> None:
         """Non-vacuity, and it matters: a module that never reports service would pass
         every test above while making the system useless."""
-        report = send("initial_order", [party("holder-1", channel)])
+        report = send(OrderAction.IMPOSE, [party("holder-1", channel)])
         assert report.records[0].method is method
         assert report.records[0].constitutes_legal_service is True
         assert report.may_report_as_served is True
@@ -172,7 +188,7 @@ class TestPartialServiceIsNotService:
         """An order shown as served while one party was missed is the failure a
         reviewing court would find first."""
         report = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1"), party("holder-2")],
             transport=synthetic_transport(withhold_receipt_for=["holder-2"]),
         )
@@ -183,20 +199,20 @@ class TestPartialServiceIsNotService:
     def test_serving_nobody_is_not_success(self) -> None:
         """An empty set satisfies "every party was served" vacuously, which is the
         shape this project has been bitten by more than once."""
-        report = send("initial_order", [])
+        report = send(OrderAction.IMPOSE, [])
         assert report.may_report_as_served is False
 
     def test_a_diverter_alone_does_not_constitute_service(self) -> None:
         """Water Code 1121 serves "the parties". 875(d)(1) reaches operational diverters
         with an onward-notice duty, which is a different thing."""
-        report = send("initial_order", [diverter("d-1", Channel.CERTIFIED_MAIL)])
+        report = send(OrderAction.IMPOSE, [diverter("d-1", Channel.CERTIFIED_MAIL)])
         assert report.may_report_as_served is False
 
 
 class TestRetryAndEscalation:
     def test_a_transient_failure_is_retried(self) -> None:
         report = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(fail_first=2),
         )
@@ -205,7 +221,7 @@ class TestRetryAndEscalation:
 
     def test_exhausting_the_attempts_escalates_rather_than_failing_silently(self) -> None:
         report = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(fail_first=99),
         )
@@ -226,8 +242,8 @@ class TestOneDeliveryPerRecipient:
         """On the legal lane a second delivery would write a second service record for
         one act, which misstates the record rather than merely wasting a message."""
         table = DedupTable()
-        first = send("initial_order", [party("holder-1")], dedup=table)
-        second = send("initial_order", [party("holder-1")], dedup=table)
+        first = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
+        second = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
         assert first.records and first.legally_served == ("holder-1",)
         assert second.records == ()
         assert second.skipped_as_duplicate == ("holder-1",)
@@ -248,7 +264,7 @@ class TestOneDeliveryPerRecipient:
         table = DedupTable(_clock=lambda: ticks[0])
 
         unsigned = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
             dedup=table,
@@ -256,13 +272,13 @@ class TestOneDeliveryPerRecipient:
         assert unsigned.legally_served == ()
         assert unsigned.escalations
 
-        blocked = send("initial_order", [party("holder-1")], dedup=table)
+        blocked = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
         assert blocked.skipped_as_duplicate == ("holder-1",), (
             "an in-flight claim must still exclude a concurrent second attempt"
         )
 
         ticks[0] = CLAIM_LEASE_SECONDS + 1
-        remedied = send("initial_order", [party("holder-1")], dedup=table)
+        remedied = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
         assert remedied.legally_served == ("holder-1",), (
             "the escalation could not be remediated, so it was a dead end"
         )
@@ -286,13 +302,13 @@ class TestOneDeliveryPerRecipient:
         table = DedupTable(_clock=lambda: ticks[0])
 
         send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
             dedup=table,
         )
         ticks[0] = CLAIM_LEASE_SECONDS + 1
-        remedied = send("initial_order", [party("holder-1")], dedup=table)
+        remedied = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
 
         assert remedied.legally_served == ("holder-1",)
         assert remedied.possible_duplicate_service == ("holder-1",), (
@@ -316,13 +332,13 @@ class TestOneDeliveryPerRecipient:
         ticks = [0.0]
         table = DedupTable(_clock=lambda: ticks[0])
         send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(withhold_receipt_for=["holder-1"]),
             dedup=table,
         )
         ticks[0] = CLAIM_LEASE_SECONDS + 1
-        remedied = send("initial_order", [party("holder-1")], dedup=table)
+        remedied = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
 
         assert remedied.possible_duplicate_service == tuple(
             r.recipient_id for r in remedied.records if r.possible_duplicate
@@ -359,14 +375,14 @@ class TestOneDeliveryPerRecipient:
 
     def test_herald_always_assesses_what_it_delivers(self) -> None:
         """So the unknown state only ever arrives from storage, never from a live run."""
-        report = send("initial_order", [party("holder-1")], dedup=DedupTable())
+        report = send(OrderAction.IMPOSE, [party("holder-1")], dedup=DedupTable())
         assert all(r.possible_duplicate is not None for r in report.records)
         assert report.unassessed_for_duplication == ()
 
     def test_a_first_delivery_is_never_flagged(self) -> None:
         """Non-vacuity. A field that flagged everything would be read as noise and then
         ignored exactly when it mattered."""
-        report = send("initial_order", [party("holder-1")], dedup=DedupTable())
+        report = send(OrderAction.IMPOSE, [party("holder-1")], dedup=DedupTable())
         assert report.legally_served == ("holder-1",)
         assert report.possible_duplicate_service == ()
         assert all(not r.possible_duplicate for r in report.records)
@@ -378,13 +394,13 @@ class TestOneDeliveryPerRecipient:
         table = DedupTable(_clock=lambda: ticks[0])
 
         send(
-            "drought_update",
+            OrderAction.CONTINUE,
             [diverter("d-1")],
             transport=synthetic_transport(fail_first=99),
             dedup=table,
         )
         ticks[0] = CLAIM_LEASE_SECONDS + 1
-        again = send("drought_update", [diverter("d-1")], dedup=table)
+        again = send(OrderAction.CONTINUE, [diverter("d-1")], dedup=table)
         assert again.possible_duplicate_service == ()
 
     def test_a_completed_service_stays_a_no_op_forever(self) -> None:
@@ -393,11 +409,11 @@ class TestOneDeliveryPerRecipient:
         ticks = [0.0]
         table = DedupTable(_clock=lambda: ticks[0])
 
-        first = send("initial_order", [party("holder-1")], dedup=table)
+        first = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
         assert first.legally_served == ("holder-1",)
 
         ticks[0] = CLAIM_LEASE_SECONDS * 10
-        again = send("initial_order", [party("holder-1")], dedup=table)
+        again = send(OrderAction.IMPOSE, [party("holder-1")], dedup=table)
         assert again.records == ()
         assert again.skipped_as_duplicate == ("holder-1",)
 
@@ -406,9 +422,9 @@ class TestOneDeliveryPerRecipient:
         ticks = [0.0]
         table = DedupTable(_clock=lambda: ticks[0])
 
-        send("drought_update", [diverter("d-1")], dedup=table)
+        send(OrderAction.CONTINUE, [diverter("d-1")], dedup=table)
         ticks[0] = CLAIM_LEASE_SECONDS * 10
-        repeat = send("drought_update", [diverter("d-1")], dedup=table)
+        repeat = send(OrderAction.CONTINUE, [diverter("d-1")], dedup=table)
         assert repeat.skipped_as_duplicate == ("d-1",)
 
     def test_a_failed_delivery_is_not_marked_done(self) -> None:
@@ -416,7 +432,7 @@ class TestOneDeliveryPerRecipient:
         retry it. Marking a failure as done loses the event permanently."""
         table = DedupTable()
         failed = send(
-            "initial_order",
+            OrderAction.IMPOSE,
             [party("holder-1")],
             transport=synthetic_transport(fail_first=99),
             dedup=table,
@@ -432,18 +448,18 @@ class TestItRefusesRatherThanPretending:
         with pytest.raises(TransportUnavailableError, match="Refusing"):
             deliver_order(
                 order_id=ORDER,
-                action="initial_order",
+                action=OrderAction.IMPOSE,
                 recipients=[party("holder-1")],
                 artifact="DRAFT",
             )
 
     def test_a_synthetic_run_is_marked_as_synthetic(self) -> None:
         """So no surface can present a demonstration as real delivery."""
-        assert send("initial_order", [party("holder-1")]).synthetic is True
+        assert send(OrderAction.IMPOSE, [party("holder-1")]).synthetic is True
 
     def test_a_report_carries_no_contact_detail(self) -> None:
         """Recipients are labels, never addresses. No personal contact data is stored."""
-        report = send("initial_order", [party("holder-1")])
+        report = send(OrderAction.IMPOSE, [party("holder-1")])
         assert "@" not in str(report)
 
 

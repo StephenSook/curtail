@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
+from enum import StrEnum
 
 import pytest
 
@@ -16,6 +17,7 @@ from curtail_core.clocks import (
     ServiceMethod,
     ServiceRecord,
     SignatoryRole,
+    UndeterminedActionError,
     clocks_for_order,
     judicial_review_clock,
     lane_for_action,
@@ -30,6 +32,7 @@ from curtail_core.lcs import (
     LocalCooperativeSolution,
     safe_harbor_confers_exemption,
 )
+from curtail_core.order_parser import OrderAction
 
 ADOPTED = datetime(2026, 6, 16, 17, 0, tzinfo=UTC)
 
@@ -170,12 +173,56 @@ class TestServiceLanes:
     """Formal service and notification are legally different acts."""
 
     def test_reinstatement_requires_legal_service(self) -> None:
-        assert lane_for_action("reinstatement") is ServiceLane.LEGAL_SERVICE
-        assert lane_for_action("initial_order") is ServiceLane.LEGAL_SERVICE
+        assert lane_for_action(OrderAction.REINSTATE) is ServiceLane.LEGAL_SERVICE
+        assert lane_for_action(OrderAction.IMPOSE) is ServiceLane.LEGAL_SERVICE
 
     def test_suspension_travels_the_notification_lane(self) -> None:
-        assert lane_for_action("suspension") is ServiceLane.NOTIFICATION
-        assert lane_for_action("rescission") is ServiceLane.NOTIFICATION
+        assert lane_for_action(OrderAction.SUSPEND) is ServiceLane.NOTIFICATION
+        assert lane_for_action(OrderAction.RESCIND) is ServiceLane.NOTIFICATION
+
+    def test_the_verbs_this_function_answers_are_the_verbs_the_parser_produces(self) -> None:
+        """The defect this replaces, and it is the reason the arguments are typed now.
+
+        These two tests previously passed the strings `"reinstatement"` and
+        `"initial_order"`, which the function checked against a set containing exactly
+        those literals. Neither is an `OrderAction` value. The parser reads the Board's
+        corpus into `OrderAction`, so no caller in this repository could produce the
+        strings the function was looking for, and `OrderAction.IMPOSE` and
+        `OrderAction.REINSTATE` both fell through to NOTIFICATION: the two verbs the
+        docstring names as requiring service were the two it silently denied it to.
+
+        The tests passed because they fed the function literals from its own set, which
+        proves a function agrees with itself and nothing about whether anybody can call
+        it that way. This is the assertion that would have failed.
+        """
+        for member in OrderAction:
+            if member is OrderAction.UNDETERMINED:
+                continue
+            # No default, no fall-through: every verb the parser can emit gets a lane
+            # decided here on purpose rather than inherited by accident.
+            assert lane_for_action(member) in ServiceLane
+
+    def test_an_undetermined_verb_is_refused_rather_than_defaulted(self) -> None:
+        """Both defaults are wrong, so neither may be taken silently.
+
+        Notification under-serves a party and leaves the order unenforceable against
+        them. Legal service records an act a reviewing court would find did not occur.
+        """
+        with pytest.raises(UndeterminedActionError, match="question for a human"):
+            lane_for_action(OrderAction.UNDETERMINED)
+
+    def test_a_new_verb_cannot_inherit_a_lane(self) -> None:
+        """The mapping is total, so adding a member raises rather than defaulting.
+
+        Asserted through the real function on a member the table does not hold, because
+        asserting that the dict has every key would only restate the dict.
+        """
+
+        class _NewVerb(StrEnum):
+            EMBARGO = "embargo"
+
+        with pytest.raises(UndeterminedActionError, match="without deciding"):
+            lane_for_action(_NewVerb.EMBARGO)  # type: ignore[arg-type]
 
     def test_a_delivered_notification_is_not_legal_service(self) -> None:
         """The single most dangerous UI confusion available here.

@@ -46,6 +46,7 @@ from curtail_core.clocks import (
     ServiceRecord,
     lane_for_action,
 )
+from curtail_core.order_parser import OrderAction
 
 #: Channels that can carry legal service, mapped to the method they effect.
 #:
@@ -209,7 +210,7 @@ def backoff_seconds(attempt: int) -> float:
 def deliver_order(
     *,
     order_id: str,
-    action: str,
+    action: OrderAction,
     recipients: Sequence[Recipient],
     artifact: str,
     transport: Callable[[Recipient, str], TransportResult] | None = None,
@@ -222,7 +223,12 @@ def deliver_order(
 
     Args:
         order_id: The artifact being distributed.
-        action: What it does. THIS decides the lane, not the caller.
+        action: What the document DOES, as the parser's own verb. THIS decides the
+            lane, not the caller. Typed as `OrderAction` rather than a string
+            because the string form let two vocabularies drift: this function was
+            being called with verbs no caller could produce, so every delivery got
+            the notification lane including the two the lane rule names as
+            requiring service.
         recipients: Who receives it and in what capacity.
         artifact: The text handed to the transport.
         transport: Injected. Defaults to a refusal, because no vendor is wired.
