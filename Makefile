@@ -133,6 +133,23 @@ season: ## Prove the Season Ledger survives the process, with a SECOND Firestore
 submission: ## Regenerate the submission sheet from what the repository actually contains
 	uv run python scripts/generate_submission.py
 
+.PHONY: deploy
+deploy: ## Deploy to Cloud Run, stamping the commit, WITHOUT wiping the environment
+# **`--update-env-vars`, never `--set-env-vars`.** The second REPLACES the whole
+# environment, and using it to add the revision stamp wiped GOOGLE_CLOUD_PROJECT, the
+# signing key and the demo passphrase in one command. The service stayed up, every route
+# answered, `/api/healthz` said ok, and the Season Ledger silently fell back to
+# in-process memory. Nothing was down, so nothing looked wrong.
+#
+# Run `make deployed` afterwards: it records what the running container can DO, not just
+# whether it responds, and the offline test fails if durability or the stamp is missing.
+	@test -n "$$GOOGLE_CLOUD_PROJECT" || { \
+	  echo "GOOGLE_CLOUD_PROJECT is not set. Refusing to guess which project to deploy to."; \
+	  exit 1; }
+	gcloud run deploy curtail-console-api --source . --region us-central1 \
+	  --project $$GOOGLE_CLOUD_PROJECT \
+	  --update-env-vars "CURTAIL_REVISION=$$(git rev-parse HEAD)" --quiet
+
 .PHONY: chaos
 chaos: ## The chaos drill: three injected failures, three guards. Run live on camera.
 # **Set GOOGLE_CLOUD_PROJECT before recording.** Without it the poisoned-document

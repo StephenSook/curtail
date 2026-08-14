@@ -8,9 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `7c4cfe050e740cb472b51781acf85a8b42eee02a`
-- Probed at: `2026-08-14T22:03:41+00:00`
-- Serving revision at probe time: `curtail-console-api-00033-knk`
+- Commit the container reports: `614757ca168df42cf6dab78561b9fa63d4c61ed5`
+- Season Ledger durable in production: **True**, store: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
+- Probed at repository commit: `614757ca168df42cf6dab78561b9fa63d4c61ed5`
+- Probed at: `2026-08-14T23:36:17+00:00`
+- Serving revision at probe time: `curtail-console-api-00035-8k4`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -40,8 +42,9 @@ record for that reason, so a newer revision serving it contradicts nothing.
 - `/api/recommendation/{basin}`
 - `/api/season/{basin}`
 - `/api/session`
+- `/api/version`
 
-13 routes.
+14 routes.
 
 ## Capabilities the repository may claim
 

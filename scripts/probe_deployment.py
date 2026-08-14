@@ -266,6 +266,41 @@ def _served_routes() -> tuple[list[str], str | None]:
     return sorted(paths), None
 
 
+def _live_capabilities() -> dict[str, object]:
+    """What the RUNNING container can actually do, which env vars decide.
+
+    **Written after a deploy silently disabled two of them.** `gcloud run deploy
+    --set-env-vars` REPLACES the environment rather than adding to it, so stamping the
+    revision wiped GOOGLE_CLOUD_PROJECT, the signing key and the demo passphrase in one
+    command. The service stayed up, `/api/healthz` stayed `ok`, every route still
+    answered, and the Season Ledger silently fell back to in-process memory. Liveness
+    could not see it because nothing was down.
+
+    So the probe asks the service what it can DO, not merely whether it responds.
+    """
+    out: dict[str, object] = {}
+    try:
+        with urllib.request.urlopen(f"{SERVICE_URL}/api/version", timeout=TIMEOUT_SECONDS) as r:
+            body = json.loads(r.read().decode())
+        out["stamped"] = bool(body.get("stamped"))
+        out["revision"] = body.get("revision")
+    except Exception as exc:
+        out["stamped"] = False
+        out["revision"] = None
+        out["version_error"] = str(exc)[:160]
+    try:
+        with urllib.request.urlopen(
+            f"{SERVICE_URL}/api/season/scott", timeout=TIMEOUT_SECONDS
+        ) as r:
+            body = json.loads(r.read().decode())
+        out["durable"] = bool(body.get("durable"))
+        out["store"] = str(body.get("store", ""))[:120]
+    except Exception as exc:
+        out["durable"] = False
+        out["store"] = f"unreachable: {str(exc)[:120]}"
+    return out
+
+
 def build() -> str:
     routes, unreachable = _served_routes()
     sha = _head_sha()
@@ -281,7 +316,15 @@ def build() -> str:
     add("source, and repository source cannot see that production is stale. Nothing here")
     add("deploys on merge, so the repository can be correct and the live URL behind it.")
     add("")
+    caps = _live_capabilities()
+    served_rev = caps.get("revision")
     add(f"- Service: {SERVICE_URL}")
+    add(
+        f"- Commit the container reports: `{served_rev}`"
+        if served_rev
+        else "- Commit the container reports: **NOT STAMPED**, so its vintage is unknown"
+    )
+    add(f"- Season Ledger durable in production: **{caps['durable']}**, store: {caps['store']}")
     add(f"- Probed at repository commit: `{sha}`")
     add(f"- {STAMP_LABEL} `{_now()}`")
     add(f"- {REVISION_LABEL} `{_serving_revision()}`")

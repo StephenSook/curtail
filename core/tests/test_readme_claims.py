@@ -741,3 +741,56 @@ def test_the_local_coverage_gate_matches_the_one_ci_runs() -> None:
         f"the local gate runs {sorted(local)} and CI runs {sorted(remote)}. They must "
         "measure the same thing, or one of them is reporting a number about a subset."
     )
+
+
+class TestTheDeploymentRecordProvesCapabilityNotJustLiveness:
+    """A deploy disabled two capabilities without anything going down.
+
+    `gcloud run deploy --set-env-vars` REPLACES the environment. Using it to add a
+    revision stamp wiped `GOOGLE_CLOUD_PROJECT`, the signing key and the demo
+    passphrase. The service stayed up, every route answered, `/api/healthz` said `ok`,
+    and the Season Ledger silently fell back to in-process memory.
+
+    **Liveness could not see it because nothing was down.** So the record now carries
+    what the container can DO, and these assert it.
+    """
+
+    @staticmethod
+    def _record() -> str:
+        return (REPO / "docs" / "DEPLOYMENT.md").read_text()
+
+    def test_the_record_says_production_is_durable(self) -> None:
+        assert "Season Ledger durable in production: **True**" in self._record(), (
+            "the last probe found production NOT durable, which is what a wiped "
+            "GOOGLE_CLOUD_PROJECT looks like from outside: everything answers, and the "
+            "season is being kept in memory"
+        )
+
+    def test_the_record_names_the_commit_the_container_reports(self) -> None:
+        record = self._record()
+        assert "NOT STAMPED" not in record, (
+            "the deployed container cannot say which commit it runs, so nothing can "
+            "tell a current deployment from a stale one"
+        )
+        assert "Commit the container reports:" in record
+
+    def test_the_deploy_target_cannot_wipe_the_environment(self) -> None:
+        """The instance, guarded.
+
+        **Continuations are joined first, and the first version did not do that.** A
+        Makefile recipe is split across backslash-continued lines, so `--set-env-vars`
+        sits on a different physical line from `gcloud run deploy`, and a line-by-line
+        search cannot see it. The check read as covering the command and covered one
+        line of it, which is the same narrow-scope defect this suite found in three
+        other guards today. A mutation exposed it.
+        """
+        makefile = (REPO / "Makefile").read_text()
+        joined = makefile.replace("\\\n", " ")
+        commands = [ln for ln in joined.splitlines() if "gcloud run deploy" in ln]
+        assert commands, "no deploy recipe found"
+        for command in commands:
+            assert "--set-env-vars" not in command, (
+                "a deploy recipe uses --set-env-vars, which REPLACES the environment "
+                "rather than adding to it. Use --update-env-vars: the difference wiped "
+                "the signing key and silently dropped the Season Ledger to memory."
+            )
