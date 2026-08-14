@@ -59,6 +59,17 @@ rights: ## Re-parse Attachment A from the fetched corpus into the committed reco
 rights-check: ## Fail if the committed rights record has drifted from the source PDF
 	uv run python scripts/extract_attachment_a.py --check
 
+.PHONY: agents
+agents: ## Register the fleet in the Agent Registry, from the graph's own node names
+# Idempotent: re-running patches the existing cards rather than duplicating them. Refuses
+# to write if the node constants have drifted from fleet.py, or if the deployed service
+# does not serve a route a card would name. A catalog of unreachable agents is worse than
+# an empty catalog, because it is an empty catalog that lies.
+	uv run python scripts/register_agents.py
+
+agents-check: ## Fail if the live registry does not hold exactly the agents the graph defines
+	uv run python scripts/register_agents.py --check
+
 .PHONY: deployed
 deployed: ## Probe the live service and record what it actually serves
 # Deliberately NOT part of `verify`. This needs the network and the deployed service,

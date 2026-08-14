@@ -8,7 +8,7 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Probed at repository commit: `7fe475b36eb40d5aca1f92f4619c1a4fbaa9eb04`
+- Probed at repository commit: `f2cd8729ca74c773eec5ba1ba79b65e692f4f2a9`
 
 ## Routes the live service advertises
 
@@ -36,3 +36,20 @@ deploys on merge, so the repository can be correct and the live URL behind it.
 | the service serves its own fact sheet | `/api/facts` | yes |
 
 Every capability the repository claims is reachable on the live service.
+
+## Agents cataloged in the live Agent Registry
+
+| Agent | Skills | Route that reaches it |
+|---|---|---|
+| Curtail Allocation Core | `recommend-curtailment-extent` | https://curtail-console-api-672785135387.us-central1.run.app/api/recommendation/{basin} |
+| Curtail Gage Sentinel | `classify-reading` | https://curtail-console-api-672785135387.us-central1.run.app/api/classify/{basin} |
+| Curtail Herald | `serve-or-notify` | https://curtail-console-api-672785135387.us-central1.run.app/api/fleet/{basin} |
+| Curtail Order Scribe | `draft-order-for-signature` | https://curtail-console-api-672785135387.us-central1.run.app/api/queue/draft/{basin} |
+
+4 Curtail agents are discoverable in the registry.
+
+Each carries the route that actually reaches it. The registry enforces
+unique interface URLs, so four agents cannot share one address, and that
+constraint is correct: an address identifies an agent. Herald has no direct
+route because `deliver_order` has no HTTP call site; it is reached only as
+the final node of a full traversal, and its card says exactly that.
