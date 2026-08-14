@@ -43,8 +43,8 @@ The Fortified Enterprise Fleet track names seven platform components. This proje
 | Agent Registry | **Native, and populated.** All four fleet agents were registered and discoverable in `agents.list` on a non-organization account ([ADR 0001](docs/adr/0001-governance-platform.md)) as of the stamped probe in [DEPLOYMENT.md](docs/DEPLOYMENT.md), each with its skills and the route that actually reaches it. That record is a **snapshot**: CI never queries the network on purpose, so `make deployed-check` re-probes and fails on drift, and it is run before recording or submitting. Registration is a committed, re-runnable script ([register_agents.py](scripts/register_agents.py)) that builds the catalog from the graph's own node constants, refuses to run if they drift, and refuses to register a route the deployed service does not serve. There is no `agents.create`: registration goes through `services.create` and the registry derives the agent record |
 | Agent Identity | Native. API confirmed, write path scheduled |
 | Model Armor | **Native, and called by the shipped Scribe as layer 2.** The Scribe node screens untrusted order text through Model Armor before drafting ([model_armor.py](agents/src/curtail_agents/model_armor.py)), chunked to stay inside the documented prompt-injection window so a payload buried on page 40 is still seen, and a partial or unreachable screen reports UNAVAILABLE rather than clean. **This row said "cannot be re-verified" for weeks and that was a wrong diagnosis, not a wrong API:** `gcloud model-armor templates list` returns PERMISSION_DENIED on this account while the REGIONAL endpoint `modelarmor.us-central1.rep.googleapis.com` answers 200 with the same credentials. Layer 1 stays application-side and offline: untrusted text is normalised, matched against injection patterns, fenced and stripped before it can reach a prompt ([sanitize.py](agents/src/curtail_agents/sanitize.py)), and every drafted citation is checked against a verified allowlist ([routing.py](agents/src/curtail_agents/routing.py)). **The two layers are not redundant, and `make chaos` demonstrates why:** on 2026-08-14 the vendor filter matched the injection presented alone and did NOT match the same injection embedded in a plausible Board order, which is exactly the indirect surface this system has. Layer 1 caught both |
-| Agent Runtime / Memory Bank | **Partial, and narrower than this row used to claim.** The ledger serialises to ADK session state and a test injects a real `DatabaseSessionService`, writing with one and reading with a second against the same file, which proves the state survives a restart ([test_ledger.py](agents/tests/test_ledger.py)). The deployed console constructs an `InMemorySessionService` **per request**, so a traversal has real session state while it runs and **nothing persists** once the response is sent: no season state survives in production, and the response says so in its own body rather than leaving a reader to assume a ledger exists. Vertex AI Agent Engine hosting *(not built yet)* |
-| Agent Observability | OpenTelemetry to Cloud Trace, Logging, Monitoring *(not built yet)* |
+| Agent Runtime / Memory Bank | **Partial, and the durable half is done as of revision 00031.** Signing an order writes its statutory clocks to Cloud Firestore, and a SECOND independently constructed client reads the season back ([SEASON.md](docs/SEASON.md), [season_store.py](agents/src/curtail_agents/season_store.py)). Production returns a season written by a different process on a different machine. Two honest limits remain and are stated rather than implied: the ADK traversal still constructs an `InMemorySessionService` **per request**, so the graph's own session state does not outlive a response, and the approval queue is still in-process. Every response carries `durable` and names its store. Vertex AI Agent Engine hosting *(not built yet)* |
+| Agent Observability | **Native, and exporting.** The shipped source imports the Cloud Trace exporter, installs a tracer provider, and the HTTP entrypoint calls `configure_tracing` at import ([telemetry.py](agents/src/curtail_agents/telemetry.py)). ADK opens an `invoke_node` span per fleet node and an `invoke_workflow` span around the traversal, so the agent-hop trace is a property of the graph rather than something this project instruments by hand. It exports only where a project id is present, and **the fleet response says which of the two it did**, because a tracing layer that is off and a tracing layer that is working look identical from outside |
 | Agent Gateway | **Substituted.** No first-party API is exposed to a non-organization account. Its role is covered by per-agent least-privilege service accounts, API Gateway, egress allowlisting, and Model Armor called inline. Reasoning in [ADR 0001](docs/adr/0001-governance-platform.md) |
 
 An integration a judge cannot reach scores as absent, and scores worse than an honest statement of what is not running. So the substitution is disclosed here rather than implied away.
@@ -129,7 +129,26 @@ owner cell on continuation rows. Counts and the source hash in
 officer, server side. The wrong officer's signature is none, an approval binds to the
 digest of the exact bytes reviewed, and an unverified draft cannot be approved without
 naming every finding being overridden. The queue lives in the serving process and says
-so on every response, because no database is wired.
+so on every response. Firestore holds the Season Ledger, not the queue: an unsigned
+draft waiting for review is genuinely volatile, and the response says which of the two
+a reader is looking at.
+
+**The Gemma Normalizer**, and it runs on the operator's own hardware. A new addendum
+arrives as a PDF whose layout drifts between issuances, and something has to turn it
+into the ingestion schema. `gemma3:4b` does that through a local runtime: no API key, no
+egress, no third party. That is the data sovereignty answer as a mechanism rather than a
+sentence, because a watermaster district handles records about named landowners and
+"send the documents to a third-party inference API" is a procurement conversation.
+
+**Every value it extracts must appear verbatim in the source document**, or it is
+reported as unverified and never returned as a value ([normalizer.py](agents/src/curtail_agents/normalizer.py)).
+Three fields were deleted from its schema after live runs disagreed with them: the
+narrative states eleven distinct cfs figures, two observed readings, and a priority
+RANGE whose endpoints both pass a verbatim check while only one is legally operative.
+Choosing between those is the determination 875(b) vests in the Deputy Director, so the
+model does not get to make it. **Gemma identifies and files the document, the
+deterministic parsers read its table, and a human reads its law.** A real local run is
+recorded in [NORMALIZER.md](docs/NORMALIZER.md).
 
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
@@ -142,14 +161,22 @@ failures, three guards, and eight disarm tests prove it fails when a guard is
 removed. It states one residual risk out loud: a worker that crashes between sending
 a notice and recording it will re-send, which no dedup table can prevent.
 
-**The Season Ledger**, which is what "weeks of asynchronous operations" means here.
-Statutory clocks are stored as facts of record and the serialisation survives a
-restart, proven by a test that writes with one `DatabaseSessionService` and reads with
-a second against the same file. **The deployed console does not run one**, so nothing
-persists in production yet; what is proven is that the ledger round-trips through a
-real ADK session service, not that this deployment keeps a season. The judicial-review window runs from final action rather than
-adoption, because for a delegated order those are different events up to 90 days
-apart.
+**The Season Ledger**, which is what "weeks of asynchronous operations" means here, and
+it is durable in production. Signing an order writes its statutory clocks to **Cloud
+Firestore**, and `GET /api/season/{basin}` reads them back with what is still running:
+the 30-day reconsideration window and 90-day Board response under Water Code 1122, the
+30-day judicial review window under 1126(b), certification under 23 CCR 875.6 and the
+information-order response under 875.8. The judicial-review window runs from final
+action rather than adoption, because for a delegated order those are different events up
+to 90 days apart, and the reconsideration window carries **exhaustion required**: these
+orders issue under delegated authority, so a petition is a prerequisite to judicial
+review rather than an optional first step.
+
+The check that proves durability is a **second, independently constructed client**
+reading a season back, recorded in [SEASON.md](docs/SEASON.md). Reading through the
+object that just wrote is satisfied by a dictionary. An unreachable store answers 503
+rather than an empty season, and every response carries `durable` and names its store,
+because an empty season and a lost season look identical and mean opposite things.
 
 **The approval boundary.** Nothing self-executes. An approval binds to the digest of
 the exact draft reviewed, the officer identity comes from an HMAC-verified token
