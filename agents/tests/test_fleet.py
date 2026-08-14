@@ -1464,6 +1464,65 @@ class TestTheHeraldNodeDistributes:
         assert out[DELIVERY] is None
         assert expected in out[DELIVERY_UNAVAILABLE]
 
+    async def test_an_escalated_draft_is_never_distributed(self) -> None:
+        """**A draft EXISTING is not a draft being fit to send.**
+
+        The refusal check tested only for absence, and an escalated draft is not
+        absent: `draft_order` deliberately RETURNS its text on escalation, because a
+        watermaster reviewing why a draft was refused needs to see what was written.
+        The Scribe's contract says the LABEL is what keeps it out of the PDF
+        generator. Nothing enforced the same for distribution, so a draft that had
+        just failed the hallucination guard twice was handed to Herald and served,
+        which is worse than reaching a PDF: certified mail records it as
+        `constitutes_legal_service`.
+
+        Seen in production before the fix, on a traversal where the model drafted a
+        Shasta order in Scott's ladder vocabulary, the guard escalated it, and a
+        recipient was still recorded as legally served.
+        """
+        from curtail_agents.fleet import DELIVERY, DELIVERY_UNAVAILABLE, _herald
+
+        escalated = DraftOutcome(
+            text="DRAFT ORDER asserting a right outside the computed set",
+            verdict=Verdict.ESCALATE,
+            guard=GuardResult(verdict=Verdict.ESCALATE, reason="asserts an unsupported right"),
+            attempts=2,
+            model="test-double",
+            escalated=True,
+        )
+        assert not escalated.may_reach_pdf, "the fixture must actually be an escalated draft"
+
+        out = await _herald(
+            {"recommendation": _recommendation(), "draft": escalated},
+            recipients=self._party(),
+            transport_name="synthetic",
+        )
+
+        assert out[DELIVERY] is None, "an unverified draft was distributed"
+        reason = out[DELIVERY_UNAVAILABLE]
+        assert "did not pass its guards" in reason
+        assert "UNVERIFIED" in reason
+        assert "asserts an unsupported right" in reason, (
+            "the refusal does not carry the guard's own reason, so a reviewer cannot "
+            "tell why the draft was held"
+        )
+
+    async def test_a_passing_draft_is_still_distributed(self) -> None:
+        """The other half, so the fix cannot be satisfied by refusing everything.
+
+        A guard that blocks every draft would pass the test above and destroy the
+        product. Both directions asserted, which is this session's lesson.
+        """
+        from curtail_agents.fleet import DELIVERY, DELIVERY_UNAVAILABLE, _herald
+
+        out = await _herald(
+            {"recommendation": _recommendation(), "draft": _outcome()},
+            recipients=self._party(),
+            transport_name="synthetic",
+        )
+        assert out[DELIVERY] is not None, "a passing draft must still be distributed"
+        assert out.get(DELIVERY_UNAVAILABLE) is None
+
     async def test_no_recipients_is_a_real_state_and_says_so(self) -> None:
         from curtail_agents.fleet import DELIVERY, DELIVERY_UNAVAILABLE, _herald
 
