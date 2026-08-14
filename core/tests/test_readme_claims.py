@@ -117,9 +117,32 @@ class TestAPlaceholderCannotBeOvertakenByReality:
     #: fact already overtaken, since the Season Ledger persists session state, so
     #: the row now says which half is built and this entry keeps it honest.
     OVERTAKEN_BY: ClassVar[dict[str, str | None]] = {
-        "Agent Runtime / Memory Bank": "agents/src/curtail_agents/ledger.py",
-        "Agent Observability": None,  # genuinely not built
+        "Agent Runtime / Memory Bank": "agents/src/curtail_agents/season_store.py",
+        # Was `None`, meaning "genuinely not built", and that entry was STALE: the
+        # Cloud Trace exporter shipped and this row went on disclaiming it. A None
+        # entry is skipped by the check below, so it is unfalsifiable BY
+        # CONSTRUCTION, which is the vacuous-guard shape this suite exists to catch.
+        # `test_no_entry_is_unfalsifiable` now forbids the whole branch.
+        "Agent Observability": "agents/src/curtail_agents/telemetry.py",
     }
+
+    def test_no_entry_is_unfalsifiable(self) -> None:
+        """A `None` here means no artifact could ever contradict the disclaimer.
+
+        The check below skips those, so registering one is registering a guard that
+        cannot fire. It is exactly the stale exemption this project found in the env
+        template on the same day: an excuse nobody re-examines, written down in the
+        test suite, asserting that a capability does not exist.
+
+        A genuinely unbuildable component would need a deliberate, separately named
+        escape hatch rather than a quiet None.
+        """
+        unfalsifiable = sorted(k for k, v in self.OVERTAKEN_BY.items() if v is None)
+        assert not unfalsifiable, (
+            f"{unfalsifiable} are registered with nothing that could falsify them, so "
+            "the staleness check skips them entirely. Name the artifact that would "
+            "prove the disclaimer wrong."
+        )
 
     @staticmethod
     def _placeholders_in(readme: str) -> list[tuple[str, str]]:
@@ -457,12 +480,33 @@ class TestNoClaimAboutTheDeployedServiceItDoesNotSupport:
             assert "Nothing in `agents/src` constructs a session service" not in flat, (
                 f"{constructed} is constructed in agents/src and the README denies it"
             )
+        # **This check used to conflate two questions and the conflation has now been
+        # falsified.** It reasoned: the only session service is in memory, therefore
+        # nothing persists, therefore the README must say "nothing persists". That
+        # inference held only while the ADK session service was the sole candidate for
+        # durability. `season_store.py` writes signed orders and their statutory clocks
+        # to Firestore, so the graph's session state and the season's record are now
+        # separate facts with opposite answers, and a test demanding the old sentence
+        # would force the README to understate the project. A test that defends a
+        # retired claim is worse than no test, because correcting the claim reads as
+        # the regression.
         if "InMemorySessionService" in constructed and "DatabaseSessionService" not in constructed:
-            assert "nothing persists" in flat or "persists nothing" in flat, (
-                "the only session service constructed is in memory, so the README must "
-                "say that nothing survives the response rather than leaving a reader to "
-                "assume a season ledger exists"
+            assert "session state does not outlive a response" in flat, (
+                "the only ADK session service constructed is in memory, so the README "
+                "must say the graph's own session state does not survive the response. "
+                "That is a narrower claim than 'nothing persists', and deliberately: "
+                "the Season Ledger does persist."
             )
+
+        durable_store = (REPO / "agents" / "src" / "curtail_agents" / "season_store.py").exists()
+        if durable_store:
+            for retired in ("nothing persists in production", "no database is wired"):
+                assert retired not in flat, (
+                    f"the README says {retired!r} while season_store.py ships a durable "
+                    "store that production reports as durable. Understating a project "
+                    "to a judge is the same defect as overclaiming, and it is the "
+                    "direction nobody guards for."
+                )
 
     def test_the_fact_sheet_agrees_with_the_readme_about_persistence(self) -> None:
         """The two artifacts must not be able to contradict each other, which is what
