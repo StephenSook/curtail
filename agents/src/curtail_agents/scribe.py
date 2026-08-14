@@ -134,13 +134,14 @@ def _priority_as_stated(entry: Any) -> str:
     denied knowing the very fact the placement rests on. `SG005441` carries 1977, which
     is unambiguously after the 1932 Shasta Adjudication, and its Tier A placement is
     correct BECAUSE of that year.
+
+    **This delegates rather than implements.** The same logic lived here alone, and the
+    API went on serialising the bare date, so one right rendered two ways depending on
+    which surface a reader was looking at. The rendering now belongs to the ledger entry
+    and every consumer shares it.
     """
-    if entry.priority_date is not None:
-        text: str = entry.priority_date.isoformat()
-        return text
-    if entry.priority_year_only is not None:
-        return f"{entry.priority_year_only} (year only, no month or day in the record)"
-    return "not stated"
+    stated: str = entry.priority_as_stated
+    return stated
 
 
 def build_prompt(recommendation: Recommendation, *, feedback: str = "") -> str:

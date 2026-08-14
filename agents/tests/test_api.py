@@ -547,6 +547,42 @@ class TestTheRecommendationEndpoint:
         assert "judgment_inputs" in body
         assert isinstance(body["judgment_inputs"], list)
 
+    def test_a_year_only_priority_survives_to_the_response(self) -> None:
+        """The API used to report `null` for a right whose YEAR the record states.
+
+        The Scribe was taught the three-state distinction and this endpoint was not, so
+        the same right rendered as "1977 (year only)" in the order document and as
+        nothing at all over HTTP. A reader comparing the two would conclude the document
+        asserted a priority the system did not hold.
+
+        Asserted against the RESPONSE. The sibling test above reads the year from the
+        committed record to build its expectation, which proves the parser kept it and
+        proves nothing about what gets served.
+        """
+        body = (
+            TestClient(app)
+            .get("/api/recommendation/shasta?cfs=46.5&at=2026-06-15T12:00:00%2B00:00")
+            .json()
+        )
+        lines = {entry["right_id"]: entry for entry in body["ledger"]}
+        entry = lines["SG005441"]
+
+        assert entry["priority_date"] is None, "this right has no full date on record"
+        assert entry["priority_year_only"] == 1977
+        assert entry["priority_as_stated"] == ("1977 (year only, no month or day in the record)"), (
+            "a bare year would read as a date, and 'not stated' would deny the record"
+        )
+
+        # The placement rests on that year: 1977 is after the 1932 Shasta decree, so
+        # Tier A is reached on evidence rather than by defaulting an unknown.
+        assert entry["grouping"] == "Tier A"
+
+        # And the distinction has to be real, not an unused key nothing populates.
+        dated = [e for e in body["ledger"] if e["priority_date"] is not None]
+        assert dated, "no dated rights, so this proves nothing about the other branch"
+        assert all(e["priority_year_only"] is None for e in dated)
+        assert all(e["priority_as_stated"] == e["priority_date"] for e in dated)
+
     def test_every_ledger_line_carries_its_authority(self) -> None:
         """A disposition with no citation is an assertion with no basis, which is the
         thing the ledger exists to prevent."""

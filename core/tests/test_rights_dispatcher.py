@@ -15,10 +15,36 @@ from pathlib import Path
 
 import pytest
 
+from curtail_core.allocation import RightLedgerEntry
 from curtail_core.basins import Basin
+from curtail_core.priority import Placement
 from curtail_core.rights import rights_for
 from curtail_core.rights_record import RightsRecordUnavailableError
 from curtail_core.scott_rights import load_scott_rights
+
+
+def _ledger_entry(
+    *, priority_date: date | None, priority_year_only: int | None
+) -> RightLedgerEntry:
+    """A real ledger entry, so a rendering test cannot pass against an invented shape."""
+    return RightLedgerEntry(
+        right_id="SG005441",
+        placement=Placement(
+            right_id="SG005441",
+            basin=Basin.SHASTA,
+            rank=1,
+            grouping_label="Tier A",
+            citation="23 CCR 875.5(b)(1)(A)",
+            reason="stated for this test",
+        ),
+        reached_by_extent=True,
+        lcs_protected=False,
+        lcs_id=None,
+        diversion_cfs=None,
+        note="",
+        priority_date=priority_date,
+        priority_year_only=priority_year_only,
+    )
 
 
 class TestBothBasinsLoad:
@@ -261,25 +287,37 @@ class TestAYearOnlyPriorityIsCarriedNotDiscarded:
         )
 
     def test_the_ledger_line_states_the_year_rather_than_denying_it(self) -> None:
+        """Built on the REAL ledger entry, not a stub.
+
+        These two tests originally fed the Scribe a hand-rolled object carrying just the
+        two attributes the helper read. That stub is the same failure this whole case is
+        about, one level up: it cannot notice when the real entry grows a rendering the
+        helper should be using, which is exactly how the API went on serialising a bare
+        date after the Scribe had been fixed. A test that invents its own subject cannot
+        catch a divergence between subjects.
+        """
         from curtail_agents.scribe import _priority_as_stated
 
-        class _Entry:
-            priority_date = None
-            priority_year_only = 1977
-
-        rendered = _priority_as_stated(_Entry())
+        entry = _ledger_entry(priority_date=None, priority_year_only=1977)
+        rendered = _priority_as_stated(entry)
         assert "1977" in rendered
         assert "year only" in rendered
         assert "not stated" not in rendered, (
             "the order text denies knowing the fact its own placement rests on"
         )
+        assert rendered == entry.priority_as_stated, "two renderings of one fact drift"
 
     def test_a_right_with_neither_still_reads_as_not_stated(self) -> None:
         """The third state has to stay distinguishable from the other two."""
         from curtail_agents.scribe import _priority_as_stated
 
-        class _Entry:
-            priority_date = None
-            priority_year_only = None
+        entry = _ledger_entry(priority_date=None, priority_year_only=None)
+        assert _priority_as_stated(entry) == "not stated"
+        assert entry.priority_as_stated == "not stated"
 
-        assert _priority_as_stated(_Entry()) == "not stated"
+    def test_a_full_date_renders_as_the_date(self) -> None:
+        """The branch the other two do not cover, so the helper cannot be a constant."""
+        from curtail_agents.scribe import _priority_as_stated
+
+        entry = _ledger_entry(priority_date=date(1916, 8, 28), priority_year_only=None)
+        assert _priority_as_stated(entry) == "1916-08-28"
