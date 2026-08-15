@@ -25,6 +25,7 @@ From the locked design spec, and each verdict has a reason rather than a prefere
   its provenance reinforces the institutional tone of a curtailment console.
 - **Source Serif 4** for drafted legal prose. It reads as a formal transitional document
   serif, which matters because those panes are supposed to look like real orders.
-- **JetBrains Mono** for identifiers. Best-in-class glyph disambiguation (`0/O`, `1/l/I`)
-  which is the entire job when the strings are application numbers and gage ids.
+- **JetBrains Mono** for identifiers. It separates `0` from `O` and `1` from `l` and `I`
+  more clearly than any other face evaluated, which is the entire job when the strings
+  are application numbers and gage ids.
   Ligatures are OFF: these are identifiers, not code.
