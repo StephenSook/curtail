@@ -14,7 +14,13 @@ on Model Armor being reachable.
 half-demonstrated run quoted as a full one is precisely the false green the drill was
 built to disprove.
 
-    GOOGLE_CLOUD_PROJECT=curtail-505118 uv run python scripts/record_chaos.py
+**Do not call this directly to record.** `make chaos-recording` is the documented entry
+point, and it calls this with `--print` so one run is both the on-camera drill and the
+record. They were two near-identically named targets until a review pointed out that the
+one everybody runs never touched the record, which let the record go stale while the gate
+passed on it.
+
+    GOOGLE_CLOUD_PROJECT=curtail-505118 make chaos-recording          # drill + record
     GOOGLE_CLOUD_PROJECT=curtail-505118 uv run python scripts/record_chaos.py --check
 """
 
@@ -33,7 +39,7 @@ OUT = REPO / "docs" / "CHAOS.md"
 STABLE_END = "## When this was recorded"
 
 
-def build() -> str:
+def build(*, show: bool = False) -> str:
     sys.path.insert(0, str(REPO / "agents" / "src"))
     from curtail_agents.chaos import run_drill
 
@@ -46,6 +52,19 @@ def build() -> str:
         )
 
     results = run_drill()
+
+    # **Printed, because this is also the on-camera run.** `make chaos-recording` calls
+    # this, and a reviewer pointed out that the recorder and the documented drill command
+    # had drifted into two near-identically named targets: the one everybody runs printed
+    # the drill and never touched the record, so the record could sit stale while the gate
+    # passed on it. One run, printed and recorded, removes the gap rather than documenting
+    # around it.
+    if show:
+        print("CURTAIL chaos drill: three injected failures, three guards\n")
+        for result in results:
+            print(result.render())
+            print()
+
     partial = [r for r in results if not r.complete]
     if partial:
         raise SystemExit(
@@ -101,9 +120,15 @@ def _stable(text: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the record has drifted")
+    parser.add_argument(
+        "--print",
+        dest="show",
+        action="store_true",
+        help="also print the drill to stdout, which is what gets recorded on camera",
+    )
     args = parser.parse_args(argv)
 
-    fresh = build()
+    fresh = build(show=args.show)
     if not args.check:
         OUT.write_text(fresh)
         print(f"wrote {OUT.relative_to(REPO)}")
