@@ -10,8 +10,8 @@ deploys on merge, so the repository can be correct and the live URL behind it.
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
 - Commit the container reports: `097879437f9c3ec83a7a1defe63f53e407d9b894`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `097879437f9c3ec83a7a1defe63f53e407d9b894`
-- Probed at: `2026-08-15T02:47:01+00:00`
+- Probed at repository commit: `10acd233f22165f64445e647b933334daa4c646b`
+- Probed at: `2026-08-15T02:56:45+00:00`
 - Serving revision at probe time: `curtail-console-api-00036-v5s`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
@@ -50,6 +50,7 @@ record for that reason, so a newer revision serving it contradicts nothing.
 
 - Season Ledger durable in production: **True**
 - Container reports its own commit: **yes**
+- Deployment built from the current runtime source: **yes**
 
 | Capability | Route that settles it | Served |
 |---|---|---|
@@ -78,9 +79,14 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-Cloud Trace could not be read: HTTP Error 400: Bad Request
+- `curtail.fleet_request`
+- `invocation`
+- `invoke_workflow curtailment`
+- `invoke_node gage_sentinel`
+- `invoke_node allocation_core`
+- `invoke_node order_scribe`
+- `invoke_node herald`
 
-Recorded as unknown rather than as a failure. The fact sheet's telemetry
-claim is computed from source, and source cannot see whether a span landed;
-this section is the other half of that question and it can only answer when
-somebody has actually driven the fleet.
+7 spans. ADK opens `invoke_node` per fleet member and
+`invoke_workflow` around the traversal; the root `curtail.fleet_request`
+span carries the correlation id, so a trace and a log line join on one key.

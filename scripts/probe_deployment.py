@@ -124,6 +124,101 @@ def _head_sha() -> str:
     ).stdout.strip()
 
 
+#: Every path the Dockerfile copies into the image, and the Dockerfile itself.
+#:
+#: This list is what makes staleness DECIDABLE rather than a matter of comparing two
+#: hashes and shrugging. A commit touching only docs, scripts or tests produces a
+#: byte-identical runtime, so the served SHA differing from HEAD is cosmetic. A commit
+#: touching one of these produces a different program, and a live URL running the old
+#: one while the repository advertises the new one is the exact failure this file was
+#: written after: every gate green, the endpoint the README had started advertising
+#: returning 404 in production.
+#:
+#: Keep in step with the Dockerfile. A path added there and not here would be a
+#: runtime change this guard cannot see, which is the tracked-files blind spot one
+#: file over, so a test asserts the two agree.
+IMAGE_PATHS: tuple[str, ...] = (
+    "Dockerfile",
+    "pyproject.toml",
+    "uv.lock",
+    "core/pyproject.toml",
+    "agents/pyproject.toml",
+    "core/src",
+    "agents/src",
+)
+
+
+def _runtime_drift(served_rev: str | None) -> tuple[str, list[str]]:
+    """Whether the deployed image was built from the runtime source HEAD now has.
+
+    Returns one of `yes`, `no`, `unknown`, plus the runtime paths that differ.
+
+    **`unknown` is a third value on purpose and must never collapse into `yes`.** The
+    served commit is unresolvable whenever the container is not stamped, whenever a
+    rebase has rewritten the commit it names, and inside a shallow clone. In every one
+    of those the honest answer is that staleness cannot be determined, and this project
+    has already shipped one bug from letting a failed check read as a clean result.
+    """
+    if not served_rev:
+        return "unknown", []
+    known = subprocess.run(
+        ["git", "cat-file", "-e", f"{served_rev}^{{commit}}"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
+    if known.returncode != 0:
+        return "unknown", []
+    changed = subprocess.run(
+        ["git", "diff", "--name-only", served_rev, "HEAD", "--", *IMAGE_PATHS],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
+    if changed.returncode != 0:
+        return "unknown", []
+    paths = sorted(line for line in changed.stdout.splitlines() if line.strip())
+    paths = [path for path in paths if not _only_the_probe_stamp_moved(served_rev, path)]
+    return ("no" if paths else "yes"), paths
+
+
+#: The one line in the packaged fact sheet that this very script rewrites.
+PROBE_STAMP_MARKER = "as recorded by `scripts/probe_deployment.py` at "
+
+
+def _only_the_probe_stamp_moved(served_rev: str, path: str) -> bool:
+    """True when a runtime file differs ONLY in the stamp the probe itself writes.
+
+    **Without this the guard could never go quiet, and a gate that is permanently red
+    is one people route around.** The generated fact sheet ships inside the image, so
+    it is genuinely runtime source, and it carries a line naming the probe's timestamp
+    and the revision serving at that moment. Probing rewrites that line, which makes
+    the file differ from the deployed copy, which reports stale, which prompts a
+    deploy, after which the next probe rewrites the line again. The cycle never
+    settles, and the record already says why: a served sheet can never name its own
+    serving revision, because deploying it creates a revision newer than the stamp.
+
+    So the stamp is normalized out and EVERYTHING ELSE still counts. A real claim
+    changing in the fact sheet is still a stale deployment, which matters because a
+    claim can change from an edit outside the image paths and would otherwise be the
+    one kind of drift this guard is blind to.
+    """
+    deployed = subprocess.run(
+        ["git", "show", f"{served_rev}:{path}"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
+    current = REPO / path
+    if deployed.returncode != 0 or not current.is_file():
+        return False
+
+    def without_stamp(text: str) -> list[str]:
+        return [line for line in text.splitlines() if PROBE_STAMP_MARKER not in line]
+
+    return without_stamp(deployed.stdout) == without_stamp(current.read_text())
+
+
 def _registered_agents() -> tuple[list[dict[str, str]], str | None]:
     """The Curtail agents the live Agent Registry holds, or the reason it cannot be read.
 
@@ -378,7 +473,31 @@ def build() -> str:
     # goes unnoticed.
     add(f"- Season Ledger durable in production: **{caps['durable']}**")
     add(f"- Container reports its own commit: **{'yes' if caps['stamped'] else 'no'}**")
+    # **The whole reason this file exists, finally stated as a value rather than as a
+    # caveat.** The header above prints the served commit beside the repository commit
+    # and leaves the reader to compare them, which is the printed-caveat shape: a
+    # warning nothing acts on. This line is inside the compared region, so a runtime
+    # change that never reached production turns `make deployed-check` red.
+    #
+    # It goes red only for a REAL divergence. Docs, scripts and tests are not in the
+    # image, so the ordinary commit leaves this `yes` and the gate stays quiet, which
+    # is what keeps it from becoming a gate people route around.
+    drift, drifted = _runtime_drift(served_rev)
+    add(f"- Deployment built from the current runtime source: **{drift}**")
     add("")
+    if drift == "no":
+        add(f"**Production is STALE.** {len(drifted)} runtime path(s) changed since the")
+        add("commit the container names, so the live URL is running a different program")
+        add("from the one this repository describes. Run `make deploy`.")
+        add("")
+        for path in drifted:
+            add(f"- `{path}`")
+        add("")
+    elif drift == "unknown":
+        add("**Staleness could not be determined**, which is recorded as its own value")
+        add("and never as current. The container is unstamped, or names a commit this")
+        add("clone does not contain, so the question has no answer from here.")
+        add("")
     add("| Capability | Route that settles it | Served |")
     add("|---|---|---|")
     for route, claim in sorted(CLAIMED_ROUTES.items(), key=lambda pair: pair[1]):
