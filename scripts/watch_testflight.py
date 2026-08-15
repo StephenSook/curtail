@@ -67,18 +67,32 @@ def token(key_id: str, issuer: str, key_path: Path) -> str:
     """
     if not key_path.is_file():
         raise WatchError(f"no private key at {key_path}. Set ASC_KEY_PATH.")
-    private = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+    try:
+        private = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+    except Exception as exc:  # not PEM, encrypted, truncated
+        raise WatchError(f"{key_path} could not be read as an unencrypted PEM key: {exc}") from exc
     if not isinstance(private, ec.EllipticCurvePrivateKey):
         raise WatchError(f"{key_path} is not an EC private key")
+    # ES256 IS P-256. A P-384 key would overflow the 32-byte halves below with an
+    # OverflowError rather than a diagnosis, and the whole contract here is that a
+    # credential problem exits 2 saying UNKNOWN instead of producing a traceback.
+    if not isinstance(private.curve, ec.SECP256R1):
+        raise WatchError(
+            f"{key_path} is on curve {private.curve.name}. App Store Connect signs with "
+            "ES256, which requires P-256 (secp256r1)."
+        )
 
     now = int(time.time())
     header = {"alg": "ES256", "kid": key_id, "typ": "JWT"}
     payload = {"iss": issuer, "iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"}
     signing_input = f"{_b64(json.dumps(header).encode())}.{_b64(json.dumps(payload).encode())}"
 
-    der = private.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
-    r, s = utils.decode_dss_signature(der)
-    raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+    try:
+        der = private.sign(signing_input.encode(), ec.ECDSA(hashes.SHA256()))
+        r, s = utils.decode_dss_signature(der)
+        raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+    except Exception as exc:
+        raise WatchError(f"could not sign the assertion with {key_path}: {exc}") from exc
     return f"{signing_input}.{_b64(raw)}"
 
 
@@ -124,18 +138,56 @@ def state() -> dict[str, Any]:
             "'nothing uploaded or the key cannot see this app'."
         )
 
+    # From here down every shape problem raises rather than degrading, because a
+    # DEGRADED read is the one outcome this script must never produce. Missing
+    # `buildBetaDetail` used to leave `internal` as None, which made
+    # `installable_internally` False, which made main() exit 1 and print "not yet". That
+    # is UNKNOWN wearing the answer's clothes, and it is the same defect as an errored
+    # query reading as a confident absence.
     build = data[0]
-    attrs = build.get("attributes", {})
-    included = {item["id"]: item for item in builds.get("included", [])}
+    if not isinstance(build, dict):
+        raise WatchError(f"the build resource was {type(build).__name__}, not an object")
+    attrs = build.get("attributes")
+    if not isinstance(attrs, dict):
+        raise WatchError("the build carried no attributes object")
 
-    def related(kind: str) -> dict[str, Any]:
-        ref = (build.get("relationships", {}).get(kind, {}) or {}).get("data")
-        return included.get(ref["id"], {}) if ref else {}
+    included: dict[str, Any] = {}
+    for item in builds.get("included") or []:
+        if isinstance(item, dict) and isinstance(item.get("id"), str):
+            included[item["id"]] = item
 
-    beta_detail = related("buildBetaDetail").get("attributes", {})
-    review = related("betaAppReviewSubmission").get("attributes", {})
+    def related(kind: str, *, required: bool) -> dict[str, Any]:
+        """The included resource for one relationship.
+
+        `required` separates "Apple did not send it" from "there is none". A build with
+        no external submission legitimately has no `betaAppReviewSubmission`, and that
+        is an ANSWER. A build with no `buildBetaDetail` means the read did not carry the
+        field the verdict is computed from, and that is not an answer.
+        """
+        relationships = build.get("relationships")
+        ref = (relationships or {}).get(kind, {})
+        ref = ref.get("data") if isinstance(ref, dict) else None
+        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
+            if required:
+                raise WatchError(f"the build carried no {kind} relationship to read")
+            return {}
+        resource = included.get(ref["id"])
+        if not isinstance(resource, dict):
+            if required:
+                raise WatchError(f"{kind} {ref['id']} was referenced but not included")
+            return {}
+        attributes = resource.get("attributes")
+        return attributes if isinstance(attributes, dict) else {}
+
+    beta_detail = related("buildBetaDetail", required=True)
+    review = related("betaAppReviewSubmission", required=False)
 
     internal = beta_detail.get("internalBuildState")
+    if not isinstance(internal, str):
+        raise WatchError(
+            "buildBetaDetail carried no internalBuildState, so whether this build is "
+            "installable is UNKNOWN rather than no."
+        )
     external = beta_detail.get("externalBuildState")
     return {
         "version": attrs.get("version"),
@@ -238,6 +290,42 @@ def notify(message: str) -> bool:
     return False
 
 
+def read_baseline() -> dict[str, Any]:
+    """The last observation, or an empty mapping if there is not a usable one.
+
+    Anything unreadable degrades to "no history", which re-notifies once rather than
+    going quiet. That is the safe direction for a watcher: a duplicate message is a
+    nuisance, a missing one is the failure.
+
+    It must be a JSON OBJECT. A bare `null` is valid JSON and would sail past a
+    `ValueError` guard, then crash `changes()` on `previous.get`.
+    """
+    try:
+        loaded = json.loads(STATE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def write_baseline(current: dict[str, Any]) -> None:
+    """Replace the baseline atomically.
+
+    `write_text` truncates first, so a crash or a kill mid-write leaves a half file, and
+    a concurrent run can read it. Writing a sibling temp file and calling `os.replace`
+    makes the swap atomic on POSIX, so a reader sees either the whole old file or the
+    whole new one.
+    """
+    temp = STATE_FILE.with_suffix(f".{os.getpid()}.tmp")
+    try:
+        temp.write_text(json.dumps(current))
+        os.replace(temp, STATE_FILE)
+    except OSError as exc:
+        temp.unlink(missing_ok=True)
+        # Not fatal: the state was still printed and any notification was still sent.
+        # It does mean the next run re-notifies, which is the harmless direction.
+        print(f"could not persist the baseline: {exc}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--once", action="store_true", help="print the state and exit")
@@ -252,25 +340,31 @@ def main(argv: list[str] | None = None) -> int:
         # UNKNOWN, and it says so. Not "not approved".
         print(f"UNKNOWN: {exc}", file=sys.stderr)
         return 2
+    except Exception as exc:  # the last line of defence, and it must not be silent
+        print(f"UNKNOWN: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 2
 
     line = summarise(current)
     print(json.dumps(current, indent=1))
     print(line)
 
     if args.notify:
-        previous = {}
-        if STATE_FILE.exists():
-            try:
-                previous = json.loads(STATE_FILE.read_text())
-            except ValueError:
-                previous = {}
-        changed = changes(previous, current)
-        STATE_FILE.write_text(json.dumps(current))
+        changed = changes(read_baseline(), current)
         if changed:
             delivered = notify(line)
             moved = ", ".join(f"{k}: {was} -> {now}" for k, (was, now) in sorted(changed.items()))
-            print(f"({'notified' if delivered else 'NOT notified'}: {moved})")
+            if delivered:
+                write_baseline(current)
+                print(f"(notified: {moved})")
+            else:
+                # The baseline deliberately does NOT advance. Advancing it here would
+                # make the next run see no change and never mention this again, so a
+                # notifier that was merely unavailable for one run would swallow the
+                # single message the whole watcher exists to deliver. Leaving it stale
+                # costs a repeated alert; advancing it costs the alert entirely.
+                print(f"(NOT notified, baseline held so the next run retries: {moved})")
         else:
+            write_baseline(current)
             print("(no change since last run, so no notification)")
 
     return 0 if current["installable_internally"] else 1
