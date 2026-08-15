@@ -1465,7 +1465,7 @@ def test_the_install_qr_encodes_the_field_url() -> None:
 
     target = REPO / "docs" / "field-qr.png"
     assert target.is_file(), "docs/field-qr.png is missing. Run `make qr`."
-    assert target.read_bytes() == module.build(), (
+    assert module._pixels(target.read_bytes()) == module._pixels(module.build()), (
         "the committed QR code does not encode " + module.FIELD_URL
     )
     assert module.FIELD_URL.endswith("/field"), "the QR points somewhere other than the field route"

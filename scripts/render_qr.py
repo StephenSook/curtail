@@ -43,6 +43,20 @@ def build() -> bytes:
     return buffer.getvalue()
 
 
+def _pixels(data: bytes) -> tuple[tuple[int, ...], ...]:
+    """Decoded pixels, for the same reason the icon renderer uses them.
+
+    PNG encoder output is not reproducible across platforms, so comparing bytes is a
+    check that passes where it was written and fails where it runs. What must not drift
+    is the CODE, and the code is the pixels.
+    """
+    from io import BytesIO
+
+    from PIL import Image
+
+    return tuple(Image.open(BytesIO(data)).convert("RGB").tobytes())  # type: ignore[return-value]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -59,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     if not TARGET.exists():
         print(f"{TARGET.relative_to(REPO)} does not exist. Run without --check.", file=sys.stderr)
         return 1
-    if TARGET.read_bytes() != fresh:
+    if _pixels(TARGET.read_bytes()) != _pixels(fresh):
         print(
             f"{TARGET.relative_to(REPO)} does not encode {FIELD_URL}. A QR code nobody "
             "can read is a link nobody can check, so this is a hard failure.",

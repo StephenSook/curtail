@@ -38,6 +38,20 @@ VARIANTS: tuple[tuple[str, int, float], ...] = (
 )
 
 
+def pixels(data: bytes) -> tuple[tuple[int, ...], ...]:
+    """Decoded pixel data, which is what the icon actually IS.
+
+    **PNG bytes are not reproducible across platforms.** Encoder output depends on the
+    Pillow and zlib build, so a byte comparison passes on the machine that wrote the
+    file and fails on a CI runner with a different zlib. That is exactly what happened:
+    green locally, red on Linux, with the two files visually identical.
+    """
+    from PIL import Image
+
+    image = Image.open(BytesIO(data)).convert("RGB")
+    return tuple(image.convert("RGB").tobytes())  # type: ignore[return-value]
+
+
 def render(size: int, scale: float) -> bytes:
     art = Image.open(SOURCE).convert("RGB")
     canvas = Image.new("RGB", (size, size), BACKGROUND)
@@ -62,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
         fresh = render(size, scale)
         target = ICONS / name
         if args.check:
-            if not target.exists() or target.read_bytes() != fresh:
+            if not target.exists() or pixels(target.read_bytes()) != pixels(fresh):
                 drifted.append(name)
             continue
         target.write_bytes(fresh)
