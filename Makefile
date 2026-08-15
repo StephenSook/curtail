@@ -216,3 +216,6 @@ gallery:  ## capture the Devpost gallery from the LIVE service (needs the networ
 
 qr:  ## Regenerate the field install QR code from the canonical URL
 	uv run python scripts/render_qr.py
+
+icons:  ## Re-derive the launcher icons from the committed source art
+	uv run python scripts/render_icons.py
