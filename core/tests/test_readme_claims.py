@@ -1108,3 +1108,23 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
         )
         for required in ("generate_facts.py", "generate_submission.py", "deployed-check"):
             assert required in commands, f"the gate does not check {required}"
+
+
+def test_the_deployment_record_states_durability_exactly_once() -> None:
+    """One fact, one rendering, and the rendering that counts is the compared one.
+
+    `build()` stated durability twice: in the volatile header alongside the store name,
+    and again inside the compared capability block. Not wrong, and not stable: the
+    header copy is the one `--check` never looks at, so the two could disagree with only
+    the guarded one being enforced. That is the same one-fact-two-renderings defect this
+    project fixed in the ledger and again in the console.
+
+    The store NAME stays in the header, because which store is a detail that changes
+    with configuration. Whether it is durable is the claim.
+    """
+    record = (REPO / "docs" / "DEPLOYMENT.md").read_text()
+    occurrences = record.count("durable in production")
+    assert occurrences == 1, (
+        f"durability is stated {occurrences} times. One of them is outside the compared "
+        "region and can drift unguarded."
+    )

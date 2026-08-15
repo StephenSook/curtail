@@ -8,11 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Commit the container reports: `614757ca168df42cf6dab78561b9fa63d4c61ed5`
-- Season Ledger durable in production: **True**, store: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `bc1f8f8a0ad4eac687f73ad62251b5434e4d4193`
-- Probed at: `2026-08-14T23:43:56+00:00`
-- Serving revision at probe time: `curtail-console-api-00035-8k4`
+- Commit the container reports: `097879437f9c3ec83a7a1defe63f53e407d9b894`
+- Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
+- Probed at repository commit: `097879437f9c3ec83a7a1defe63f53e407d9b894`
+- Probed at: `2026-08-15T02:47:01+00:00`
+- Serving revision at probe time: `curtail-console-api-00036-v5s`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -78,14 +78,9 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-- `curtail.fleet_request`
-- `invocation`
-- `invoke_workflow curtailment`
-- `invoke_node gage_sentinel`
-- `invoke_node allocation_core`
-- `invoke_node order_scribe`
-- `invoke_node herald`
+Cloud Trace could not be read: HTTP Error 400: Bad Request
 
-7 spans. ADK opens `invoke_node` per fleet member and
-`invoke_workflow` around the traversal; the root `curtail.fleet_request`
-span carries the correlation id, so a trace and a log line join on one key.
+Recorded as unknown rather than as a failure. The fact sheet's telemetry
+claim is computed from source, and source cannot see whether a span landed;
+this section is the other half of that question and it can only answer when
+somebody has actually driven the fleet.
