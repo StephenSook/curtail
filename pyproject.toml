@@ -36,6 +36,11 @@ dev = [
     # what proves the committed PNG encodes the URL it claims: a QR code is unreadable
     # to a reviewer, so a swapped image is invisible without one.
     "segno>=1.6.1,<2",
+    # Derives the three launcher icon sizes from the committed source art. Pillow so
+    # the maskable variant gets a REAL safe zone (content scaled inside the canvas)
+    # rather than a resized container, which is what the first attempt produced: two
+    # byte-identical files, one of them lying about being maskable.
+    "pillow>=11.0.0,<13",
     "pytest-asyncio>=1.4.0,<2",
     # Pulled in by the ledger's persistence test, which injects a real ADK
     # DatabaseSessionService. They were declared as RUNTIME dependencies of the agents

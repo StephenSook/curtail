@@ -339,3 +339,63 @@ class TestTheAndroidTrustLink:
         assert "*.keystore" in tracked or "*.jks" in tracked, (
             "add *.keystore and *.jks to .gitignore before anybody generates one"
         )
+
+
+class TestTheLauncherIconsAreDerivedFromOneSource:
+    """Three files that must not drift from each other or from the art.
+
+    The first version of these was drawn in CSS and the maskable variant was produced by
+    resizing a container whose children had fixed sizes, which changed nothing: two
+    byte-identical files, one of them claiming a safe zone it did not have.
+    """
+
+    @staticmethod
+    def _module() -> object:
+        import importlib.util
+
+        path = REPO / "scripts" / "render_icons.py"
+        spec = importlib.util.spec_from_file_location("render_icons", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_every_icon_matches_the_committed_source_art(self) -> None:
+        module = self._module()
+        for name, size, scale in module.VARIANTS:  # type: ignore[attr-defined]
+            target = module.ICONS / name  # type: ignore[attr-defined]
+            assert target.is_file(), f"{name} is missing. Run `make icons`."
+            assert target.read_bytes() == module.render(size, scale), (  # type: ignore[attr-defined]
+                f"{name} does not match the source art. Run `make icons`."
+            )
+
+    def test_the_maskable_variant_actually_reserves_a_safe_zone(self) -> None:
+        """Android crops a maskable icon to a circle, keeping roughly the inner 80%.
+
+        A maskable file identical to the plain one is a file that will have its artwork
+        cropped into by the mask, which is how a wordmark loses its first and last
+        letters on a real home screen.
+        """
+        module = self._module()
+        plain = (module.ICONS / "icon-512.png").read_bytes()  # type: ignore[attr-defined]
+        maskable = (module.ICONS / "icon-maskable-512.png").read_bytes()  # type: ignore[attr-defined]
+        assert plain != maskable, "the maskable icon is identical to the plain one"
+
+        scales = {name: scale for name, _, scale in module.VARIANTS}  # type: ignore[attr-defined]
+        assert scales["icon-maskable-512.png"] < 0.85, (
+            "the maskable artwork is too large to survive a circular crop"
+        )
+
+    def test_the_corners_the_mask_discards_are_background_not_white(self) -> None:
+        """A white corner is what a generated image leaves behind, and it shows."""
+        from PIL import Image
+
+        module = self._module()
+        image = Image.open(module.ICONS / "icon-maskable-512.png").convert("RGB")  # type: ignore[attr-defined]
+        for corner in ((2, 2), (509, 2), (2, 509), (509, 509)):
+            pixel = image.getpixel(corner)
+            assert isinstance(pixel, tuple), "expected an RGB pixel"
+            assert max(pixel) < 60, (
+                f"corner {corner} is {pixel}, which is not the app background. A "
+                "generated icon that kept its white frame looks broken on a home screen."
+            )
