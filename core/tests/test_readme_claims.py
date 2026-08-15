@@ -1416,3 +1416,32 @@ class TestTheChaosRecordProvesWhatTheVideoWillClaim:
         assert "attempt 1: RETRY" in record
         assert "attempt 2: ESCALATE" in record
         assert "UNVERIFIED" in record
+
+
+def test_the_documented_drill_command_actually_writes_the_record() -> None:
+    """The target everyone runs must be the target that records.
+
+    A review caught these drifted apart: `make chaos-recording` is what the README, the
+    pre-submit gate and the recording instructions all name, and it only ran the drill.
+    The recorder sat behind a SECOND, near-identically named target nobody was told
+    about, so `docs/CHAOS.md` could sit stale for weeks while the gate passed and the
+    video quoted it.
+
+    **Two commands whose names differ by three characters are one command with a
+    trap in it.** This asserts the documented one invokes the recorder, so the record
+    cannot go stale by following the instructions.
+    """
+    makefile = (REPO / "Makefile").read_text()
+    body = makefile.split("chaos-recording:", 1)[1].split("\n.PHONY", 1)[0]
+    assert "record_chaos.py" in body, (
+        "make chaos-recording no longer invokes the recorder, so following the "
+        "documented workflow leaves docs/CHAOS.md stale while the gate passes on it"
+    )
+    assert "--print" in body, (
+        "the recorder runs without --print, so the documented command produces no "
+        "on-camera output and the recording shows nothing"
+    )
+    assert "chaos-record:" not in makefile, (
+        "the near-identically named second target is back. That name collision is what "
+        "let the record and the documented command drift apart."
+    )

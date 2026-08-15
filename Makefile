@@ -184,7 +184,7 @@ chaos-recording: ## The drill, STRICT. Every layer must actually run. Use before
 	  echo "    GOOGLE_CLOUD_PROJECT=<your-project> make chaos-recording"; \
 	  echo "Refusing to pick one: a recorded drill must call the project you meant."; \
 	  exit 1; }
-	uv run python -m curtail_agents.chaos
+	uv run python scripts/record_chaos.py --print
 
 .PHONY: pre-submit
 pre-submit: ## Everything checkable, checked, before submitting. Exits 2 while a human item is outstanding.
@@ -213,9 +213,3 @@ thumbnail:  ## render the Devpost gallery thumbnail from its HTML source
 
 gallery:  ## capture the Devpost gallery from the LIVE service (needs the network)
 	uv run python scripts/capture_gallery.py
-
-chaos-record:  ## Run the drill and record what it proved, for the video to quote
-# Networked and strict: it calls the live Model Armor template and REFUSES to write a
-# record of a partial drill, because a half-demonstrated run quoted as a full one is the
-# false green the drill exists to disprove. Bare, so the refusal is the verdict.
-	GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT} uv run python scripts/record_chaos.py
