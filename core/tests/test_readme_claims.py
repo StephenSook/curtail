@@ -983,6 +983,72 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
             "the items needing no network must still be checked offline"
         )
 
+    def test_main_offline_makes_no_network_call_through_the_real_helper(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """**Through `main`, with the real `_human_items`.**
+
+        The sibling test above calls `_human_items(verify=False)` directly, which proves
+        the helper honours the flag and proves nothing about whether `main` PASSES it.
+        Changing that one call site to `verify=True` would put the network back into
+        `--offline` with every test still green: the unit test would keep asserting the
+        helper behaves, and the exit-code tests mock the helper away entirely.
+
+        A review found that gap, which is the same shape as the defect it guards, one
+        level up. So this one exercises the wiring: only `_run` is stubbed, because the
+        subprocess steps are slow and orthogonal, and everything under test is real.
+        """
+        module = self._module()
+        links = tmp_path / "links.json"
+        links.write_text(
+            json.dumps(
+                {
+                    "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    "organization_name": "Individual",
+                    "diagram_uploaded_at": "2026-08-31",
+                }
+            )
+        )
+        module.LINKS = links
+        monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
+
+        calls: list[str] = []
+
+        def _record(url: object, *args: object, **kwargs: object) -> object:
+            calls.append(str(url))
+            raise OSError("unreachable")
+
+        monkeypatch.setattr(module.urllib.request, "urlopen", _record)
+
+        code = module.main(["--offline"])
+        assert calls == [], f"main --offline made {len(calls)} network call(s): {calls}"
+        assert code == 3, "offline must report the skipped checks, whatever else passed"
+
+    def test_main_online_does_reach_the_network_through_the_real_helper(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Non-vacuity for the wiring test above.
+
+        If `main` passed `verify=False` unconditionally, the offline test would pass
+        forever and the video would never be verified by anyone.
+        """
+        module = self._module()
+        links = tmp_path / "links.json"
+        links.write_text(json.dumps({"video_url": "https://www.youtube.com/watch?v=x"}))
+        module.LINKS = links
+        monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
+
+        calls: list[str] = []
+
+        def _record(url: object, *args: object, **kwargs: object) -> object:
+            calls.append(str(url))
+            raise OSError("unreachable")
+
+        monkeypatch.setattr(module.urllib.request, "urlopen", _record)
+
+        module.main([])
+        assert calls, "main without --offline verified nothing"
+
     def test_verification_is_still_attempted_when_not_offline(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
