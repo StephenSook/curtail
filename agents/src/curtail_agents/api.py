@@ -22,6 +22,7 @@ nothing about any water right, any order, or any officer.
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import UTC, datetime
 from math import isfinite
@@ -151,6 +152,11 @@ def field_store() -> FieldStore:
 #: Same allowlist discipline as the fonts: three keys, three files, no path mapping.
 ICONS: tuple[str, ...] = ("icon-192.png", "icon-512.png", "icon-maskable-512.png")
 
+#: The Android package a Trusted Web Activity would ship under, and the environment
+#: variable carrying its signing certificate fingerprint.
+TWA_PACKAGE = "app.curtail.field"
+TWA_FINGERPRINT_ENV = "TWA_SHA256_FINGERPRINT"
+
 FONTS: dict[str, str] = {
     "public-sans.woff2": "public-sans-latin-wght-normal.woff2",
     "source-serif-4.woff2": "source-serif-4-latin-wght-normal.woff2",
@@ -278,6 +284,43 @@ def icon(name: str) -> Response:
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
+
+
+@app.get("/.well-known/assetlinks.json")
+def asset_links() -> Response:
+    """Digital Asset Links, so an installed Android app is trusted to drop the URL bar.
+
+    **It REFUSES when no fingerprint is configured rather than serving an empty list.**
+    An empty `assetlinks.json` is a valid JSON document that silently fails
+    verification, and the symptom is a shipped app showing a browser address bar with
+    no error anywhere to explain it. A 503 naming the missing variable is a diagnosis;
+    `[]` is a scavenger hunt.
+
+    The fingerprint comes from the signing keystore, which is a credential and is not
+    in this repository. Set it at deploy time.
+    """
+    fingerprint = os.environ.get(TWA_FINGERPRINT_ENV, "").strip().upper()
+    if not fingerprint:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"{TWA_FINGERPRINT_ENV} is not set, so no Android app can be verified "
+                "against this origin. Refused rather than served empty: an empty asset "
+                "links file fails verification silently and the only symptom is a URL "
+                "bar nobody can explain."
+            ),
+        )
+    statement = [
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": TWA_PACKAGE,
+                "sha256_cert_fingerprints": [fingerprint],
+            },
+        }
+    ]
+    return Response(content=json.dumps(statement, indent=2), media_type="application/json")
 
 
 @app.post("/api/field/measurement/{basin}")

@@ -143,3 +143,10 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-error.log*
+
+# Android signing material. A keystore is a credential with a password, and a leaked
+# one lets somebody ship an update that Android trusts as us.
+*.keystore
+*.jks
+twa-manifest.json
+android/
