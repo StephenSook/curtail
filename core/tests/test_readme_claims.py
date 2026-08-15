@@ -1487,3 +1487,49 @@ def test_the_readme_does_not_promise_an_apk_it_does_not_ship() -> None:
             "the README offers an apk download and the trust link is not configurable, "
             "so the installed app would show a browser URL bar"
         )
+
+
+def test_the_apk_the_readme_offers_is_actually_downloadable() -> None:
+    """A download link on a judge-facing page must resolve.
+
+    This project has already written down the failure: a hosted build artifact expires
+    on the provider's retention clock, and the symptom is a dead link while the repo,
+    the deploy and every check stay green. Release assets have no clock, and this
+    asserts the README points at one rather than at a CI artifact.
+    """
+    readme = (REPO / "README.md").read_text()
+    if "curtail-field.apk" not in readme:
+        return  # nothing claimed, nothing to check
+    assert "releases/download/" in readme, (
+        "the README offers an apk from something other than a release asset. CI "
+        "artifacts expire; release assets do not."
+    )
+    assert "/.well-known/assetlinks.json" in readme, (
+        "an apk is offered with no way for a reader to see the fingerprint it is verified against"
+    )
+    assert "keytool -printcert" in readme, (
+        "the README offers a binary download and no way to verify it is the one we "
+        "signed, which is the whole point of publishing the fingerprint"
+    )
+
+
+def test_both_qr_codes_encode_their_urls() -> None:
+    """Neither code is readable by a human, so both are checked by machine."""
+    import importlib.util
+
+    path = REPO / "scripts" / "render_qr.py"
+    spec = importlib.util.spec_from_file_location("render_qr", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert len(module.CODES) == 2, "expected a field code and an apk code"
+    for name, url in module.CODES:
+        target = REPO / "docs" / name
+        assert target.is_file(), f"docs/{name} is missing. Run `make qr`."
+        assert module._pixels(target.read_bytes()) == module._pixels(module.build(url)), (
+            f"docs/{name} does not encode {url}"
+        )
+    urls = dict(module.CODES)
+    assert urls["field-qr.png"].endswith("/field")
+    assert urls["apk-qr.png"].endswith(".apk")

@@ -23,12 +23,24 @@ import segno
 REPO = Path(__file__).resolve().parents[1]
 TARGET = REPO / "docs" / "field-qr.png"
 
-#: The one URL this code may encode. Named here so the check has something to compare
-#: against, and so changing the host is a code change that CI notices.
+#: The URLs these codes may encode. Named here so the check has something to compare
+#: against, and so changing a host is a code change that CI notices.
 FIELD_URL = "https://curtail-console-api-672785135387.us-central1.run.app/field"
 
+#: The signed Android build, published as a GitHub RELEASE asset rather than a CI
+#: artifact. Release assets have no retention clock; a CI artifact expires in days and
+#: the symptom is a dead download link on a judge-facing page while the repo, the
+#: deploy and every check stay green.
+APK_URL = "https://github.com/StephenSook/curtail/releases/download/v0.1.0-field/curtail-field.apk"
 
-def build() -> bytes:
+#: (target filename, url)
+CODES: tuple[tuple[str, str], ...] = (
+    ("field-qr.png", FIELD_URL),
+    ("apk-qr.png", APK_URL),
+)
+
+
+def build(url: str = FIELD_URL) -> bytes:
     """The PNG bytes for the field URL.
 
     Error correction M: enough redundancy to survive a phone camera at an angle in a
@@ -37,7 +49,7 @@ def build() -> bytes:
     """
     from io import BytesIO
 
-    code = segno.make(FIELD_URL, error="m")
+    code = segno.make(url, error="m")
     buffer = BytesIO()
     code.save(buffer, kind="png", scale=10, border=3, dark="#0A0A0B", light="#FFFFFF")
     return buffer.getvalue()
@@ -64,23 +76,26 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    fresh = build()
-    if not args.check:
-        TARGET.write_bytes(fresh)
-        print(f"wrote {TARGET.relative_to(REPO)}  {len(fresh):,} bytes  -> {FIELD_URL}")
-        return 0
+    drifted: list[str] = []
+    for name, url in CODES:
+        fresh = build(url)
+        target = REPO / "docs" / name
+        if args.check:
+            if not target.exists() or _pixels(target.read_bytes()) != _pixels(fresh):
+                drifted.append(name)
+            continue
+        target.write_bytes(fresh)
+        print(f"wrote docs/{name}  {len(fresh):,} bytes  -> {url}")
 
-    if not TARGET.exists():
-        print(f"{TARGET.relative_to(REPO)} does not exist. Run without --check.", file=sys.stderr)
-        return 1
-    if _pixels(TARGET.read_bytes()) != _pixels(fresh):
-        print(
-            f"{TARGET.relative_to(REPO)} does not encode {FIELD_URL}. A QR code nobody "
-            "can read is a link nobody can check, so this is a hard failure.",
-            file=sys.stderr,
-        )
-        return 1
-    print(f"{TARGET.relative_to(REPO)} encodes {FIELD_URL}")
+    if args.check:
+        if drifted:
+            print(
+                f"these codes do not encode their URL: {drifted}. A QR code nobody can "
+                "read is a link nobody can check, so this is a hard failure.",
+                file=sys.stderr,
+            )
+            return 1
+        print("every QR code encodes its URL")
     return 0
 
 
