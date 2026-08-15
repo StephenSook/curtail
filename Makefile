@@ -213,3 +213,9 @@ thumbnail:  ## render the Devpost gallery thumbnail from its HTML source
 
 gallery:  ## capture the Devpost gallery from the LIVE service (needs the network)
 	uv run python scripts/capture_gallery.py
+
+chaos-record:  ## Run the drill and record what it proved, for the video to quote
+# Networked and strict: it calls the live Model Armor template and REFUSES to write a
+# record of a partial drill, because a half-demonstrated run quoted as a full one is the
+# false green the drill exists to disprove. Bare, so the refusal is the verdict.
+	GOOGLE_CLOUD_PROJECT=$${GOOGLE_CLOUD_PROJECT} uv run python scripts/record_chaos.py

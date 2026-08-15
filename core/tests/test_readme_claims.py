@@ -1359,3 +1359,60 @@ def test_the_rendered_thumbnail_and_gallery_exist_and_are_not_blank() -> None:
     assert len(gallery) >= 4, f"expected at least 4 gallery captures, found {len(gallery)}"
     thin = [p.name for p in gallery if p.stat().st_size < 20_000]
     assert not thin, f"these gallery captures are suspiciously small and may be blank: {thin}"
+
+
+class TestTheChaosRecordProvesWhatTheVideoWillClaim:
+    """`docs/CHAOS.md` is the source for every drill claim spoken on camera.
+
+    The drill's strongest evidence used to live only in terminal output: FACTS.md said
+    the drill "reports both verdicts" and recorded neither. The video narrates that
+    finding, and a published video cannot be corrected.
+
+    These run offline. The record is written by a networked script that calls a live
+    vendor filter, and CI must never depend on that being reachable, exactly as with the
+    deployment probe.
+    """
+
+    @staticmethod
+    def _record() -> str:
+        path = REPO / "docs" / "CHAOS.md"
+        assert path.is_file(), "docs/CHAOS.md is missing. Run `make chaos-record`."
+        return path.read_text()
+
+    def test_it_records_a_complete_drill_and_never_a_partial_one(self) -> None:
+        record = self._record()
+        assert "3 of 3 scenarios demonstrated their guard in full" in record
+        for banned in ("PARTIAL", "NOT EXERCISED", "did NOT run"):
+            assert banned not in record, (
+                f"the record contains {banned!r}, so it memorialises a half-demonstrated "
+                "drill. The writer refuses to produce one, so this file is stale."
+            )
+
+    def test_it_names_all_three_scenarios(self) -> None:
+        record = self._record()
+        for scenario in ("Herald killed mid-run", "Poisoned order PDF", "Scribe hallucination"):
+            assert scenario in record, f"the record does not name {scenario!r}"
+
+    def test_it_carries_both_model_armor_verdicts(self) -> None:
+        """The finding that only exists when the drill runs with a project set.
+
+        Layer 2 matches the bare payload and misses the same payload embedded in an
+        order, while layer 1 catches both. That is the argument for defence in depth,
+        made with a measurement instead of an assertion, and it is the single strongest
+        thing the drill produces.
+        """
+        record = self._record()
+        assert "on the bare injection: match_found" in record, (
+            "the record does not show Model Armor matching the bare injection"
+        )
+        assert "inside an order: clean" in record, (
+            "the record does not show Model Armor missing the embedded injection, which "
+            "is the half of the finding that argues for two layers"
+        )
+
+    def test_the_retry_then_escalate_path_is_recorded(self) -> None:
+        """The rubric asks how the system recovers from a hallucination, by name."""
+        record = self._record()
+        assert "attempt 1: RETRY" in record
+        assert "attempt 2: ESCALATE" in record
+        assert "UNVERIFIED" in record
