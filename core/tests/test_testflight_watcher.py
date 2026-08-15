@@ -16,11 +16,13 @@ is why these get tests rather than a fix and a shrug.
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "watch_testflight.py"
@@ -202,6 +204,245 @@ class TestUnknownIsNeverReportedAsNotApproved:
         }
         monkeypatch.setattr(watcher, "state", lambda: ready)
         assert watcher.main([]) == 0
+
+
+class TestAFailedNotificationIsRetriedRatherThanForgotten:
+    """The worst defect the adversarial pass found, and the one the watcher exists
+    to not have.
+
+    The baseline used to advance BEFORE the notification was attempted, so a notifier
+    that was merely unavailable for one run made every later run see no change. The
+    single message the whole thing exists to deliver would be swallowed, permanently,
+    with nothing red anywhere.
+    """
+
+    READY: MappingProxyType[str, Any] = MappingProxyType(
+        {
+            **TestEveryFieldIsWatched.BASE,
+            "internal_state": "READY_FOR_BETA_TESTING",
+            "installable_internally": True,
+        }
+    )
+
+    def _run(self, tmp: Path, monkeypatch: Any, *, delivers: bool) -> str:
+        monkeypatch.setattr(watcher, "STATE_FILE", tmp)
+        monkeypatch.setattr(watcher, "state", lambda: dict(self.READY))
+        monkeypatch.setattr(watcher, "notify", lambda message: delivers)
+        watcher.main(["--notify"])
+        return tmp.read_text() if tmp.exists() else ""
+
+    def test_a_failed_delivery_holds_the_baseline(
+        self, tmp_path: Path, monkeypatch: Any, capsys: Any
+    ) -> None:
+        state_file = tmp_path / "state.json"
+        state_file.write_text(json.dumps(dict(TestEveryFieldIsWatched.BASE)))
+        self._run(state_file, monkeypatch, delivers=False)
+
+        held = json.loads(state_file.read_text())
+        assert held["internal_state"] == "MISSING_EXPORT_COMPLIANCE", (
+            "the baseline advanced despite nothing being delivered, so the next run "
+            "sees no change and the alert is lost"
+        )
+        assert "NOT notified" in capsys.readouterr().out
+
+    def test_the_next_run_after_a_failure_retries_and_then_settles(
+        self, tmp_path: Path, monkeypatch: Any, capsys: Any
+    ) -> None:
+        """End to end: fail, retry, succeed, go quiet. Four runs, one message."""
+        state_file = tmp_path / "state.json"
+        state_file.write_text(json.dumps(dict(TestEveryFieldIsWatched.BASE)))
+
+        self._run(state_file, monkeypatch, delivers=False)
+        capsys.readouterr()
+        self._run(state_file, monkeypatch, delivers=False)
+        assert "NOT notified" in capsys.readouterr().out, "the retry did not happen"
+
+        self._run(state_file, monkeypatch, delivers=True)
+        assert "(notified:" in capsys.readouterr().out
+
+        self._run(state_file, monkeypatch, delivers=True)
+        assert "no change since last run" in capsys.readouterr().out, (
+            "it kept notifying after a successful delivery, which is the noise that "
+            "makes somebody turn a watcher off"
+        )
+
+
+class TestAMalformedAnswerIsNotAPendingAnswer:
+    """`state()` used to turn a missing field into None, which made
+    `installable_internally` False, which made main() exit 1 and print "not yet".
+    UNKNOWN wearing the answer's clothes."""
+
+    ENVELOPE: MappingProxyType[str, Any] = MappingProxyType(
+        {
+            "data": [
+                {
+                    "attributes": {
+                        "version": "1",
+                        "processingState": "VALID",
+                        "expired": False,
+                        "uploadedDate": "2026-08-15T16:00:45-07:00",
+                    },
+                    "relationships": {"buildBetaDetail": {"data": {"id": "detail-1"}}},
+                }
+            ],
+            "included": [
+                {
+                    "id": "detail-1",
+                    "attributes": {
+                        "internalBuildState": "MISSING_EXPORT_COMPLIANCE",
+                        "externalBuildState": "MISSING_EXPORT_COMPLIANCE",
+                    },
+                }
+            ],
+        }
+    )
+
+    def _state(self, envelope: Any, monkeypatch: Any) -> dict[str, Any]:
+        monkeypatch.setenv("ASC_KEY_ID", "K")
+        monkeypatch.setenv("ASC_ISSUER_ID", "I")
+        monkeypatch.setenv("ASC_APP_ID", "A")
+        monkeypatch.setattr(watcher, "token", lambda *a, **k: "bearer")
+        monkeypatch.setattr(watcher, "_get", lambda *a, **k: envelope)
+        return dict(watcher.state())
+
+    def test_a_well_formed_envelope_reads(self, monkeypatch: Any) -> None:
+        """Guards the guards below. If everything raised, they would pass vacuously."""
+        read = self._state(self.ENVELOPE, monkeypatch)
+        assert read["internal_state"] == "MISSING_EXPORT_COMPLIANCE"
+        assert read["beta_review_state"] is None
+
+    @pytest.mark.parametrize(
+        ("name", "mutate"),
+        [
+            ("no attributes on the build", lambda e: {"data": [{"relationships": {}}]}),
+            (
+                "buildBetaDetail referenced but not included",
+                lambda e: {**e, "included": []},
+            ),
+            (
+                "no buildBetaDetail relationship at all",
+                lambda e: {**e, "data": [{**e["data"][0], "relationships": {}}]},
+            ),
+            (
+                "included record carries no internalBuildState",
+                lambda e: {**e, "included": [{"id": "detail-1", "attributes": {}}]},
+            ),
+            ("the build resource is not an object", lambda e: {"data": ["nope"]}),
+            (
+                "an included item has no id",
+                lambda e: {**e, "included": [{"attributes": {}}]},
+            ),
+        ],
+    )
+    def test_a_shape_problem_raises_rather_than_reading_as_not_ready(
+        self, name: str, mutate: Any, monkeypatch: Any
+    ) -> None:
+        with pytest.raises(watcher.WatchError):
+            self._state(mutate(self.ENVELOPE), monkeypatch)
+
+    def test_an_absent_review_submission_is_an_answer_not_an_error(self, monkeypatch: Any) -> None:
+        """A build with no EXTERNAL submission legitimately has no
+        betaAppReviewSubmission. Required and optional are different questions, and
+        treating them the same would make the common case unreadable."""
+        assert self._state(self.ENVELOPE, monkeypatch)["beta_review_state"] is None
+
+    def test_an_unexpected_exception_still_exits_two(self, monkeypatch: Any) -> None:
+        """The last line of defence. A traceback under launchd is a silent watcher."""
+
+        def explode() -> dict[str, Any]:
+            raise KeyError("some shape nobody predicted")
+
+        monkeypatch.setattr(watcher, "state", explode)
+        assert watcher.main([]) == 2
+
+
+class TestTheBaselineSurvivesACrashAndAGarbageFile:
+    @pytest.mark.parametrize("content", ["", "{ half a fi", "null", "[1, 2]", '"text"'])
+    def test_an_unusable_baseline_degrades_to_no_history(
+        self, content: str, tmp_path: Path, monkeypatch: Any
+    ) -> None:
+        """`null` and `[1,2]` are VALID json, so a ValueError guard alone let them
+        through to `previous.get` and an AttributeError. Degrading to no-history
+        re-notifies once, which is the harmless direction."""
+        state_file = tmp_path / "state.json"
+        state_file.write_text(content)
+        monkeypatch.setattr(watcher, "STATE_FILE", state_file)
+        assert watcher.read_baseline() == {}
+
+    def test_a_missing_baseline_is_not_an_error(self, tmp_path: Path, monkeypatch: Any) -> None:
+        monkeypatch.setattr(watcher, "STATE_FILE", tmp_path / "never-written.json")
+        assert watcher.read_baseline() == {}
+
+    def test_the_write_is_atomic_so_a_reader_never_sees_half_a_file(
+        self, tmp_path: Path, monkeypatch: Any
+    ) -> None:
+        """`write_text` truncates in place. `os.replace` swaps whole files, so a
+        concurrent reader sees the old content or the new content, never neither."""
+        state_file = tmp_path / "state.json"
+        state_file.write_text(json.dumps({"internal_state": "OLD"}))
+        monkeypatch.setattr(watcher, "STATE_FILE", state_file)
+
+        seen: list[str] = []
+        real_replace = watcher.os.replace
+
+        def replace(src: Any, dst: Any) -> None:
+            seen.append(Path(dst).read_text())  # what a reader would see mid-write
+            real_replace(src, dst)
+
+        monkeypatch.setattr(watcher.os, "replace", replace)
+        watcher.write_baseline({"internal_state": "NEW"})
+
+        assert json.loads(seen[0])["internal_state"] == "OLD"
+        assert json.loads(state_file.read_text())["internal_state"] == "NEW"
+        assert list(tmp_path.glob("*.tmp")) == [], "the temp file was left behind"
+
+    def test_an_unwritable_baseline_does_not_crash_the_run(
+        self, tmp_path: Path, monkeypatch: Any, capsys: Any
+    ) -> None:
+        """A full disk is how this session started. Losing the baseline costs a
+        duplicate notification; crashing costs every future one."""
+        monkeypatch.setattr(watcher, "STATE_FILE", tmp_path / "no-such-dir" / "state.json")
+        watcher.write_baseline({"internal_state": "NEW"})
+        assert "could not persist the baseline" in capsys.readouterr().err
+
+
+class TestTheKeyMustBeTheCurveES256Means:
+    def _key(self, curve: Any, tmp_path: Path) -> Path:
+        from cryptography.hazmat.primitives.asymmetric import ec as _ec
+
+        path = tmp_path / "key.p8"
+        path.write_bytes(
+            _ec.generate_private_key(curve).private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+        return path
+
+    def test_a_p256_key_signs(self, tmp_path: Path) -> None:
+        from cryptography.hazmat.primitives.asymmetric import ec as _ec
+
+        assembled = watcher.token("K", "I", self._key(_ec.SECP256R1(), tmp_path))
+        assert assembled.count(".") == 2
+
+    def test_a_p384_key_is_refused_as_unknown_not_crashed_on(self, tmp_path: Path) -> None:
+        """`r.to_bytes(32)` raises OverflowError on P-384, which under launchd is a
+        traceback and a watcher that reported nothing."""
+        from cryptography.hazmat.primitives.asymmetric import ec as _ec
+
+        with pytest.raises(watcher.WatchError, match="P-256"):
+            watcher.token("K", "I", self._key(_ec.SECP384R1(), tmp_path))
+
+    def test_an_unreadable_key_is_refused_as_unknown(self, tmp_path: Path) -> None:
+        path = tmp_path / "key.p8"
+        path.write_text("this is not a PEM file")
+        with pytest.raises(watcher.WatchError, match="unencrypted PEM"):
+            watcher.token("K", "I", path)
+
+    def test_a_missing_key_names_the_variable_that_fixes_it(self, tmp_path: Path) -> None:
+        with pytest.raises(watcher.WatchError, match="ASC_KEY_PATH"):
+            watcher.token("K", "I", tmp_path / "absent.p8")
 
 
 class TestTheSummaryNamesTheThingInTheWay:
