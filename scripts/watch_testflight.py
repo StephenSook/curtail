@@ -150,6 +150,33 @@ def state() -> dict[str, Any]:
     }
 
 
+def changes(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, tuple[Any, Any]]:
+    """Every observed field that moved, as `field -> (was, now)`.
+
+    **Compares the whole state, not a hand-picked pair of fields.** The first version
+    watched `internal_state` and `beta_review_state` only, so a build that expired, an
+    external state that moved, a processing state that changed, or an entirely NEW build
+    appearing all passed in silence. Worse, the omission was invisible: adding a field to
+    `state()` would not have been noticed here, and the watcher would have gone quiet on
+    it forever.
+
+    Every field returned by `state()` is a discrete state or a per-build stamp, none of
+    them a clock that ticks, so comparing all of them is quiet in the steady state and
+    cannot go stale when a field is added.
+
+    ABSENT is not None. `beta_review_state` is legitimately None on a real read, so a
+    plain `.get(key)` would have made it indistinguishable from a field the previous run
+    never recorded, and the first run after adding a field would have gone quiet on
+    exactly the field that was just added.
+    """
+    absent = object()  # NOT None: `beta_review_state` is legitimately None on a real read
+    return {
+        key: (None if (was := previous.get(key, absent)) is absent else was, value)
+        for key, value in current.items()
+        if previous.get(key, absent) is absent or previous[key] != value
+    }
+
+
 def summarise(current: dict[str, Any]) -> str:
     if current["installable_internally"]:
         return f"READY TO TEST. Build {current['version']} installs from TestFlight now."
@@ -168,16 +195,47 @@ def summarise(current: dict[str, Any]) -> str:
     )
 
 
-def notify(message: str) -> None:
+def applescript_string(text: str) -> str:
+    """`text` as an AppleScript string literal.
+
+    **AppleScript has no single-quoted string.** The first version of this interpolated
+    Python's `repr`, which emits single quotes, so the fallback was a syntax error every
+    time it ran: `osascript` exits 1 with "Expected given, in, of, expression...".
+
+    It was invisible here because `terminal-notifier` is installed on this machine and
+    the fallback never ran. The fallback exists precisely FOR the machine where
+    `terminal-notifier` is absent, which is the one machine that would only ever have
+    executed the broken branch. Same shape as a guard whose precondition holds only where
+    it was written.
+    """
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def notify(message: str) -> bool:
+    """Raise a desktop notification. Returns whether one was actually delivered.
+
+    It returns a verdict rather than None because the caller PRINTS what happened, and a
+    caller that prints "notified" after a swallowed exception is claiming something it
+    does not know. This project has shipped that defect before.
+    """
+    title = "Curtail TestFlight"
+    failures: list[str] = []
     for command in (
-        ["terminal-notifier", "-title", "Curtail TestFlight", "-message", message],
-        ["osascript", "-e", f'display notification {message!r} with title "Curtail TestFlight"'],
+        ["terminal-notifier", "-title", title, "-message", message],
+        [
+            "osascript",
+            "-e",
+            f"display notification {applescript_string(message)} "
+            f"with title {applescript_string(title)}",
+        ],
     ):
         try:
             subprocess.run(command, check=True, capture_output=True, timeout=15)
-            return
-        except Exception:
-            continue
+            return True
+        except Exception as exc:  # not installed, non-zero exit, timeout
+            failures.append(f"{command[0]}: {exc}")
+    print(f"could not raise a desktop notification ({'; '.join(failures)})", file=sys.stderr)
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -206,14 +264,12 @@ def main(argv: list[str] | None = None) -> int:
                 previous = json.loads(STATE_FILE.read_text())
             except ValueError:
                 previous = {}
-        changed = (
-            previous.get("internal_state") != current["internal_state"]
-            or previous.get("beta_review_state") != current["beta_review_state"]
-        )
+        changed = changes(previous, current)
         STATE_FILE.write_text(json.dumps(current))
         if changed:
-            notify(line)
-            print("(notified: state changed)")
+            delivered = notify(line)
+            moved = ", ".join(f"{k}: {was} -> {now}" for k, (was, now) in sorted(changed.items()))
+            print(f"({'notified' if delivered else 'NOT notified'}: {moved})")
         else:
             print("(no change since last run, so no notification)")
 
