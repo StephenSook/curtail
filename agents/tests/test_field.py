@@ -288,3 +288,36 @@ def test_a_measurement_round_trips_its_state() -> None:
     assert datetime.fromisoformat(state["captured_at"]).tzinfo is not None
     assert state["latitude"] == 41.6
     assert datetime.now(UTC) is not None
+
+
+class TestTheAndroidTrustLink:
+    """Digital Asset Links, and its refusal, which is the part that matters."""
+
+    def test_it_refuses_when_no_fingerprint_is_configured(self, monkeypatch) -> None:
+        """An empty asset links file fails verification SILENTLY.
+
+        The only symptom of serving `[]` is an installed app showing a browser URL bar,
+        with nothing anywhere saying why. A 503 naming the variable is a diagnosis.
+        """
+        monkeypatch.delenv("TWA_SHA256_FINGERPRINT", raising=False)
+        response = TestClient(app).get("/.well-known/assetlinks.json")
+        assert response.status_code == 503
+        assert "TWA_SHA256_FINGERPRINT" in response.json()["detail"]
+
+    def test_it_serves_a_valid_statement_when_configured(self, monkeypatch) -> None:
+        monkeypatch.setenv("TWA_SHA256_FINGERPRINT", "AB:CD:" + ":".join(["00"] * 30))
+        response = TestClient(app).get("/.well-known/assetlinks.json")
+        assert response.status_code == 200
+        statement = json.loads(response.text)
+        assert statement[0]["relation"] == ["delegate_permission/common.handle_all_urls"]
+        target = statement[0]["target"]
+        assert target["namespace"] == "android_app"
+        assert target["package_name"] == "app.curtail.field"
+        assert target["sha256_cert_fingerprints"][0].startswith("AB:CD:")
+
+    def test_no_signing_material_is_committed(self) -> None:
+        """The keystore is a credential. It is not in this repository and must not be."""
+        tracked = (REPO / ".gitignore").read_text()
+        assert "*.keystore" in tracked or "*.jks" in tracked, (
+            "add *.keystore and *.jks to .gitignore before anybody generates one"
+        )
