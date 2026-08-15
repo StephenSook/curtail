@@ -1292,3 +1292,30 @@ class TestTheStalenessGuardIsDecidableAndNonVacuous:
         verdict, paths = module._runtime_drift(base)
         assert verdict == "no", "a changed CLAIM in the served fact sheet reported as current"
         assert paths == ["agents/src/curtail_agents/data/FACTS.md"]
+
+
+def test_every_figure_in_the_devpost_description_traces_to_a_source() -> None:
+    """The submission description is the last artifact written and the least checked.
+
+    `FACTS.md` states the rule in its own header: every number in the video narration,
+    the README, the landing page and the Devpost description comes from that file and
+    nowhere else. The README has guards. The description had none, and it is the text a
+    judge actually reads.
+
+    Numbers of two or more digits carry claims; a bare `4` does not. Section numbers
+    like 875.9 and statute numbers like 1846 are claims too, and they are in scope on
+    purpose: this project has already shipped a citation that named a real case for a
+    proposition it never held.
+    """
+    description = (REPO / "docs" / "devpost_description.md").read_text()
+    sources = (REPO / "docs" / "FACTS.md").read_text() + (REPO / "README.md").read_text()
+    claims = set(re.findall(r"\$?[0-9][0-9,]+(?:\.[0-9]+)?", description))
+    assert claims, "the description carries no figures at all, so this asserts nothing"
+
+    flat = sources.replace(",", "")
+    missing = sorted(c for c in claims if c not in sources and c.replace(",", "") not in flat)
+    assert not missing, (
+        f"{len(missing)} figure(s) in the Devpost description appear in neither FACTS.md "
+        f"nor the README: {missing}. A number sourced from a memory ledger is how a "
+        "published artifact ends up contradicting its own repository."
+    )
