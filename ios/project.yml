@@ -1,0 +1,54 @@
+# The iOS wrapper, declared rather than committed as a generated .xcodeproj.
+#
+# A pbxproj is 300 lines of UUID-laden plist that no reviewer can read and every merge
+# conflicts on. This file IS the project; `xcodegen generate` produces the rest, and the
+# generated directory is gitignored.
+name: CurtailField
+options:
+  bundleIdPrefix: app.curtail
+  deploymentTarget:
+    iOS: "16.4"          # Web Push for installed web apps landed here, and it is the
+                         # floor at which the PWA and this wrapper behave the same.
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    # No team and no signing identity here on purpose. Signing is Stephen's Apple
+    # account, set in Xcode at archive time; a team id committed to a public repo is
+    # a small identifier leak and a large source of "works on my machine".
+    CODE_SIGN_STYLE: Automatic
+targets:
+  CurtailField:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Curtail Field
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # The field surface talks to exactly one host over TLS. No ATS exceptions:
+        # a wrapper that weakens transport security to make a demo work is a wrapper
+        # that ships weakened transport security.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+        NSLocationWhenInUseUsageDescription:
+          The field surface records where a measurement was taken, so the reading can be
+          tied to a point on the river. Location is optional and a measurement saves
+          without it.
+        NSCameraUsageDescription:
+          A photograph is taken as evidence that a measurement happened. The image stays
+          on this device; only its digest is submitted.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.curtail.field
+        TARGETED_DEVICE_FAMILY: "1"

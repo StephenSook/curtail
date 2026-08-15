@@ -88,3 +88,43 @@ means the variable did not land, and the message says so.
   means never shipping an update Android accepts as the same app:
   `mkdir -p ~/keys/curtail && mv /private/tmp/twa/android.keystore ~/keys/curtail/`
   Then update `signingKey.path` in `twa-manifest.json` to the new location.
+
+---
+
+# iOS
+
+The field surface installs from Safari with **Add to Home Screen** and that is the
+supported path: standalone, offline, its own icon, no review queue, no expiry. WebKit
+exempts home-screen web apps from the seven-day script-writable storage cap, so the
+offline queue is not evicted.
+
+`ios/` additionally contains a **native shell** for TestFlight distribution. Be honest
+about what it is for: **distribution, not capability.** It renders the same route in a
+`WKWebView`, so there is no second implementation of the evidence path to drift, and it
+holds no credentials or signing material. Hard rule 14 is unchanged by a native shell.
+
+It is generated from `ios/project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen),
+so the committed thing is a readable declaration rather than a pbxproj:
+
+```bash
+brew install xcodegen
+cd ios && xcodegen generate
+open CurtailField.xcodeproj
+```
+
+Verified to build and run: `xcodebuild -scheme CurtailField -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`
+succeeds, and the app launches in a simulator and loads the live field surface.
+
+To ship it to TestFlight you need an Apple Developer account, because signing identities
+and the App Store Connect record belong to a person and not to this repository:
+
+1. Open the project in Xcode, select the `CurtailField` target, and set your Team under
+   Signing & Capabilities. Bundle id is `app.curtail.field`.
+2. Product > Archive.
+3. Distribute App > TestFlight (Internal Only) if you only need your own devices, which
+   requires **no Beta App Review**. External testers require review of the first build
+   of a version.
+
+The two guideline 4.2 mitigations are already in the code: navigation is confined to the
+verified origin and anything else opens in Safari, and a failed load renders a real
+message rather than a blank white screen.

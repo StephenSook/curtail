@@ -150,3 +150,13 @@ yarn-error.log*
 *.jks
 twa-manifest.json
 android/
+
+# The Xcode project is GENERATED from ios/project.yml by xcodegen. A pbxproj is 300
+# lines of UUID-laden plist that no reviewer can read and every merge conflicts on, so
+# the declaration is committed and the artifact is not.
+ios/*.xcodeproj/
+ios/build/
+ios/DerivedData/
+*.xcuserstate
+*.ipa
+*.dSYM.zip
