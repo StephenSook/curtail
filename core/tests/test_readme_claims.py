@@ -1128,3 +1128,167 @@ def test_the_deployment_record_states_durability_exactly_once() -> None:
         f"durability is stated {occurrences} times. One of them is outside the compared "
         "region and can drift unguarded."
     )
+
+
+def _probe_module() -> Any:
+    import importlib.util
+
+    path = REPO / "scripts" / "probe_deployment.py"
+    spec = importlib.util.spec_from_file_location("probe_deployment", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_image_paths_match_what_the_dockerfile_actually_copies() -> None:
+    """The staleness guard is only as good as its list of runtime paths.
+
+    `_runtime_drift` decides whether production is stale by diffing the paths that go
+    into the image. A path added to the Dockerfile and not to `IMAGE_PATHS` is a runtime
+    change the guard cannot see, which is the tracked-files blind spot one file over: a
+    check whose scope is narrower than the thing it claims to cover.
+    """
+    module = _probe_module()
+    dockerfile = (REPO / "Dockerfile").read_text()
+
+    copied: set[str] = set()
+    for line in dockerfile.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("COPY ") or "--from=" in stripped:
+            continue
+        # COPY <src>... <dest>, so every token but the first and last is a source.
+        tokens = stripped.split()[1:]
+        copied.update(tokens[:-1])
+
+    missing = sorted(copied - set(module.IMAGE_PATHS))
+    assert not missing, (
+        f"the Dockerfile copies {missing} into the image and IMAGE_PATHS does not list "
+        "them, so a change to those would never be reported as a stale deployment"
+    )
+
+
+class TestTheStalenessGuardIsDecidableAndNonVacuous:
+    """It must fire on a real runtime change and stay quiet on a cosmetic one.
+
+    Both halves matter equally. A guard that never fires proves nothing, and a guard
+    that fires on every commit gets routed around, which this project has already
+    named as the way a check stops being run.
+    """
+
+    @staticmethod
+    def _repo(tmp_path: Path) -> Path:
+        import subprocess
+
+        root = tmp_path / "repo"
+        (root / "agents" / "src").mkdir(parents=True)
+        (root / "docs").mkdir()
+
+        def run(*args: str) -> None:
+            subprocess.run(args, cwd=root, capture_output=True, check=True)
+
+        run("git", "init", "-q")
+        run("git", "config", "user.email", "t@example.com")
+        run("git", "config", "user.name", "t")
+        (root / "agents" / "src" / "app.py").write_text("VALUE = 1\n")
+        (root / "docs" / "notes.md").write_text("first\n")
+        run("git", "add", "-A")
+        run("git", "commit", "-qm", "base")
+        return root
+
+    @staticmethod
+    def _at(module: Any, root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(module, "REPO", root)
+
+    def test_a_changed_runtime_file_reports_stale(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import subprocess
+
+        module = _probe_module()
+        root = self._repo(tmp_path)
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
+        ).stdout.strip()
+        (root / "agents" / "src" / "app.py").write_text("VALUE = 2\n")
+        subprocess.run(["git", "commit", "-aqm", "runtime"], cwd=root, check=True)
+
+        self._at(module, root, monkeypatch)
+        verdict, paths = module._runtime_drift(base)
+        assert verdict == "no", "a changed runtime file did not report as a stale deployment"
+        assert paths == ["agents/src/app.py"]
+
+    def test_a_docs_only_change_stays_quiet(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import subprocess
+
+        module = _probe_module()
+        root = self._repo(tmp_path)
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
+        ).stdout.strip()
+        (root / "docs" / "notes.md").write_text("second\n")
+        subprocess.run(["git", "commit", "-aqm", "docs"], cwd=root, check=True)
+
+        self._at(module, root, monkeypatch)
+        verdict, paths = module._runtime_drift(base)
+        assert (verdict, paths) == ("yes", []), (
+            "a docs-only commit reported production as stale, which reddens the gate "
+            "for the system working normally"
+        )
+
+    def test_an_unresolvable_commit_is_unknown_and_never_current(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The third value exists so a failed lookup cannot read as a clean result."""
+        module = _probe_module()
+        self._at(module, self._repo(tmp_path), monkeypatch)
+        assert module._runtime_drift("0" * 40)[0] == "unknown"
+        assert module._runtime_drift(None)[0] == "unknown"
+        assert module._runtime_drift("")[0] == "unknown"
+
+    def test_only_the_probe_stamp_moving_is_not_staleness_but_a_real_claim_is(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The normalization that lets this guard ever go quiet, and its limit.
+
+        The generated fact sheet ships inside the image, so it is genuinely runtime
+        source, and it carries a line naming the probe's own timestamp and the revision
+        serving at that moment. Probing rewrites that line, so without normalization the
+        guard reports stale, a deploy follows, the next probe rewrites it again, and the
+        cycle never settles. A permanently red gate is one people route around.
+
+        The limit matters as much: normalizing the stamp must not normalize the SHEET.
+        A claim can change from an edit outside the image paths, and a live `/api/facts`
+        serving the old claim is exactly the drift this record exists to catch.
+        """
+        import subprocess
+
+        module = _probe_module()
+        root = self._repo(tmp_path)
+        sheet = root / "agents" / "src" / "curtail_agents" / "data" / "FACTS.md"
+        sheet.parent.mkdir(parents=True)
+        stamp = module.PROBE_STAMP_MARKER
+        sheet.write_text(f"- a claim that is stable\n- 4 agents, {stamp}2026-01-01\n")
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "sheet"], cwd=root, check=True)
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
+        ).stdout.strip()
+        self._at(module, root, monkeypatch)
+
+        # Only the stamp moves, which is what every probe does.
+        sheet.write_text(f"- a claim that is stable\n- 4 agents, {stamp}2026-06-06\n")
+        subprocess.run(["git", "commit", "-aqm", "restamp"], cwd=root, check=True)
+        assert module._runtime_drift(base) == ("yes", []), (
+            "a moved probe stamp reported as a stale deployment, which makes this gate "
+            "permanently red by construction"
+        )
+
+        # A real claim moves, and that IS a stale deployment.
+        sheet.write_text(f"- a claim that CHANGED\n- 4 agents, {stamp}2026-06-06\n")
+        subprocess.run(["git", "commit", "-aqm", "claim"], cwd=root, check=True)
+        verdict, paths = module._runtime_drift(base)
+        assert verdict == "no", "a changed CLAIM in the served fact sheet reported as current"
+        assert paths == ["agents/src/curtail_agents/data/FACTS.md"]
