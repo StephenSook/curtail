@@ -1,0 +1,373 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F7F5">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Curtail Field</title>
+<!--
+  THE FIELD SURFACE. One installable route, four actions, and a deliberate refusal to be
+  a small copy of the console.
+
+  Why it exists, from the public record rather than from a persona: in July 2025 the
+  Fort Jones gage read below the July minimum and Addendum 7 reinstated curtailment.
+  Community members disputed the measurement. The Watermaster District took additional
+  field flows and sent them to USGS, USGS shifted the rating curve, flows read above
+  75 cfs, and Addendum 8 lifted curtailment on 22 July. An agent architecture that
+  cannot be corrected by the person responsible for it is not governed, so this is the
+  correction path made buildable.
+
+  It INVERTS the console on purpose. The console is dark because it is read indoors for
+  hours. This is read outdoors in direct sun, possibly through polarised glasses, by
+  someone holding a flow meter in the other hand while standing in moving water. So:
+  light ground, large type, one primary action per screen, controls at the bottom where
+  a thumb reaches, and numeric entry big enough to check at a glance.
+
+  What it does NOT do is the important part. Hard rule 14: this device authenticates a
+  human and submits append-only evidence. It never holds an agent identity or a service
+  account key, never writes the rights ledger, never mutates order state, and never
+  generates, signs or binds a legal order. The phone says yes. The server acts.
+-->
+<style>
+  @font-face { font-family: "Public Sans"; src: url("/fonts/public-sans.woff2") format("woff2");
+    font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+    font-weight: 100 800; font-display: swap; }
+
+  :root {
+    /* Light ground. The console's tokens inverted, with the status hues switched to the
+       Okabe-Ito values that pass on WHITE rather than the lightened dark-mode ones. A
+       hue that was tuned for a near-black surface is not the hue for paper. */
+    --bg: #F7F7F5; --card: #FFFFFF; --line: #D9D9D4; --line-strong: #B4B4AD;
+    --fg: #16181D; --muted: #5A5F6A;
+    --curtailed: #D55E00; --conditional: #E69F00; --suspended: #0072B2;
+    --exempt: #009E73; --pending: #6B7280;
+    --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --tap: 48px;                 /* well above the 24px WCAG minimum, sized for gloves */
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans);
+    font-size: 17px; line-height: 1.45; font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  header {
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+    border-bottom: 1px solid var(--line); background: var(--card);
+    position: sticky; top: 0; z-index: 3;
+  }
+  .brand { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+           font-weight: 700; color: var(--muted); }
+  main { padding: 18px; display: grid; gap: 16px; max-width: 640px; margin-inline: auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  h2 { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+       color: var(--muted); margin: 0 0 14px; }
+  label { display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+          text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  input, select, textarea, button {
+    font-family: inherit; font-size: 17px; width: 100%;
+    min-height: var(--tap); border-radius: 10px; padding: 10px 14px;
+    border: 1px solid var(--line-strong); background: #fff; color: var(--fg);
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 3px solid var(--suspended); outline-offset: 2px;
+  }
+  /* The reading is entered large enough to verify without lifting the phone. */
+  #cfs { font-family: var(--mono); font-size: 38px; font-weight: 700; min-height: 64px;
+         text-align: center; letter-spacing: -0.01em; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+  /* Status: hue AND glyph AND text, exactly as on the console, so somebody who learns
+     one surface reads the other without relearning anything. */
+  .status { display: inline-flex; align-items: center; gap: 8px; font-weight: 800;
+            letter-spacing: 0.06em; text-transform: uppercase; font-size: 13px;
+            padding: 8px 12px; border-radius: 999px; border: 2px solid currentColor; }
+  .s-curtailed { color: var(--curtailed); }
+  .s-conditional { color: var(--conditional); }
+  .s-suspended { color: var(--suspended); }
+  .s-exempt { color: var(--exempt); }
+  .s-pending { color: var(--pending); }
+
+  /* THREE SYNC STATES, IN WORDS. An icon alone would let "saved" and "submitted" look
+     alike, and only the third means the evidence entered the record. */
+  .sync { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; border: 2px solid currentColor; }
+  .sync.local { color: var(--conditional); }
+  .sync.sending { color: var(--suspended); }
+  .sync.recorded { color: var(--exempt); }
+  .sync.recorded .dot { background: currentColor; }
+
+  .queue { margin-top: 12px; display: grid; gap: 8px; }
+  .item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+          display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .item b { font-family: var(--mono); font-size: 18px; }
+
+  /* Bottom-anchored primary action: one-handed reach is the whole ergonomic argument. */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    border-top: 1px solid var(--line); backdrop-filter: blur(8px);
+  }
+  .primary {
+    background: var(--fg); color: var(--card); border-color: var(--fg);
+    font-weight: 800; letter-spacing: 0.02em; min-height: 56px; font-size: 18px;
+  }
+  .primary[disabled] { opacity: 0.45; }
+  .offline-banner {
+    display: none; background: var(--conditional); color: #16181D;
+    font-weight: 800; text-align: center; padding: 10px 14px; font-size: 14px;
+  }
+  body.is-offline .offline-banner { display: block; }
+  footer { padding: 8px 18px 24px; color: var(--muted); font-size: 12px; max-width: 640px;
+           margin-inline: auto; }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; } }
+</style>
+
+<header>
+  <div class="brand">Curtail Field</div>
+  <div class="muted" style="font-size:14px">Attested measurement, appended as evidence</div>
+</header>
+<div class="offline-banner" id="offline">Offline. Measurements save on this device and send when you reconnect.</div>
+
+<main>
+  <section class="card">
+    <h2>Basin</h2>
+    <select id="basin" aria-label="Basin">
+      <option value="scott">Scott River, Fort Jones</option>
+      <option value="shasta">Shasta River, near Yreka</option>
+    </select>
+    <div id="threshold" class="hint">Checking the operative minimum.</div>
+  </section>
+
+  <section class="card">
+    <h2>Discharge you measured</h2>
+    <label for="cfs">Cubic feet per second</label>
+    <input id="cfs" type="number" inputmode="decimal" step="0.1" min="0" placeholder="0.0">
+    <div class="grid2" style="margin-top:14px">
+      <div>
+        <label for="observer">Observer</label>
+        <input id="observer" type="text" autocomplete="name" placeholder="Your name">
+      </div>
+      <div>
+        <label for="instrument">Instrument</label>
+        <input id="instrument" type="text" placeholder="e.g. AA meter">
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <button id="locate" type="button">Add location</button>
+      <button id="photo-btn" type="button">Add photo</button>
+    </div>
+    <input id="photo" type="file" accept="image/*" capture="environment" hidden>
+    <div id="attach" class="hint">Location and photo are optional. The photo is hashed on
+      this device and the image never leaves it.</div>
+  </section>
+
+  <section class="card">
+    <h2>On this device</h2>
+    <div id="queue" class="queue"><div class="muted">Nothing queued.</div></div>
+    <button id="sync" type="button" style="margin-top:14px">Send now</button>
+    <div class="hint">
+      iOS does not run background sync, so the queue flushes when this screen is open and
+      you reconnect, or when you press Send now.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Recorded in the ledger</h2>
+    <div id="ledger" class="muted">Not loaded.</div>
+  </section>
+</main>
+
+<footer>
+  Demonstration system. Not an official government system. A measurement here is
+  evidence and confers no authority: it does not curtail, restore, sign or serve
+  anything. 23 CCR 875(b) vests the determination in a named human official.
+</footer>
+
+<div class="dock">
+  <button id="save" class="primary" type="button">Save measurement</button>
+</div>
+
+<script>
+/* ------------------------------------------------------------------------- *
+ * The offline queue. IndexedDB rather than localStorage, because localStorage
+ * is synchronous, capped small, and cleared by iOS under storage pressure,
+ * and losing a measurement loses the correction path.
+ *
+ * Every entry carries a CLIENT-GENERATED idempotency key. The server dedups on
+ * it, so a flush interrupted halfway can be retried without inventing a second
+ * reading. The device is the only party that can tell a retry from a genuinely
+ * repeated measurement, so the device names it.
+ * ------------------------------------------------------------------------- */
+const DB = "curtail-field", STORE = "queue";
+const open = () => new Promise((res, rej) => {
+  const r = indexedDB.open(DB, 1);
+  r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: "idempotency_key" });
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+const tx = async (mode, fn) => {
+  const db = await open();
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, mode), s = t.objectStore(STORE);
+    const out = fn(s);
+    t.oncomplete = () => res(out.result !== undefined ? out.result : out);
+    t.onerror = () => rej(t.error);
+  });
+};
+const putItem = (item) => tx("readwrite", (s) => s.put(item));
+const allItems = () => tx("readonly", (s) => s.getAll());
+const dropItem = (key) => tx("readwrite", (s) => s.delete(key));
+
+const $ = (id) => document.getElementById(id);
+const state = { photo: null, coords: null };
+
+function syncRow(item) {
+  const cls = item.state === "recorded" ? "recorded" : item.state === "sending" ? "sending" : "local";
+  const words = { local: "Saved on device", sending: "Syncing", recorded: "Recorded in ledger" };
+  return `<div class="item">
+    <div><b>${item.discharge_cfs} cfs</b>
+      <div class="muted">${new Date(item.captured_at).toLocaleString()}</div></div>
+    <div class="sync ${cls}"><span class="dot"></span>${words[cls]}</div>
+  </div>`;
+}
+
+/* Recorded rows are receipts, not work. They linger long enough to be read on a
+   riverbank and are then pruned, so the queue does not become a log. */
+const RECEIPT_MS = 6 * 60 * 60 * 1000;
+
+async function prune() {
+  const now = Date.now();
+  for (const item of await allItems()) {
+    if (item.state === "recorded" && now - (item.recorded_at || 0) > RECEIPT_MS) {
+      await dropItem(item.idempotency_key);
+    }
+  }
+}
+
+async function paintQueue() {
+  const items = await allItems();
+  $("queue").innerHTML = items.length
+    ? items.map(syncRow).join("")
+    : '<div class="muted">Nothing queued.</div>';
+  $("sync").disabled = items.every((i) => i.state === "recorded");
+}
+
+async function paintLedger() {
+  try {
+    const r = await fetch(`/api/field/measurements/${$("basin").value}`);
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    $("ledger").innerHTML = d.count
+      ? `<b>${d.count}</b> measurement(s) recorded. Latest
+         <b>${d.latest.discharge_cfs} cfs</b> by ${d.latest.observer}.
+         <div class="hint">${d.durable ? "Durable store" : "NOT durable"}: ${d.store}</div>`
+      : '<span class="muted">No field measurement has been recorded for this basin yet.</span>';
+  } catch (e) {
+    $("ledger").textContent = "Could not read the ledger from here. It is not empty, it is unknown.";
+  }
+}
+
+async function paintThreshold() {
+  try {
+    const r = await fetch(`/api/classify/${$("basin").value}?cfs=0`);
+    const d = await r.json();
+    $("threshold").innerHTML =
+      `Operative minimum <b>${d.minimum_cfs} cfs</b>. A reading within 10 cfs is flagged for field verification.`;
+  } catch { $("threshold").textContent = "Minimum unknown offline."; }
+}
+
+$("photo-btn").addEventListener("click", () => $("photo").click());
+$("photo").addEventListener("change", async () => {
+  const f = $("photo").files[0]; if (!f) return;
+  const buf = await f.arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  state.photo = {
+    sha256: [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, "0")).join(""),
+    bytes: f.size,
+  };
+  $("attach").innerHTML = `Photo hashed on this device: <code>${state.photo.sha256.slice(0, 16)}…</code>
+    (${(f.size / 1024).toFixed(0)} KB). The image itself is not uploaded.`;
+});
+
+$("locate").addEventListener("click", () => {
+  if (!navigator.geolocation) { $("attach").textContent = "This device offers no location."; return; }
+  $("attach").textContent = "Getting location…";
+  navigator.geolocation.getCurrentPosition(
+    (p) => { state.coords = { lat: p.coords.latitude, lon: p.coords.longitude };
+      $("attach").textContent = `Location ${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
+    (e) => { $("attach").textContent = `Location unavailable (${e.message}). The measurement still saves.`; },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+$("save").addEventListener("click", async () => {
+  const cfs = parseFloat($("cfs").value);
+  const observer = $("observer").value.trim();
+  if (!Number.isFinite(cfs) || cfs < 0) { alert("Enter the discharge you measured."); return; }
+  if (observer.length < 2) { alert("Enter your name. A measurement is attested by a person."); return; }
+  const item = {
+    idempotency_key: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()).replace(/[^A-Za-z0-9_-]/g, ""),
+    basin: $("basin").value,
+    observer,
+    discharge_cfs: cfs,
+    captured_at: new Date().toISOString(),
+    instrument_note: $("instrument").value.trim(),
+    latitude: state.coords ? state.coords.lat : null,
+    longitude: state.coords ? state.coords.lon : null,
+    photo_sha256: state.photo ? state.photo.sha256 : null,
+    photo_bytes: state.photo ? state.photo.bytes : null,
+    state: "local",
+  };
+  await putItem(item);
+  $("cfs").value = ""; state.photo = null; state.coords = null;
+  $("attach").textContent = "Saved on this device. It is not in the ledger until it syncs.";
+  await paintQueue();
+  flush();
+});
+
+let flushing = false;
+async function flush() {
+  if (flushing || !navigator.onLine) return;
+  flushing = true;
+  try {
+    for (const item of await allItems()) {
+      if (item.state === "recorded") continue;
+      await putItem({ ...item, state: "sending" }); await paintQueue();
+      try {
+        const r = await fetch(`/api/field/measurement/${item.basin}`, {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify(item),
+        });
+        if (r.ok) {
+          /* KEEP it, marked recorded. Dropping it made the row vanish, so the operator
+             never saw the third state and could not tell "sent" from "lost". Only
+             "Recorded in ledger" means the evidence entered the record, and a state
+             nobody sees is a state that does not exist. Pruned on next load. */
+          await putItem({ ...item, state: "recorded", recorded_at: Date.now() });
+        }
+        else if (r.status === 422) {
+          /* The server refused it as evidence. Keep it, surface the reason: silently
+             dropping a measurement somebody waded into a river to take is not an option. */
+          const d = await r.json().catch(() => ({}));
+          await putItem({ ...item, state: "local", error: d.detail || "refused" });
+        } else { await putItem({ ...item, state: "local" }); }
+      } catch { await putItem({ ...item, state: "local" }); }
+    }
+  } finally { flushing = false; await paintQueue(); await paintLedger(); }
+}
+
+$("sync").addEventListener("click", flush);
+$("basin").addEventListener("change", () => { paintThreshold(); paintLedger(); });
+const online = () => { document.body.classList.toggle("is-offline", !navigator.onLine); if (navigator.onLine) flush(); };
+addEventListener("online", online); addEventListener("offline", online);
+/* iOS has no Background Sync, so foregrounding the app is the flush trigger that
+   actually fires on the device a watermaster is carrying. */
+document.addEventListener("visibilitychange", () => { if (!document.hidden) flush(); });
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+online(); prune().then(paintQueue); paintThreshold(); paintLedger();
+</script>
