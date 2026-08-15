@@ -293,7 +293,9 @@ def test_a_measurement_round_trips_its_state() -> None:
 class TestTheAndroidTrustLink:
     """Digital Asset Links, and its refusal, which is the part that matters."""
 
-    def test_it_refuses_when_no_fingerprint_is_configured(self, monkeypatch) -> None:
+    def test_it_refuses_when_no_fingerprint_is_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """An empty asset links file fails verification SILENTLY.
 
         The only symptom of serving `[]` is an installed app showing a browser URL bar,
@@ -304,7 +306,9 @@ class TestTheAndroidTrustLink:
         assert response.status_code == 503
         assert "TWA_SHA256_FINGERPRINT" in response.json()["detail"]
 
-    def test_it_serves_a_valid_statement_when_configured(self, monkeypatch) -> None:
+    def test_it_serves_a_valid_statement_when_configured(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("TWA_SHA256_FINGERPRINT", "AB:CD:" + ":".join(["00"] * 30))
         response = TestClient(app).get("/.well-known/assetlinks.json")
         assert response.status_code == 200
