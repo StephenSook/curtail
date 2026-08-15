@@ -133,7 +133,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="skip the steps needing credentials or a network, and SAY they were skipped",
+        help=(
+            "skip the steps needing credentials or a network. NEVER reports READY: a "
+            "skipped check is not a passed one, so this always exits 3"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -163,26 +166,32 @@ def main(argv: list[str] | None = None) -> int:
     if failed:
         print(f"NOT READY. {len(failed)} check(s) failed: {', '.join(failed)}")
         return 1
+
+    # **A SKIPPED check blocks READY, and this is the third time in one session that a
+    # caveat was printed while the exit code said otherwise.** The drill did it, the
+    # durability report did it, and here `--offline` printed "prove nothing" and then
+    # returned 0 anyway once the human items were filled. Printing a warning is not
+    # gating on it, and the exit code is what a pipeline and a tired human both read.
     if skipped:
         print(
-            f"{len(skipped)} check(s) were SKIPPED and prove nothing: "
+            f"NOT READY. {len(skipped)} check(s) were SKIPPED and prove nothing: "
             f"{', '.join(skipped)}. Re-run without --offline before submitting."
         )
-    if not outstanding:
-        print("READY. Every check passes and every human item is recorded and verified.")
-        return 0
+        return 3
 
-    print("Everything checkable passes. Still outstanding:")
-    for item in outstanding:
-        print(f"  - {item}")
-    print(
-        f"\nNOT READY. Record these in {LINKS.relative_to(REPO)} as they become true. "
-        "A green suite is 'nothing automatable is broken', which is not the same as a "
-        "submitted entry."
-    )
-    # Non-zero on purpose while a human item is outstanding: a green exit here would be
-    # read as "submitted", which is the one misreading that costs the entry.
-    return 0 if not outstanding else 2
+    if outstanding:
+        print("Everything checkable passes. Still outstanding:")
+        for item in outstanding:
+            print(f"  - {item}")
+        print(
+            f"\nNOT READY. Record these in {LINKS.relative_to(REPO)} as they become "
+            "true. A green suite is 'nothing automatable is broken', which is not the "
+            "same as a submitted entry."
+        )
+        return 2
+
+    print("READY. Every check ran, every check passed, every human item is verified.")
+    return 0
 
 
 if __name__ == "__main__":

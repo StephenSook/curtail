@@ -908,6 +908,45 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
         assert ok is False
         assert "YouTube or Vimeo" in why
 
+    def test_the_exit_code_says_what_the_text_says(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """**Asserted on the VERDICT, not the wording.**
+
+        The earlier tests here read the source for phrases like "prove nothing", which
+        is checking that a caveat is printed. A review pointed out that is not the same
+        as checking it is acted on, and it was right: `--offline` printed the caveat and
+        returned 0 anyway once the human items were filled. Three times in one session a
+        caveat was printed while the exit code said otherwise.
+
+        Every path is pinned by its number.
+        """
+        module = self._module()
+        monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
+        monkeypatch.setattr(module, "_human_items", lambda: [("video", "verified", True)])
+
+        assert module.main(["--offline"]) == 3, (
+            "offline SKIPS the deployed-service and drill checks, so it must never "
+            "report READY however complete everything else is"
+        )
+        assert module.main([]) == 0, (
+            "a full run with everything passing and nothing outstanding must be able to "
+            "reach zero, or the gate is a permanent no"
+        )
+
+    def test_an_outstanding_human_item_exits_two(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        module = self._module()
+        monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
+        monkeypatch.setattr(module, "_human_items", lambda: [("video", "not published", False)])
+        assert module.main([]) == 2
+
+    def test_a_failed_check_exits_one_and_outranks_everything(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A broken repository is reported as broken, not as 'waiting on a video'."""
+        module = self._module()
+        monkeypatch.setattr(module, "_run", lambda step: (False, "boom"))
+        monkeypatch.setattr(module, "_human_items", lambda: [("video", "not published", False)])
+        assert module.main([]) == 1
+
     def test_every_step_runs_something(self) -> None:
         """A step that runs nothing is decoration on a checklist."""
         for step in self._module().STEPS:
