@@ -67,32 +67,35 @@ SCHEMA = REPO / "docs" / "submission_schema.json"
 #: The live service, named once. A judge-facing URL that appears in two places drifts.
 SERVICE_URL = "https://curtail-console-api-672785135387.us-central1.run.app"
 
-#: The exact strings to paste into the two free-text judge-facing fields. They live here
-#: rather than in somebody's head because the Devpost form discarded them silently on
-#: three separate save attempts, and a long answer retyped from memory is a long answer
-#: that drifts. Both are code-audited: every path and constant named below was grepped.
+#: The exact strings to paste into the two free-text judge-facing fields.
+#:
+#: **Both are capped at 255 characters by Devpost**, which is not in the fetched schema
+#: and only shows up as a red error under the box after you paste. The first drafts were
+#: 879 and 491 characters. A field that silently refuses to hold what you wrote is the
+#: same family as the save that silently discards it.
+#:
+#: They live here rather than in somebody's head because the form dropped them on three
+#: save attempts, and a long answer retyped from memory drifts.
+LIMIT = 255
+
+#: An adversarial review caught a real error in the first version of this: it said
+#: drafting "queues two drafts, one clean and one deliberately UNVERIFIED". It does not.
+#: `api.py` calls `QUEUE.add` exactly once per request with one order id, and the console
+#: makes exactly one call. TWO rows appeared in the gallery capture because the capture
+#: SCRIPT RAN TWICE against an in-process queue, and I read the accumulated state as a
+#: feature of one click. Observing a screen is not reading the code, and the screen was
+#: showing me my own repeated runs.
 JUDGE_INSTRUCTIONS = (
-    "No login is needed for anything that matters. Open the hosted URL and the console "
-    "runs on load. Classify and Run the fleet need no credentials, and Run the fleet "
-    "drives one real ADK traversal, so it takes a moment because it calls Gemini "
-    "through Vertex. Draft an order also needs no passphrase and takes about 80 "
-    "seconds, because it calls the model and runs both hallucination guards; it queues "
-    "two drafts, one clean and one deliberately UNVERIFIED. ONLY the final signature "
-    "needs the demo passphrase, because a signature binds a legal artifact and an "
-    "unauthenticated minting endpoint would make every signature fabricated. Message us "
-    "if you want it. Everything else is open: /api/facts serves the generated fact "
-    "sheet every number in the writeup is drawn from, and /api/season/shasta shows the "
-    "Firestore-backed season with its statutory clocks and reports whether it is durable."
+    "No login needed. The console runs on load; Classify and Run the fleet need no "
+    "credentials. Draft an order takes about 80s (a model call plus both guards) and "
+    "queues ONE draft. Only signing needs the passphrase. /api/facts and "
+    "/api/season/shasta are open."
 )
 
 AI_MODELS_ANSWER = (
-    "Gemini 3.5 Flash through Vertex AI, which drafts every order "
-    "(agents/src/curtail_agents/scribe.py line 49, DEFAULT_MODEL = gemini-3.5-flash). "
-    "Plus Gemma 3 4B run LOCALLY through Ollama for document normalization "
-    "(normalizer.py line 49, DEFAULT_MODEL = gemma3:4b), so no document leaves the "
-    "machine: an agency that cannot send landowner records to a third-party inference "
-    "API can host those weights itself. Both are greppable in the shipped source. "
-    "Neither is claimed without being wired."
+    "Gemini 3.5 Flash through Vertex AI drafts every order (scribe.py line 49). Gemma 3 "
+    "4B runs locally through Ollama to normalize documents (normalizer.py line 49), so "
+    "no document leaves the machine. Both greppable in the shipped source."
 )
 
 

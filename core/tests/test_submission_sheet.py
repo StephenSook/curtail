@@ -443,3 +443,57 @@ class TestEveryRequiredFieldIsAnswered:
         )
         ids = [f["id"] for f in schema["fields"]]
         assert len(ids) == len(set(ids)), "duplicate field ids in the snapshot"
+
+
+class TestTheJudgeFacingAnswersAreTrueAndFit:
+    """Two failure modes, both found the hard way, both now guarded.
+
+    The first version of the judge instructions claimed that drafting "queues two
+    drafts, one clean and one deliberately UNVERIFIED". It does not. The endpoint calls
+    `QUEUE.add` exactly once per request with a single order id, and the console makes
+    exactly one call. Two rows appeared in the gallery capture because the CAPTURE SCRIPT
+    RAN TWICE against an in-process queue, and the accumulated state was read as a
+    property of one click. **Observing a screen is not reading the code**, and here the
+    screen was showing my own repeated runs back to me.
+
+    The second is duller and would have been just as public: Devpost caps both free-text
+    fields at 255 characters, which is nowhere in the fetched schema and only appears as
+    a red error under the box. The drafts were 879 and 491.
+    """
+
+    @staticmethod
+    def _module() -> Any:
+        import importlib.util
+
+        path = REPO / "scripts" / "generate_submission.py"
+        spec = importlib.util.spec_from_file_location("generate_submission", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_both_answers_fit_the_devpost_field_limit(self) -> None:
+        module = self._module()
+        for name in ("JUDGE_INSTRUCTIONS", "AI_MODELS_ANSWER"):
+            text = getattr(module, name)
+            assert len(text) <= module.LIMIT, (
+                f"{name} is {len(text)} characters and Devpost accepts {module.LIMIT}. "
+                "The field refuses the paste and shows a red error, so an answer this "
+                "long is an answer nobody submits."
+            )
+            assert text.strip(), f"{name} is empty, so this asserts nothing"
+
+    def test_the_draft_endpoint_really_queues_exactly_one(self) -> None:
+        """The claim in the answer text, checked against the code that makes it true.
+
+        If someone changes the endpoint to queue two, this fails and forces the
+        judge-facing sentence to be revisited rather than quietly becoming a lie.
+        """
+        source = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+        body = source.split("def draft_into_queue", 1)[1].split("\n@app.", 1)[0]
+        adds = body.count("QUEUE.add(")
+        assert adds == 1, (
+            f"the draft endpoint calls QUEUE.add {adds} times. The judge-facing answer "
+            "says it queues ONE draft, so that sentence is now wrong."
+        )
+        assert "queues ONE draft" in self._module().JUDGE_INSTRUCTIONS
