@@ -66,6 +66,19 @@ STEPS: tuple[Step, ...] = (
 LINKS = REPO / "docs" / "submission_links.json"
 
 
+def _shown(path: Path) -> str:
+    """A readable path, whether or not it lives under the repository.
+
+    `relative_to` RAISES when it does not, and the only caller is the NOT READY message,
+    so a crash would land on the failure path and nowhere else. Found by a test pointing
+    LINKS at a temporary directory, which is exactly what a test should do.
+    """
+    try:
+        return str(path.relative_to(REPO))
+    except ValueError:
+        return str(path)
+
+
 def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
     """(name, detail, satisfied) for each thing a person must supply.
 
@@ -199,9 +212,9 @@ def main(argv: list[str] | None = None) -> int:
         for item in outstanding:
             print(f"  - {item}")
         print(
-            f"\nNOT READY. Record these in {LINKS.relative_to(REPO)} as they become "
-            "true. A green suite is 'nothing automatable is broken', which is not the "
-            "same as a submitted entry."
+            f"\nNOT READY. Record these in {_shown(LINKS)} as they become true. A green "
+            "suite is 'nothing automatable is broken', which is not the same as a "
+            "submitted entry."
         )
         return 2
 
