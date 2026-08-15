@@ -316,8 +316,22 @@ class TestTheAndroidTrustLink:
         assert statement[0]["relation"] == ["delegate_permission/common.handle_all_urls"]
         target = statement[0]["target"]
         assert target["namespace"] == "android_app"
-        assert target["package_name"] == "app.curtail.field"
+        assert target["package_name"] == (
+            "app.run.us_central1.curtail_console_api_672785135387.twa"
+        ), "the default package id must be the one bubblewrap actually generated"
         assert target["sha256_cert_fingerprints"][0].startswith("AB:CD:")
+
+    def test_the_package_name_can_be_overridden(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Because a mismatch here fails verification silently.
+
+        Bubblewrap derives its application id from the host, so the id is decided at
+        build time on somebody's laptop and cannot be known by this file in advance.
+        Hardcoding one is how the endpoint and the apk drift apart.
+        """
+        monkeypatch.setenv("TWA_SHA256_FINGERPRINT", ":".join(["AB"] * 32))
+        monkeypatch.setenv("TWA_PACKAGE_NAME", "com.example.other")
+        statement = json.loads(TestClient(app).get("/.well-known/assetlinks.json").text)
+        assert statement[0]["target"]["package_name"] == "com.example.other"
 
     def test_no_signing_material_is_committed(self) -> None:
         """The keystore is a credential. It is not in this repository and must not be."""

@@ -152,10 +152,23 @@ def field_store() -> FieldStore:
 #: Same allowlist discipline as the fonts: three keys, three files, no path mapping.
 ICONS: tuple[str, ...] = ("icon-192.png", "icon-512.png", "icon-maskable-512.png")
 
-#: The Android package a Trusted Web Activity would ship under, and the environment
-#: variable carrying its signing certificate fingerprint.
-TWA_PACKAGE = "app.curtail.field"
+#: The Android package a Trusted Web Activity ships under, and the environment
+#: variables carrying it and its signing certificate fingerprint.
+#:
+#: **The package is CONFIGURABLE because hardcoding it broke on first contact.** This
+#: read `app.curtail.field`, and bubblewrap derives its default application id from the
+#: host, so the real build came out as
+#: `app.run.us_central1.curtail_console_api_672785135387.twa`. The two must match
+#: EXACTLY or Android silently fails verification and the installed app shows a browser
+#: URL bar. The doc beside this even warned that changing one without the other breaks
+#: verification, and the hardcoded value broke it anyway, which is the argument for
+#: reading a value rather than asserting one.
+TWA_PACKAGE_ENV = "TWA_PACKAGE_NAME"
 TWA_FINGERPRINT_ENV = "TWA_SHA256_FINGERPRINT"
+
+#: Only used when the environment says nothing, and it is the id bubblewrap actually
+#: generated for this host rather than a name somebody preferred.
+TWA_PACKAGE_DEFAULT = "app.run.us_central1.curtail_console_api_672785135387.twa"
 
 FONTS: dict[str, str] = {
     "public-sans.woff2": "public-sans-latin-wght-normal.woff2",
@@ -315,7 +328,7 @@ def asset_links() -> Response:
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
                 "namespace": "android_app",
-                "package_name": TWA_PACKAGE,
+                "package_name": os.environ.get(TWA_PACKAGE_ENV, "").strip() or TWA_PACKAGE_DEFAULT,
                 "sha256_cert_fingerprints": [fingerprint],
             },
         }
