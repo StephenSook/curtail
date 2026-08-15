@@ -1,0 +1,133 @@
+{
+  "_what_this_is": "A FETCHED snapshot of the live Devpost submission form, not a design of it. The generator builds the answer table from this file and a test asserts every required field appears in docs/SUBMISSION.md, so a required field cannot go missing the way two of them already had. Same split as the deployment probe: the networked half writes the record, the offline half asserts against it.",
+  "_how_to_refresh": "Re-read the form through the Devpost MCP (get_submission_requirements) and rewrite this file. Do not edit a field by hand: a hand-written line in a fetched record is the one line nothing checks.",
+  "_option_lists": "Options are recorded only where the set is small enough to be a real constraint. The country dropdown has 200-odd entries and its count is recorded instead, because a list that long is not something a guard can meaningfully compare.",
+  "hackathon_id": 30845,
+  "hackathon_slug": "allthingsagentichackathon",
+  "fetched_at": "2026-08-15T03:03:10Z",
+  "video_required": true,
+  "website_required": false,
+  "zip_file_required": false,
+  "fields": [
+    {
+      "id": 28083,
+      "label": "Submitter Type",
+      "type": "dropdown",
+      "required": true,
+      "options": ["Individuals", "Team of individuals", "Organization"]
+    },
+    {
+      "id": 28084,
+      "label": "Submitter country of residence",
+      "type": "dropdown",
+      "required": true,
+      "option_count": 249
+    },
+    {
+      "id": 28085,
+      "label": "Which Category are you submitting to?",
+      "type": "dropdown",
+      "required": true,
+      "options": ["Taskmaster", "Collaborative Partner", "Fortified Enterprise Fleet"]
+    },
+    {
+      "id": 28086,
+      "label": "If submitting on behalf of an Organization, what is the Organization name?",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": 28087,
+      "label": "What date did you start this project?",
+      "type": "text",
+      "required": true,
+      "description": "Projects must be NEWLY created by the Entrant during the Submission Period. (MM-DD-YY)"
+    },
+    {
+      "id": 28141,
+      "label": "URL to your public or private code repo",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": 28089,
+      "label": "Did you add Reproducible Testing instructions to your README?",
+      "type": "dropdown",
+      "required": true,
+      "options": ["Yes", "No"]
+    },
+    {
+      "id": 28088,
+      "label": "Hosted project URL if available",
+      "type": "url",
+      "required": false
+    },
+    {
+      "id": 28090,
+      "label": "Testing instructions (seen by Devpost and judges, not publicly shared)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 28091,
+      "label": "Which Google SDK did you use?",
+      "type": "dropdown",
+      "required": true,
+      "multiple": true,
+      "options": [
+        "Agent Development Kit (ADK)",
+        "Google GenAI SDK (google-genai)",
+        "Antigravity SDK",
+        "Genkit",
+        "Other"
+      ]
+    },
+    {
+      "id": 28142,
+      "label": "Which Google Cloud Service (s) did you use?",
+      "type": "dropdown",
+      "required": true,
+      "multiple": true,
+      "options": ["Cloud Run", "Cloud SQL", "Firestore", "Google Kubernetes (GKE)", "Pub/Sub"]
+    },
+    {
+      "id": 28092,
+      "label": "Architecture diagram",
+      "type": "file",
+      "required": true,
+      "allowed_extensions": ["pdf", "ppt", "pptx", "png", "jpg", "jpeg"],
+      "max_size_bytes": 36700160,
+      "note": "Uploaded through prepare_file_upload. It is NOT answered in submit_project custom_answers."
+    },
+    {
+      "id": 28093,
+      "label": "Startup Prize: name of your incorporated organization",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 28101,
+      "label": "Startup Prize: corporate email address",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": 28143,
+      "label": "Which Google AI Models did you use? Gemini 3.5 or newer is REQUIRED.",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": 28106,
+      "label": "OPTIONAL for Bonus Points: link to a piece of content",
+      "type": "url",
+      "required": false
+    },
+    {
+      "id": 28107,
+      "label": "OPTIONAL for Bonus Points: link to a social media post",
+      "type": "url",
+      "required": false
+    }
+  ]
+}

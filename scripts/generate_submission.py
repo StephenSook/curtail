@@ -18,6 +18,7 @@ the public page, because the API is what the form actually enforces.
 from __future__ import annotations
 
 import ast
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -54,6 +55,37 @@ SDKS: dict[str, tuple[str, ...]] = {
     "Antigravity SDK": ("antigravity",),
     "Genkit": ("genkit",),
 }
+
+
+#: The FETCHED form. The generator answers this rather than a remembered list of
+#: fields, because two REQUIRED fields (Submitter Type and country of residence) were
+#: simply absent from the hand-written table and nothing could have noticed. A form
+#: field is a claim exactly like a README sentence, and a missing one blocks submission
+#: outright no matter how good the system is.
+SCHEMA = REPO / "docs" / "submission_schema.json"
+
+#: The live service, named once. A judge-facing URL that appears in two places drifts.
+SERVICE_URL = "https://curtail-console-api-672785135387.us-central1.run.app"
+
+
+def _human_authors() -> list[str]:
+    """Distinct human authors in the history, so Submitter Type is derived not assumed.
+
+    Co-Authored-By trailers are not authors, and `git shortlog` does not count them.
+    """
+    result = subprocess.run(
+        ["git", "shortlog", "-sne", "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    names = []
+    for line in result.stdout.splitlines():
+        parts = line.strip().split("\t", 1)
+        if len(parts) == 2:
+            names.append(parts[1].strip())
+    return names
 
 
 def executable_source(text: str, *, python: bool) -> str:
@@ -199,24 +231,89 @@ def main(argv: list[str] | None = None) -> int:
         "from a memory of what was planned rather than from what shipped. So each answer",
         "below is a grep.",
         "",
-        "## Required fields",
+        "## Every required field on the live form",
+        "",
+        "Built by walking `docs/submission_schema.json`, which is a fetched record of the",
+        "form rather than a remembered list of it. The previous version of this table was",
+        "hand-written and silently omitted TWO required fields, Submitter Type and country",
+        "of residence, which nothing could have noticed. A missing required field blocks",
+        "submission outright, however good the system is.",
         "",
         "| Field | Answer | Where it comes from |",
         "|---|---|---|",
-        "| Category | **Fortified Enterprise Fleet** | the exact string the form offers; a "
-        "mis-typed track name is an auto-decline |",
-        f"| Project start date | **{started}** | first commit. The submission period opened "
-        "2026-08-04, so this is inside it |",
-        "| Organization name | **required even though it reads optional** | Devpost field "
-        "28086 is `required: true` regardless of its wording |",
-        "| Repository URL | https://github.com/StephenSook/curtail | |",
-        "| Reproducible testing instructions in README | **Yes** | the README carries a "
-        "Setup section |",
-        f"| Google SDK | **{', '.join(sdks) or 'NONE FOUND'}** | grep of shipped source |",
-        f"| Google Cloud service(s) | **{', '.join(services) or 'NONE FOUND'}** | grep of "
-        "shipped source and the Dockerfile |",
-        f"| Google AI models | **{', '.join(models) or 'NONE FOUND'}** | grep of shipped source |",
-        "| Architecture diagram | `docs/architecture.png` | a REQUIRED file upload, field 28092 |",
+    ]
+
+    authors = _human_authors()
+    readme = (REPO / "README.md").read_text()
+    diagram = REPO / "docs" / "architecture.png"
+
+    #: Answer plus provenance per field id. A required field with no entry here renders
+    #: as unanswered rather than vanishing, which is the whole point of walking the
+    #: schema instead of listing what somebody remembered.
+    answers: dict[int, tuple[str, str]] = {
+        28083: (
+            "**Individuals**" if len(authors) == 1 else f"**Team of individuals** ({len(authors)})",
+            f"derived from `git shortlog`: {len(authors)} human author(s) in the history",
+        ),
+        28084: (
+            "you supply at submit time",
+            "country of residence is not a fact the repository holds, and inferring "
+            "somebody's residence is not the kind of guess to encode",
+        ),
+        28085: (
+            "**Fortified Enterprise Fleet**",
+            "the exact string the form offers; a mis-typed track name is an auto-decline",
+        ),
+        28086: (
+            "you supply at submit time",
+            "`required: true` regardless of its optional-sounding wording, so the "
+            "pre-submit gate refuses to say READY until it is recorded",
+        ),
+        28087: (
+            f"**{started}**",
+            "first commit. The submission period opened 2026-08-04, so this is inside it",
+        ),
+        28141: ("https://github.com/StephenSook/curtail", "public, so no sharing step is needed"),
+        28089: (
+            "**Yes**" if "## Setup" in readme else "**No**",
+            "grep of README.md for a Setup section",
+        ),
+        28091: (f"**{', '.join(sdks) or 'NONE FOUND'}**", "grep of shipped source"),
+        28142: (
+            f"**{', '.join(services) or 'NONE FOUND'}**",
+            "grep of shipped source and the Dockerfile",
+        ),
+        28092: (
+            f"`docs/architecture.png` ({diagram.stat().st_size:,} bytes)"
+            if diagram.is_file()
+            else "**MISSING**",
+            "a file UPLOAD, not a text answer, so it never appears in custom_answers",
+        ),
+        28143: (f"**{', '.join(models) or 'NONE FOUND'}**", "grep of shipped source"),
+    }
+
+    schema = json.loads(SCHEMA.read_text())
+    for field in schema["fields"]:
+        if not field.get("required"):
+            continue
+        answer, source = answers.get(
+            field["id"],
+            ("**NOT ANSWERED**", "no answer is staged for this field, and it is required"),
+        )
+        lines.append(f"| {field['label']} | {answer} | {source} |")
+
+    lines += [
+        "",
+        "## Optional fields the repository can still answer",
+        "",
+        'Optional is not the same as leave blank. The form calls a hosted URL "highly encouraged",',
+        "and a judge who cannot click anything scores what they could not exercise as absent.",
+        "",
+        "| Field | Answer |",
+        "|---|---|",
+        f"| Hosted project URL | {SERVICE_URL} |",
+        "| Testing instructions | seen by judges only. Name the one page that runs the "
+        "whole loop, and say which actions need the signing passphrase |",
         "",
         "## What is NOT ticked, and why that is deliberate",
         "",

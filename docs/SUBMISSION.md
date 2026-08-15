@@ -8,19 +8,37 @@ and the failure mode is the same one this project keeps finding: a field answere
 from a memory of what was planned rather than from what shipped. So each answer
 below is a grep.
 
-## Required fields
+## Every required field on the live form
+
+Built by walking `docs/submission_schema.json`, which is a fetched record of the
+form rather than a remembered list of it. The previous version of this table was
+hand-written and silently omitted TWO required fields, Submitter Type and country
+of residence, which nothing could have noticed. A missing required field blocks
+submission outright, however good the system is.
 
 | Field | Answer | Where it comes from |
 |---|---|---|
-| Category | **Fortified Enterprise Fleet** | the exact string the form offers; a mis-typed track name is an auto-decline |
-| Project start date | **08-10-26** | first commit. The submission period opened 2026-08-04, so this is inside it |
-| Organization name | **required even though it reads optional** | Devpost field 28086 is `required: true` regardless of its wording |
-| Repository URL | https://github.com/StephenSook/curtail | |
-| Reproducible testing instructions in README | **Yes** | the README carries a Setup section |
-| Google SDK | **Agent Development Kit (ADK), Google GenAI SDK (google-genai)** | grep of shipped source |
-| Google Cloud service(s) | **Cloud Run, Firestore** | grep of shipped source and the Dockerfile |
-| Google AI models | **gemini-3.5-flash, gemma3:4b** | grep of shipped source |
-| Architecture diagram | `docs/architecture.png` | a REQUIRED file upload, field 28092 |
+| Submitter Type | **Individuals** | derived from `git shortlog`: 1 human author(s) in the history |
+| Submitter country of residence | you supply at submit time | country of residence is not a fact the repository holds, and inferring somebody's residence is not the kind of guess to encode |
+| Which Category are you submitting to? | **Fortified Enterprise Fleet** | the exact string the form offers; a mis-typed track name is an auto-decline |
+| If submitting on behalf of an Organization, what is the Organization name? | you supply at submit time | `required: true` regardless of its optional-sounding wording, so the pre-submit gate refuses to say READY until it is recorded |
+| What date did you start this project? | **08-10-26** | first commit. The submission period opened 2026-08-04, so this is inside it |
+| URL to your public or private code repo | https://github.com/StephenSook/curtail | public, so no sharing step is needed |
+| Did you add Reproducible Testing instructions to your README? | **Yes** | grep of README.md for a Setup section |
+| Which Google SDK did you use? | **Agent Development Kit (ADK), Google GenAI SDK (google-genai)** | grep of shipped source |
+| Which Google Cloud Service (s) did you use? | **Cloud Run, Firestore** | grep of shipped source and the Dockerfile |
+| Architecture diagram | `docs/architecture.png` (928,687 bytes) | a file UPLOAD, not a text answer, so it never appears in custom_answers |
+| Which Google AI Models did you use? Gemini 3.5 or newer is REQUIRED. | **gemini-3.5-flash, gemma3:4b** | grep of shipped source |
+
+## Optional fields the repository can still answer
+
+Optional is not the same as leave blank. The form calls a hosted URL "highly encouraged",
+and a judge who cannot click anything scores what they could not exercise as absent.
+
+| Field | Answer |
+|---|---|
+| Hosted project URL | https://curtail-console-api-672785135387.us-central1.run.app |
+| Testing instructions | seen by judges only. Name the one page that runs the whole loop, and say which actions need the signing passphrase |
 
 ## What is NOT ticked, and why that is deliberate
 
