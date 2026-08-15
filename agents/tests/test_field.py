@@ -365,9 +365,12 @@ class TestTheLauncherIconsAreDerivedFromOneSource:
         for name, size, scale in module.VARIANTS:  # type: ignore[attr-defined]
             target = module.ICONS / name  # type: ignore[attr-defined]
             assert target.is_file(), f"{name} is missing. Run `make icons`."
-            assert target.read_bytes() == module.render(size, scale), (  # type: ignore[attr-defined]
-                f"{name} does not match the source art. Run `make icons`."
-            )
+            # Pixels, not bytes: PNG encoder output varies with the zlib build, so a
+            # byte comparison is green on the machine that wrote the file and red on a
+            # CI runner, with the two images visually identical.
+            assert module.pixels(target.read_bytes()) == module.pixels(  # type: ignore[attr-defined]
+                module.render(size, scale)  # type: ignore[attr-defined]
+            ), f"{name} does not match the source art. Run `make icons`."
 
     def test_the_maskable_variant_actually_reserves_a_safe_zone(self) -> None:
         """Android crops a maskable icon to a circle, keeping roughly the inner 80%.
@@ -377,8 +380,8 @@ class TestTheLauncherIconsAreDerivedFromOneSource:
         letters on a real home screen.
         """
         module = self._module()
-        plain = (module.ICONS / "icon-512.png").read_bytes()  # type: ignore[attr-defined]
-        maskable = (module.ICONS / "icon-maskable-512.png").read_bytes()  # type: ignore[attr-defined]
+        plain = module.pixels((module.ICONS / "icon-512.png").read_bytes())  # type: ignore[attr-defined]
+        maskable = module.pixels((module.ICONS / "icon-maskable-512.png").read_bytes())  # type: ignore[attr-defined]
         assert plain != maskable, "the maskable icon is identical to the plain one"
 
         scales = {name: scale for name, _, scale in module.VARIANTS}  # type: ignore[attr-defined]
