@@ -16,7 +16,10 @@ network come last, so a broken repository is not diagnosed by a Cloud Run probe.
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -53,12 +56,67 @@ STEPS: tuple[Step, ...] = (
         needs_network=True,
     ),
     Step("the chaos drill, every layer", ["make", "chaos-recording"], needs_network=True),
-    Step("demo video published", None, human="a public YouTube or Vimeo URL, 4 minutes maximum"),
-    Step(
-        "architecture diagram uploaded", None, human="docs/architecture.png, to Devpost field 28092"
-    ),
-    Step("organization name answered", None, human="required even though the form reads optional"),
+    # The human items are READ FROM A FILE, not hardcoded, so this gate can actually
+    # reach READY. The first version listed them as permanent facts, which made it
+    # exit non-zero forever: a gate that cannot pass is a gate people stop running,
+    # and that is the failure this project keeps naming from the other direction.
 )
+
+#: What no command can derive, recorded as it becomes true.
+LINKS = REPO / "docs" / "submission_links.json"
+
+
+def _human_items() -> list[tuple[str, str, bool]]:
+    """(name, detail, satisfied) for each thing a person must supply.
+
+    The video is VERIFIED rather than trusted: YouTube's oembed endpoint answers 200
+    for a public video and 400 for one that is missing or private, which is exactly
+    the distinction the rules care about, since the content must be public rather than
+    unlisted. A URL somebody typed proves only that they typed it.
+    """
+    if not LINKS.exists():
+        return [("submission links file", f"{LINKS.name} is missing entirely", False)]
+    data = json.loads(LINKS.read_text())
+
+    items: list[tuple[str, str, bool]] = []
+
+    video = str(data.get("video_url", "")).strip()
+    if not video:
+        items.append(("demo video published", "a public YouTube or Vimeo URL, 4 min max", False))
+    else:
+        public, why = _video_is_public(video)
+        items.append((f"demo video ({video[:48]})", why, public))
+
+    org = str(data.get("organization_name", "")).strip()
+    items.append(
+        ("organization name", "Devpost field 28086 is required despite reading optional", bool(org))
+    )
+
+    uploaded = str(data.get("diagram_uploaded_at", "")).strip()
+    items.append(
+        (
+            "architecture diagram uploaded",
+            "SELF-CERTIFIED: no API can confirm it, so this is your word, dated",
+            bool(uploaded),
+        )
+    )
+    return items
+
+
+def _video_is_public(url: str) -> tuple[bool, str]:
+    """Public, or merely typed. Verified through the provider, never assumed."""
+    if "youtube.com" in url or "youtu.be" in url:
+        probe = f"https://www.youtube.com/oembed?url={urllib.parse.quote(url, safe='')}&format=json"
+    elif "vimeo.com" in url:
+        probe = f"https://vimeo.com/api/oembed.json?url={urllib.parse.quote(url, safe='')}"
+    else:
+        return False, "not a YouTube or Vimeo URL, and the rules name those two"
+    try:
+        with urllib.request.urlopen(probe, timeout=20) as response:
+            title = json.loads(response.read().decode()).get("title", "")
+        return True, f"public, titled {title[:48]!r}"
+    except Exception as exc:
+        return False, f"NOT reachable as public ({str(exc)[:60]}). Unlisted counts as not public."
 
 
 def _run(step: Step) -> tuple[bool, str]:
@@ -85,10 +143,6 @@ def main(argv: list[str] | None = None) -> int:
     outstanding: list[str] = []
 
     for step in STEPS:
-        if step.human is not None:
-            outstanding.append(f"{step.name}: {step.human}")
-            print(f"[HUMAN]  {step.name}")
-            continue
         if step.needs_network and args.offline:
             skipped.append(step.name)
             print(f"[SKIP]   {step.name}  (--offline)")
@@ -97,6 +151,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{'PASS' if ok else 'FAIL'}]   {step.name}" + ("" if ok else f"  {detail}"))
         if not ok:
             failed.append(step.name)
+
+    for name, detail, satisfied in _human_items():
+        if satisfied:
+            print(f"[PASS]   {name}  {detail}")
+        else:
+            outstanding.append(f"{name}: {detail}")
+            print(f"[TODO]   {name}")
 
     print()
     if failed:
@@ -107,12 +168,17 @@ def main(argv: list[str] | None = None) -> int:
             f"{len(skipped)} check(s) were SKIPPED and prove nothing: "
             f"{', '.join(skipped)}. Re-run without --offline before submitting."
         )
-    print("Everything checkable passes. Still needed from a human:")
+    if not outstanding:
+        print("READY. Every check passes and every human item is recorded and verified.")
+        return 0
+
+    print("Everything checkable passes. Still outstanding:")
     for item in outstanding:
         print(f"  - {item}")
     print(
-        "\nThis is not READY. It is 'nothing automatable is broken'. The items above are "
-        "the submission."
+        f"\nNOT READY. Record these in {LINKS.relative_to(REPO)} as they become true. "
+        "A green suite is 'nothing automatable is broken', which is not the same as a "
+        "submitted entry."
     )
     # Non-zero on purpose while a human item is outstanding: a green exit here would be
     # read as "submitted", which is the one misreading that costs the entry.
