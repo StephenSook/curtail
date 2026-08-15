@@ -11,6 +11,7 @@ judge with the repository open would.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -116,11 +117,39 @@ def source() -> str:
     return "\n".join(parts)
 
 
-def _ticked(sheet: str, row: str) -> str:
+#: Devpost field ids, which are the stable identifiers. Labels are not.
+FIELD_SDK = 28091
+FIELD_CLOUD = 28142
+FIELD_MODELS = 28143
+FIELD_ORG = 28086
+
+
+def _label(field_id: int) -> str:
+    """The label the LIVE form uses for a field, read from the fetched snapshot.
+
+    These tests used to key rows on short hand-written labels ("Google AI models"), and
+    when the generator switched to the form's own wording every one of them silently
+    matched nothing and asserted on an empty string. A test looking for a row that no
+    longer exists passes vacuously for any content, which is the failure mode this
+    project keeps naming. A field ID cannot be reworded.
+    """
+    schema = json.loads((REPO / "docs" / "submission_schema.json").read_text())
+    for field in schema["fields"]:
+        if field["id"] == field_id:
+            return str(field["label"])
+    raise AssertionError(f"field {field_id} is not in the schema snapshot")
+
+
+def _ticked(sheet: str, field_id: int) -> str:
+    """The sheet's row for a field, and never the empty string on a miss."""
+    label = _label(field_id)
     for line in sheet.splitlines():
-        if line.startswith(f"| {row}"):
+        if line.startswith(f"| {label}"):
             return line
-    return ""
+    raise AssertionError(
+        f"the sheet has no row for field {field_id} ({label!r}). Failing here rather "
+        "than returning empty, because an empty row satisfies most assertions."
+    )
 
 
 class TestTheSheetTicksNothingTheCodeLacks:
@@ -130,7 +159,7 @@ class TestTheSheetTicksNothingTheCodeLacks:
     def test_a_claimed_service_has_its_evidence_in_the_source(
         self, service: str, sheet: str, source: str
     ) -> None:
-        row = _ticked(sheet, "Google Cloud service(s)")
+        row = _ticked(sheet, FIELD_CLOUD)
         assert row, "the sheet has no cloud services row"
         if service not in row:
             return  # not claimed, nothing to prove
@@ -150,7 +179,7 @@ class TestTheSheetTicksNothingTheCodeLacks:
         It is the row a judge is most likely to check first, because the rules make one
         Google agent framework mandatory.
         """
-        row = _ticked(sheet, "Google SDK")
+        row = _ticked(sheet, FIELD_SDK)
         assert row, "the sheet has no SDK row"
         if sdk not in row:
             return
@@ -161,11 +190,11 @@ class TestTheSheetTicksNothingTheCodeLacks:
     def test_the_sheet_claims_at_least_one_sdk(self, sheet: str) -> None:
         """The rules require at least one Google agent framework, so an empty row is a
         disqualification rather than a modest answer."""
-        row = _ticked(sheet, "Google SDK")
+        row = _ticked(sheet, FIELD_SDK)
         assert any(sdk in row for sdk in SDK_EVIDENCE), f"no SDK is claimed: {row!r}"
 
     def test_every_model_it_names_is_in_the_source(self, sheet: str, source: str) -> None:
-        row = _ticked(sheet, "Google AI models")
+        row = _ticked(sheet, FIELD_MODELS)
         named = set(re.findall(r"\b(gemini-[0-9.]+-[a-z-]+|gemma[0-9]?:[0-9a-z.]+)\b", row))
         assert named, "the sheet names no model, which cannot be right"
         missing = sorted(m for m in named if m not in source)
@@ -180,7 +209,7 @@ class TestTheSheetTicksNothingTheCodeLacks:
         true of the design and false of the system.
         """
         publishes = any(m in source for m in EVIDENCE["Pub/Sub"])
-        row = _ticked(sheet, "Google Cloud service(s)")
+        row = _ticked(sheet, FIELD_CLOUD)
         if not publishes:
             assert "Pub/Sub" not in row, (
                 "the sheet ticks Pub/Sub and no shipped source constructs a publisher or subscriber"
@@ -213,7 +242,10 @@ class TestItSaysWhatIsStillMissing:
         """Devpost field 28086 asks for an organization name "if submitting on behalf of
         an Organization" and is `required: true` regardless. A form that rejects on a
         field nobody read as mandatory is a bad way to spend the last hour."""
-        assert "required even though it reads optional" in sheet
+        row = _ticked(sheet, FIELD_ORG)
+        assert "required: true" in row.lower(), (
+            f"the organization row does not say it is mandatory: {row!r}"
+        )
 
 
 class TestTheGuardCoversEverythingTheGeneratorCanClaim:
@@ -368,3 +400,46 @@ class TestTheStartDateRefusesRatherThanGuessing:
             f"{checkouts} checkout step(s) and {depths} fetch-depth setting(s). Every "
             "job that runs the submission check needs full history."
         )
+
+
+class TestEveryRequiredFieldIsAnswered:
+    """A required field that is simply absent blocks submission, however good the system.
+
+    The answer table used to be hand-written, and it silently omitted TWO required
+    fields, Submitter Type and country of residence. Nothing could have noticed, because
+    nothing held a list of what the form actually asks. So the generator now walks a
+    FETCHED record of the form, and these assert the walk is real.
+    """
+
+    @staticmethod
+    def _schema() -> dict[str, Any]:
+        loaded: dict[str, Any] = json.loads((REPO / "docs" / "submission_schema.json").read_text())
+        return loaded
+
+    def test_the_sheet_names_every_required_field(self) -> None:
+        sheet = (REPO / "docs" / "SUBMISSION.md").read_text()
+        required = [f for f in self._schema()["fields"] if f.get("required")]
+        assert required, "the schema snapshot lists no required fields, so this asserts nothing"
+        missing = [f["label"] for f in required if f["label"] not in sheet]
+        assert not missing, (
+            f"{len(missing)} REQUIRED field(s) do not appear in the submission sheet: "
+            f"{missing}. A field nobody staged is a field discovered at 4pm on the 31st."
+        )
+
+    def test_no_required_field_renders_as_unanswered(self) -> None:
+        """The generator marks a gap rather than dropping the row, so the gap is visible."""
+        sheet = (REPO / "docs" / "SUBMISSION.md").read_text()
+        assert "NOT ANSWERED" not in sheet, (
+            "a required field has no staged answer. It renders rather than vanishing on "
+            "purpose, and this is that signal being read."
+        )
+
+    def test_the_schema_snapshot_is_stamped_and_names_its_source(self) -> None:
+        """A fetched record with no fetch time is indistinguishable from an invented one."""
+        schema = self._schema()
+        assert schema["hackathon_slug"] == "allthingsagentichackathon"
+        assert re.match(r"\d{4}-\d{2}-\d{2}T", schema["fetched_at"]), (
+            "the snapshot carries no fetch timestamp, so nobody can tell how stale it is"
+        )
+        ids = [f["id"] for f in schema["fields"]]
+        assert len(ids) == len(set(ids)), "duplicate field ids in the snapshot"
