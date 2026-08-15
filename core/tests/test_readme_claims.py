@@ -921,7 +921,7 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
         """
         module = self._module()
         monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
-        monkeypatch.setattr(module, "_human_items", lambda: [("video", "verified", True)])
+        monkeypatch.setattr(module, "_human_items", lambda **_: [("video", "verified", True)])
 
         assert module.main(["--offline"]) == 3, (
             "offline SKIPS the deployed-service and drill checks, so it must never "
@@ -932,10 +932,81 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
             "reach zero, or the gate is a permanent no"
         )
 
+    def test_offline_makes_no_network_call_at_all(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """**The contract, tested by breaking the network rather than mocking past it.**
+
+        `--offline` promised no network and then probed YouTube from `_human_items`,
+        because the offline switch guarded the STEP list and that function is not in it.
+        The tests here could not catch it: they mocked `_human_items` away, and a mock
+        cannot violate the contract of the thing it replaced. Mocking a collaborator
+        hides exactly the defects that live in the collaborator.
+
+        So this poisons `urlopen` and lets the real function run.
+        """
+        module = self._module()
+        links = tmp_path / "links.json"
+        links.write_text(
+            json.dumps(
+                {
+                    "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    "organization_name": "Individual",
+                    "diagram_uploaded_at": "2026-08-31",
+                }
+            )
+        )
+        module.LINKS = links
+
+        # **Counted, not raised.** The first version raised AssertionError from the
+        # poisoned urlopen, and `_video_is_public` catches `Exception` broadly, so the
+        # module swallowed the failure and the test passed under a mutation that put
+        # the network call back. A probe that the code under test can catch is not a
+        # probe. Counting cannot be swallowed.
+        calls: list[str] = []
+
+        def _record(url: object, *args: object, **kwargs: object) -> object:
+            calls.append(str(url))
+            raise OSError("unreachable")
+
+        monkeypatch.setattr(module.urllib.request, "urlopen", _record)
+
+        items = module._human_items(verify=False)
+        assert calls == [], f"--offline made {len(calls)} network call(s): {calls}"
+        video = next(name for name, _, _ in items if "video" in name)
+        satisfied = {name: ok for name, _, ok in items}
+        assert satisfied[video] is False, (
+            "an unverified video must not count as satisfied: offline cannot know "
+            "whether the URL is public, and unlisted counts as not public"
+        )
+        assert satisfied["organization name"] is True, (
+            "the items needing no network must still be checked offline"
+        )
+
+    def test_verification_is_still_attempted_when_not_offline(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Non-vacuity: `verify=True` must actually reach for the network, or the
+        offline branch is the only branch and the check verifies nothing."""
+        module = self._module()
+        links = tmp_path / "links.json"
+        links.write_text(json.dumps({"video_url": "https://www.youtube.com/watch?v=x"}))
+        module.LINKS = links
+        called: list[str] = []
+
+        def _record(url: object, *args: object, **kwargs: object) -> object:
+            called.append(str(url))
+            raise OSError("no network in tests")
+
+        monkeypatch.setattr(module.urllib.request, "urlopen", _record)
+        module._human_items(verify=True)
+        assert called, "verify=True made no request, so nothing is being verified"
+        assert "oembed" in called[0]
+
     def test_an_outstanding_human_item_exits_two(self, monkeypatch: pytest.MonkeyPatch) -> None:
         module = self._module()
         monkeypatch.setattr(module, "_run", lambda step: (True, "ok"))
-        monkeypatch.setattr(module, "_human_items", lambda: [("video", "not published", False)])
+        monkeypatch.setattr(module, "_human_items", lambda **_: [("video", "not published", False)])
         assert module.main([]) == 2
 
     def test_a_failed_check_exits_one_and_outranks_everything(
@@ -944,7 +1015,7 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
         """A broken repository is reported as broken, not as 'waiting on a video'."""
         module = self._module()
         monkeypatch.setattr(module, "_run", lambda step: (False, "boom"))
-        monkeypatch.setattr(module, "_human_items", lambda: [("video", "not published", False)])
+        monkeypatch.setattr(module, "_human_items", lambda **_: [("video", "not published", False)])
         assert module.main([]) == 1
 
     def test_every_step_runs_something(self) -> None:

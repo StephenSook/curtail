@@ -66,13 +66,19 @@ STEPS: tuple[Step, ...] = (
 LINKS = REPO / "docs" / "submission_links.json"
 
 
-def _human_items() -> list[tuple[str, str, bool]]:
+def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
     """(name, detail, satisfied) for each thing a person must supply.
 
     The video is VERIFIED rather than trusted: YouTube's oembed endpoint answers 200
     for a public video and 400 for one that is missing or private, which is exactly
     the distinction the rules care about, since the content must be public rather than
     unlisted. A URL somebody typed proves only that they typed it.
+
+    **`verify=False` makes no network call, and that is a contract not a preference.**
+    `--offline` promised no network and then reached out to YouTube from here, because
+    the offline switch guarded the STEP list and this function is not in it. A review
+    found it; the tests could not, because they mocked this function away and a mock
+    cannot violate the contract of the thing it replaced.
     """
     if not LINKS.exists():
         return [("submission links file", f"{LINKS.name} is missing entirely", False)]
@@ -83,6 +89,15 @@ def _human_items() -> list[tuple[str, str, bool]]:
     video = str(data.get("video_url", "")).strip()
     if not video:
         items.append(("demo video published", "a public YouTube or Vimeo URL, 4 min max", False))
+    elif not verify:
+        items.append(
+            (
+                f"demo video ({video[:48]})",
+                "recorded but NOT verified: --offline makes no network call, so whether "
+                "this URL is public is unknown",
+                False,
+            )
+        )
     else:
         public, why = _video_is_public(video)
         items.append((f"demo video ({video[:48]})", why, public))
@@ -155,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         if not ok:
             failed.append(step.name)
 
-    for name, detail, satisfied in _human_items():
+    for name, detail, satisfied in _human_items(verify=not args.offline):
         if satisfied:
             print(f"[PASS]   {name}  {detail}")
         else:
