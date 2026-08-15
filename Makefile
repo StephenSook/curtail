@@ -213,3 +213,6 @@ thumbnail:  ## render the Devpost gallery thumbnail from its HTML source
 
 gallery:  ## capture the Devpost gallery from the LIVE service (needs the network)
 	uv run python scripts/capture_gallery.py
+
+qr:  ## Regenerate the field install QR code from the canonical URL
+	uv run python scripts/render_qr.py
