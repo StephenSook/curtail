@@ -861,20 +861,57 @@ class TestThePreSubmitGateCannotSayReadyTooEarly:
         spec.loader.exec_module(module)
         return module
 
-    def test_a_human_item_keeps_the_verdict_non_zero(self) -> None:
+    def test_the_gate_can_actually_reach_ready(self, tmp_path: Path) -> None:
+        """**The defect a review found: it could never pass.**
+
+        The human items were hardcoded into `STEPS`, so `outstanding` was never empty
+        and the gate exited non-zero forever. A gate that cannot pass is a gate people
+        stop running, which is the failure this project keeps naming from the other
+        direction, arriving inverted.
+
+        So they are read from a file, and this proves the file can satisfy them.
+        """
         module = self._module()
-        human = [s for s in module.STEPS if s.human is not None]
-        assert human, "no human items, so this gate would report READY on a green suite"
-        assert any("video" in s.name for s in human), (
-            "the demo video is not listed, and it is the largest thing no command can check"
+        links = tmp_path / "submission_links.json"
+        links.write_text(
+            json.dumps(
+                {
+                    "video_url": "",
+                    "organization_name": "Individual",
+                    "diagram_uploaded_at": "2026-08-31",
+                }
+            )
+        )
+        module.LINKS = links
+        items = module._human_items()
+        satisfied = {name: ok for name, _, ok in items}
+        assert satisfied["organization name"] is True
+        assert satisfied["architecture diagram uploaded"] is True
+        assert any("video" in name and not ok for name, _, ok in items), (
+            "an empty video URL must remain outstanding"
         )
 
-    def test_every_step_either_runs_something_or_names_a_human(self) -> None:
-        """A step that does neither is decoration on a checklist."""
+    def test_an_empty_file_leaves_everything_outstanding(self, tmp_path: Path) -> None:
+        """The other direction, so 'can reach ready' is not 'always ready'."""
+        module = self._module()
+        links = tmp_path / "submission_links.json"
+        links.write_text(json.dumps({"video_url": "", "organization_name": ""}))
+        module.LINKS = links
+        assert all(not ok for _, _, ok in module._human_items())
+
+    def test_a_typed_video_url_is_not_a_published_video(self, tmp_path: Path) -> None:
+        """The rules require the content to be PUBLIC, not unlisted, so the gate asks
+        the provider rather than trusting the string. A URL somebody typed proves only
+        that they typed it."""
+        module = self._module()
+        ok, why = module._video_is_public("https://example.invalid/not-a-video")
+        assert ok is False
+        assert "YouTube or Vimeo" in why
+
+    def test_every_step_runs_something(self) -> None:
+        """A step that runs nothing is decoration on a checklist."""
         for step in self._module().STEPS:
-            assert step.command is not None or step.human is not None, (
-                f"{step.name!r} neither runs a check nor names what a human must supply"
-            )
+            assert step.command, f"{step.name!r} runs no command"
 
     def test_skipped_network_steps_are_reported_not_counted_as_passing(self) -> None:
         """`--offline` must say what it did not do.
