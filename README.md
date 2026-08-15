@@ -232,6 +232,55 @@ Every response says it is a recommendation, and every reading is labelled
 `unsourced`, because the endpoint classifies a value you supply and never contacts
 USGS.
 
+## On a phone
+
+The field surface installs on iOS and Android from one URL. Scan this, or open
+[/field](https://curtail-console-api-672785135387.us-central1.run.app/field):
+
+<img src="docs/field-qr.png" alt="QR code linking to the Curtail field surface" width="180">
+
+It is a PWA, so **Add to Home Screen** gives a standalone app on both platforms with no
+store, no review queue and no expiry. The QR code is generated from the URL by
+`scripts/render_qr.py` and CI re-generates it for a byte comparison, because a QR code
+is the one artifact a reviewer cannot proofread: a stale host inside an opaque square is
+invisible to every human who looks at it.
+
+### What it does, and what it deliberately cannot
+
+It captures an attested field measurement (discharge, observer, instrument, optional
+location and photo), queues it offline, and syncs it as **append-only evidence**. Three
+states are shown in words, because only the third means the evidence entered the record:
+
+| State | Meaning |
+|---|---|
+| Saved on device | In IndexedDB. Not in the ledger. |
+| Syncing | In flight. |
+| Recorded in ledger | Appended. This one counts. |
+
+**The device never holds authority.** It submits evidence; it does not curtail, restore,
+sign or serve anything. That is enforced by a test that parses the field module, strips
+docstrings, and searches executable code for `QUEUE`, `demo_token`, `record_order`,
+`sign` and `SignatoryRole` as whole identifiers, plus a second test asserting the
+approval queue is byte-identical after a submission.
+
+The photograph is **hashed, not uploaded**: the device sends a SHA-256 and a byte count
+and keeps the image, so a demonstration datastore holds no imagery of private land while
+the measurement is still bound to an artifact the observer holds.
+
+This exists because of the public record. In July 2025 the Fort Jones gage read below
+the July minimum and Addendum 7 reinstated curtailment; the measurement was disputed,
+the Watermaster District took field flows, USGS shifted the rating curve, and Addendum 8
+lifted curtailment on 22 July. An agent architecture that cannot be corrected by the
+person responsible for it is not governed.
+
+### Android
+
+`GET /.well-known/assetlinks.json` is implemented and **returns 503 naming the missing
+variable** until a signing fingerprint is configured, because an empty asset links file
+is valid JSON that fails verification silently. Wrapping the same PWA in a Trusted Web
+Activity produces a real signed `.apk`. The keystore is a credential and is not in this
+repository. Steps: [docs/ANDROID.md](docs/ANDROID.md).
+
 ## Setup
 
 ```

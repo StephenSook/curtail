@@ -1445,3 +1445,45 @@ def test_the_documented_drill_command_actually_writes_the_record() -> None:
         "the near-identically named second target is back. That name collision is what "
         "let the record and the documented command drift apart."
     )
+
+
+def test_the_install_qr_encodes_the_field_url() -> None:
+    """A QR code is the one artifact a reviewer cannot proofread.
+
+    Printed in a README or held up in a video it is an opaque square, so a stale host
+    inside it is invisible to every human who looks. Encoding is deterministic, so
+    regenerating and comparing bytes proves the committed image encodes this URL and
+    nothing else.
+    """
+    import importlib.util
+
+    path = REPO / "scripts" / "render_qr.py"
+    spec = importlib.util.spec_from_file_location("render_qr", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    target = REPO / "docs" / "field-qr.png"
+    assert target.is_file(), "docs/field-qr.png is missing. Run `make qr`."
+    assert target.read_bytes() == module.build(), (
+        "the committed QR code does not encode " + module.FIELD_URL
+    )
+    assert module.FIELD_URL.endswith("/field"), "the QR points somewhere other than the field route"
+    assert target.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_the_readme_does_not_promise_an_apk_it_does_not_ship() -> None:
+    """Wired-or-cut, applied to a download link.
+
+    A README that offers an `.apk` a reader can click must have one. If a release asset
+    is ever added, this is the check that keeps the claim and the file together.
+    """
+    readme = (REPO / "README.md").read_text()
+    offers_download = ".apk" in readme and (
+        "releases/download" in readme or "Download the apk" in readme
+    )
+    if offers_download:
+        assert "TWA_SHA256_FINGERPRINT" in (REPO / ".env.example").read_text(), (
+            "the README offers an apk download and the trust link is not configurable, "
+            "so the installed app would show a browser URL bar"
+        )

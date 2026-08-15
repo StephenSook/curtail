@@ -31,6 +31,11 @@ dev = [
     # entity-expansion attacks and there is no reason for a security gate to
     # rest on a parser with a known weakness.
     "defusedxml>=0.7.1,<0.8",
+    # Pure-python QR encoder, used to GENERATE the install code from the canonical
+    # service URL and to re-generate it in CI for a byte comparison. That comparison is
+    # what proves the committed PNG encodes the URL it claims: a QR code is unreadable
+    # to a reviewer, so a swapped image is invisible without one.
+    "segno>=1.6.1,<2",
     "pytest-asyncio>=1.4.0,<2",
     # Pulled in by the ledger's persistence test, which injects a real ADK
     # DatabaseSessionService. They were declared as RUNTIME dependencies of the agents
