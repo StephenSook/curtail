@@ -207,3 +207,9 @@ verify: lint types test tone chaos ## The pre-commit triplet, tone, and the dril
 ci: verify secrets ## Everything CI runs, locally
 	@echo ""
 	@echo "full CI suite green locally"
+
+thumbnail:  ## render the Devpost gallery thumbnail from its HTML source
+	uv run python scripts/render_thumbnail.py
+
+gallery:  ## capture the Devpost gallery from the LIVE service (needs the network)
+	uv run python scripts/capture_gallery.py

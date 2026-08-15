@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Curtail thumbnail</title>
+<!--
+  The Devpost gallery thumbnail. Rendered to PNG by scripts/render_thumbnail.py.
+
+  A thumbnail is read at about 300 pixels wide in a grid beside a hundred others, so it
+  carries ONE idea and it is the same idea the writeup opens with: the published rule
+  understates the penalty by a factor of twenty. Both figures are in docs/FACTS.md, and
+  a test asserts they still are, because a number on an image cannot be corrected after
+  a judge has seen it.
+-->
+<style>
+  :root {
+    --bg: #0A0A0B;
+    --card: #131417;
+    --fg: #E6E8EB;
+    --muted: #9CA3AF;
+    --border: #2A2D34;
+    --curtailed: #EF7748;
+    --suspended: #3B9AE1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 800px; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 72px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .eyebrow {
+    font-size: 22px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .rule {
+    width: 96px;
+    height: 3px;
+    background: var(--curtailed);
+    margin: 26px 0 40px;
+  }
+  .pair { display: flex; align-items: baseline; gap: 34px; }
+  .old {
+    font-size: 108px;
+    font-weight: 700;
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .arrow { font-size: 60px; color: var(--muted); }
+  .new {
+    font-size: 132px;
+    font-weight: 700;
+    color: var(--curtailed);
+    font-variant-numeric: tabular-nums;
+  }
+  .per { font-size: 34px; color: var(--muted); font-weight: 500; }
+  .line {
+    font-size: 34px;
+    line-height: 1.45;
+    margin-top: 40px;
+    max-width: 30ch;
+  }
+  .line b { color: var(--fg); font-weight: 600; }
+  .foot {
+    margin-top: auto;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 24px;
+    color: var(--muted);
+  }
+  .name { color: var(--fg); font-size: 40px; font-weight: 700; letter-spacing: -0.01em; }
+  .name span { color: var(--suspended); }
+</style>
+<body>
+  <div class="eyebrow">23 CCR 875.9(b) versus Water Code 1846(b)</div>
+  <div class="rule"></div>
+  <div class="pair">
+    <div class="old">$500</div>
+    <div class="arrow">&rarr;</div>
+    <div class="new">$10,000</div>
+    <div class="per">a day</div>
+  </div>
+  <div class="line">
+    The published regulation still prints the old number. The statute changed on
+    <b>January 1, 2025</b>.
+  </div>
+  <div class="foot">
+    <div class="name">Curtail<span>.</span></div>
+    <div>Governed multi-agent curtailment administration</div>
+  </div>
+</body>
