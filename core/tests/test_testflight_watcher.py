@@ -16,8 +16,6 @@ is why these get tests rather than a fix and a shrug.
 from __future__ import annotations
 
 import importlib.util
-import subprocess
-import sys
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -54,40 +52,37 @@ class TestTheAppleScriptFallbackIsActuallyAppleScript:
         quote-escape just introduced, and the literal would end early."""
         assert watcher.applescript_string("a\\b") == '"a\\\\b"'
 
-    @pytest.mark.skipif(sys.platform != "darwin", reason="osascript is macOS only")
-    def test_osascript_compiles_the_command_this_builds(self) -> None:
-        """The real check, run where the interpreter exists.
+    def test_the_command_notify_actually_builds_quotes_the_message(self) -> None:
+        """Asserted at the CALL SITE, on every platform, and deliberately not
+        through `osacompile`.
 
-        `osacompile` parses without displaying anything, so this asserts the syntax
-        the fallback emits rather than the syntax of some simpler stand-in. The
-        pre-fix form fails this, which is the whole point.
+        `osacompile` exists only on macOS, so a test using it skips on the Linux
+        runner, and this repository fails CI on any skip because a skipped guard is a
+        false green. The defect is a quoting defect, and quoting is checkable
+        anywhere, so it is checked anywhere. The osacompile run happened once by hand
+        against both the fixed and the shipped form; the standing guard is this.
         """
-        message = 'Build 1: "ready", 45.3 cfs \\ 50'
-        source = (
-            f"display notification {watcher.applescript_string(message)} "
-            f"with title {watcher.applescript_string('Curtail TestFlight')}"
-        )
-        compiled = subprocess.run(
-            ["osacompile", "-o", "/dev/null", "-e", source],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        assert compiled.returncode == 0, compiled.stderr
+        built: list[list[str]] = []
 
-    @pytest.mark.skipif(sys.platform != "darwin", reason="osascript is macOS only")
-    def test_the_repr_form_that_shipped_does_not_compile(self) -> None:
-        """Guards the guard. If `osacompile` accepted anything, the test above would
-        pass without proving anything, so the known-bad form must be rejected."""
-        message = "Build 1 needs the export compliance answer."
-        broken = f'display notification {message!r} with title "Curtail TestFlight"'
-        compiled = subprocess.run(
-            ["osacompile", "-o", "/dev/null", "-e", broken],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        def capture(command: list[str], **kwargs: Any) -> None:
+            built.append(command)
+            if command[0] == "terminal-notifier":
+                raise FileNotFoundError("not installed")
+
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(watcher.subprocess, "run", capture)
+            watcher.notify('Build 1: "ready" \\ 45.3 cfs')
+
+        script = built[-1][-1]
+        assert built[-1][0] == "osascript"
+        assert script.startswith('display notification "')
+        assert "'" not in script, (
+            "AppleScript has no single-quoted string. This is the exact byte pattern "
+            "that shipped and failed with syntax error -2741 on every run."
         )
-        assert compiled.returncode != 0
+        # The escapes survive into the literal rather than ending it early.
+        assert '\\"ready\\"' in script
+        assert "\\\\ 45.3" in script
 
 
 class TestNotifyReportsWhetherItActuallyNotified:
