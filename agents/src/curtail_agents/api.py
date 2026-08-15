@@ -30,7 +30,7 @@ from typing import Any
 
 import structlog
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from google.adk.sessions import InMemorySessionService
 
 from curtail_agents.app import (
@@ -111,6 +111,23 @@ log = structlog.get_logger("curtail.api")
 #: stays as a development fallback rather than as the primary.
 CONSOLE = Path(__file__).resolve().parent / "data" / "console.html"
 
+#: The three typefaces the locked design spec names, self-hosted inside the package.
+#:
+#: **An ALLOWLIST, not a directory served.** Mapping a request path onto the filesystem
+#: is how a font route becomes an arbitrary-file-read, and `../` normalisation is a
+#: thing to avoid needing rather than a thing to get right. Three keys, three files,
+#: nothing else reachable.
+#:
+#: In the package for the same reason the fact sheet and the console are: a container
+#: has no repository, and an asset resolved from one 404s in every deployment. The
+#: spec requires self-hosting so no request reaches a third party and the OFL licences
+#: stay contained in the Apache-2.0 repo.
+FONTS: dict[str, str] = {
+    "public-sans.woff2": "public-sans-latin-wght-normal.woff2",
+    "source-serif-4.woff2": "source-serif-4-latin-wght-normal.woff2",
+    "jetbrains-mono.woff2": "jetbrains-mono-latin-wght-normal.woff2",
+}
+
 #: Set at deploy time to the commit being shipped. Read by /api/version.
 REVISION_ENV = "CURTAIL_REVISION"
 
@@ -177,6 +194,27 @@ app = FastAPI(
 # The return value is deliberately unused: a telemetry failure must never stop the
 # surface that serves the curtailment recommendation from answering.
 configure_tracing()
+
+
+@app.get("/fonts/{name}")
+def font(name: str) -> Response:
+    """Serve one of the three locked typefaces from the package.
+
+    Immutable and cached for a year: these files are content-addressed by their own
+    names and never change without a redeploy, and a font that re-downloads on every
+    view is a flash of unstyled text on the one screen a judge looks at.
+    """
+    filename = FONTS.get(name)
+    if filename is None:
+        raise HTTPException(status_code=404, detail=f"no such font: {name}")
+    path = Path(__file__).resolve().parent / "data" / "fonts" / filename
+    if not path.is_file():
+        raise HTTPException(status_code=503, detail=f"{filename} is not packaged")
+    return Response(
+        content=path.read_bytes(),
+        media_type="font/woff2",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @app.get("/", response_class=HTMLResponse)

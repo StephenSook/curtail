@@ -470,11 +470,70 @@ class TestTheConsolePage:
             "two colours share a glyph, so those classifications differ by hue alone"
         )
 
+    #: Selectors that carry a compliance value: a cfs reading, a computed figure, a
+    #: table cell of rights, a status verdict, or drafted legal prose.
+    COMPLIANCE_SELECTORS: ClassVar[tuple[str, ...]] = (
+        ".reading",
+        ".fact dd",
+        "td",
+        ".status",
+        ".legal",
+        ".draft-text",
+    )
+
+    #: The only things allowed to move: form controls, which carry no figure.
+    MOTION_ALLOWED: ClassVar[tuple[str, ...]] = ("input", "select", "button")
+
     def test_no_compliance_value_is_animated(self) -> None:
-        """Rule 10. Animating a legal figure implies uncertainty about it."""
+        """Rule 10. Animating a legal figure implies uncertainty about it.
+
+        **This used to ban the string `transition:` anywhere in the page**, which is
+        broader than the rule and broader than the design spec, whose section on motion
+        prescribes eased rows, panels and tabs behind `motion-safe`. A guard wider than
+        the rule it enforces eventually blocks correct work, and the correct response is
+        to make it PRECISE rather than to delete it.
+
+        So: no keyframe animation anywhere, and no transition on any rule whose selector
+        touches a compliance value. Form controls may ease, because a border colour on a
+        select is not a legal figure.
+        """
         page = TestClient(app).get("/").text
-        for banned in ("animation:", "@keyframes", "transition:"):
+        for banned in ("animation:", "@keyframes"):
             assert banned not in page, f"the console animates something ({banned})"
+
+        style = page.split("<style>", 1)[1].split("</style>", 1)[0]
+
+        # Excise the reduced-motion escape hatch before scanning. It legitimately sets
+        # `transition-duration` on `*`, and it is asserted separately. Cut it out rather
+        # than skipping at-rules generally, which would also skip a transition hidden
+        # inside a width media query and open exactly the hole this guard closes.
+        marker = "@media (prefers-reduced-motion"
+        if marker in style:
+            head, _, rest = style.partition(marker)
+            style = head + rest.partition("}")[2].partition("}")[2]
+
+        # Crude but sufficient: split into `selector { body }` pairs.
+        for chunk in style.split("}"):
+            if "{" not in chunk:
+                continue
+            selector, _, body = chunk.partition("{")
+            if "transition" not in body:
+                continue
+            selector = selector.strip().splitlines()[-1].strip()
+            allowed = any(word in selector for word in self.MOTION_ALLOWED)
+            assert allowed, f"a transition is declared on {selector!r}, which is not a control"
+            touched = [s for s in self.COMPLIANCE_SELECTORS if s in selector]
+            assert not touched, (
+                f"{selector!r} eases {touched}, and a compliance value must appear "
+                "instantly at its final value"
+            )
+
+    def test_the_reduced_motion_escape_hatch_exists(self) -> None:
+        """Whatever motion does ship is switched off for people who ask."""
+        page = TestClient(app).get("/").text
+        assert "prefers-reduced-motion" in page, (
+            "the console has no reduced-motion block, so its motion cannot be declined"
+        )
 
 
 def _console_status_map() -> dict[str, tuple[str, str, str]]:

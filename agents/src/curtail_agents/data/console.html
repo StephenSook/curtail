@@ -19,96 +19,303 @@
   demonstration disclaimer is visible without scrolling.
 -->
 <style>
+  /* ------------------------------------------------------------------ *
+   * TYPEFACES. The three the locked spec names, self-hosted, served from
+   * /fonts/* by the same process that serves this page. Variable WOFF2,
+   * latin subset, `display: swap` so text paints immediately in the
+   * fallback and never blocks on the network.
+   *
+   * They were absent for the life of this project, which is the whole
+   * reason the console read as plain: the structure honoured the spec and
+   * the typography was whatever the operating system happened to supply.
+   * ------------------------------------------------------------------ */
+  @font-face {
+    font-family: "Public Sans"; src: url("/fonts/public-sans.woff2") format("woff2");
+    font-weight: 100 900; font-display: swap; font-style: normal;
+  }
+  @font-face {
+    font-family: "Source Serif 4"; src: url("/fonts/source-serif-4.woff2") format("woff2");
+    font-weight: 200 900; font-display: swap; font-style: normal;
+  }
+  @font-face {
+    font-family: "JetBrains Mono"; src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+    font-weight: 100 800; font-display: swap; font-style: normal;
+  }
+
   :root {
-    --bg: #0A0A0B; --card: #131417; --border: #2A2D34; --border-strong: #3A3E47;
+    /* Three elevation steps, exactly as locked. `--popover` was REFERENCED by the
+       sticky table header and never defined, so the header painted transparent and
+       rows scrolled visibly through it. That artifact is in a screenshot I shipped. */
+    --bg: #0A0A0B; --card: #131417; --popover: #1B1D22;
+    --border: #2A2D34; --border-strong: #3A3E47;
     --fg: #E6E8EB; --muted: #9CA3AF; --ring: #3B9AE1;
     --curtailed: #EF7748; --conditional: #E69F00; --suspended: #3B9AE1;
     --exempt: #009E73; --pending: #9CA3AF;
-    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+
+    --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* The locked dense-console scale. Named, not arbitrary: every size on this page
+       comes from this list, which is the single discipline that separates a designed
+       interface from a styled one. */
+    --t-micro: 12px; --lh-micro: 16px;
+    --t-cell: 13px;  --lh-cell: 18px;
+    --t-body: 14px;  --lh-body: 20px;
+    --t-legal: 16px; --lh-legal: 26px;
+    --t-section: 18px; --lh-section: 24px;
+    --t-view: 20px;  --lh-view: 28px;
+    --t-h1: 24px;    --lh-h1: 32px;
+    /* A DISPLAY tier above the locked scale, for the masthead only. The locked scale
+       governs the dense console, where 24px is deliberately the ceiling; a masthead is
+       not dense console. */
+    --t-display: clamp(38px, 6.2vw, 76px);
+
+    --shell: 1160px;
+    --step: 4px;              /* the 4px base grid */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
   }
+
   * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
   body {
     margin: 0; background: var(--bg); color: var(--fg);
-    font: 14px/1.5 var(--sans);
+    font-family: var(--sans);
+    font-size: var(--t-body); line-height: var(--lh-body);
     font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  header { border-bottom: 1px solid var(--border); padding: 20px 24px; }
-  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); font-size: 13px; }
+
+  /* ------------------------------------------------------------------ *
+   * MASTHEAD. The one place this page gets to be loud, and it earns it by
+   * carrying the argument rather than a logo: the published rule and the
+   * statute disagree by a factor of twenty, right now, in force.
+   * ------------------------------------------------------------------ */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: clamp(28px, 5vw, 72px) 24px clamp(24px, 4vw, 56px);
+  }
+  .shell { max-width: var(--shell); margin-inline: auto; width: 100%; }
+
+  .eyebrow {
+    font-size: var(--t-micro); line-height: var(--lh-micro);
+    letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600;
+    color: var(--muted);
+  }
+  h1 {
+    font-size: var(--t-display); line-height: 0.98; margin: 20px 0 0;
+    letter-spacing: -0.03em; font-weight: 700; max-width: 16ch;
+  }
+  /* The highlight block, lifted from the reference and pointed at the only thing
+     worth highlighting here: the figure that carries the argument. Inverted fill,
+     not a colour change, so it survives grayscale and colour-vision deficiency. */
+  .mark {
+    background: var(--curtailed); color: #0A0A0B;
+    padding: 0 0.16em; border-radius: 2px;
+  }
+  .lede {
+    margin: 24px 0 0; max-width: 62ch;
+    font-size: var(--t-section); line-height: var(--lh-section); color: var(--muted);
+  }
+  .lede strong { color: var(--fg); font-weight: 600; }
+  .sub { color: var(--muted); font-size: var(--t-body); }
+
   .disclaimer {
-    margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border-strong);
-    border-radius: 6px; color: var(--muted); font-size: 12px; max-width: 70ch;
+    margin: 32px 0 0; padding: 12px 14px;
+    border: 1px solid var(--border-strong); border-left: 2px solid var(--conditional);
+    border-radius: 6px; color: var(--muted);
+    font-size: var(--t-micro); line-height: var(--lh-micro); max-width: 78ch;
   }
-  main { padding: 24px; display: grid; gap: 24px; max-width: 900px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-  h2 { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
-       color: var(--muted); margin: 0 0 12px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .disclaimer strong { color: var(--fg); }
+
+  /* ------------------------------------------------------------------ *
+   * SHELL. Centred, and it was not: `max-width: 900px` with no auto margin
+   * pinned the whole console to the left edge and left 40 percent of a wide
+   * screen empty. One missing declaration, and the first thing anybody said
+   * about the design.
+   * ------------------------------------------------------------------ */
+  main {
+    padding: clamp(24px, 4vw, 48px) 24px 64px;
+    max-width: var(--shell); margin-inline: auto;
+    display: grid; gap: clamp(16px, 2.4vw, 28px);
+  }
+  /* ONE centred column, not two. A two-column main was tried and rejected: only the
+     classify card is narrow, so the second column stood empty beside every table and
+     the page read as lopsided rather than dense. The width is spent INSIDE the cards
+     instead, which is where the data actually is. */
+  .split { display: grid; gap: clamp(16px, 3vw, 40px); align-items: start; }
+  @media (min-width: 900px) {
+    .split { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); }
+  }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-top-color: var(--border-strong);   /* the inset highlight, not a shadow */
+    border-radius: 10px; padding: clamp(16px, 2vw, 24px);
+    min-width: 0;                              /* so tables can scroll inside a grid cell */
+  }
+
+  h2 {
+    font-size: var(--t-micro); line-height: var(--lh-micro);
+    letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+    color: var(--muted); margin: 0 0 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+
+  label {
+    display: block; font-size: var(--t-micro); line-height: var(--lh-micro);
+    color: var(--muted); margin-bottom: 6px;
+    letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600;
+  }
   .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+
   input, select, button {
-    height: 32px; background: #0F1013; color: var(--fg);
-    border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 10px;
-    font: inherit; font-variant-numeric: tabular-nums;
+    height: 36px; background: #0F1013; color: var(--fg);
+    border: 1px solid var(--border-strong); border-radius: 6px; padding: 0 12px;
+    font-family: inherit; font-size: var(--t-body);
+    font-variant-numeric: tabular-nums;
+    transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
   }
-  button { cursor: pointer; border-color: var(--ring); }
+  input:hover, select:hover { border-color: var(--muted); }
+  button {
+    cursor: pointer; border-color: var(--ring); color: var(--fg);
+    font-weight: 600; letter-spacing: 0.02em;
+  }
+  button:hover { background: #16202b; }
+  button:active { transform: translateY(1px); }
+  button[disabled] { opacity: 0.5; cursor: progress; }
+  /* 2px perimeter with a 2px offset, never inset: WCAG 2.4.13 wants a full-perimeter
+     indicator, and an inset ring fails it. */
   input:focus-visible, select:focus-visible, button:focus-visible {
     outline: 2px solid var(--ring); outline-offset: 2px;
   }
-  .reading { font: 600 28px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
-  .against { color: var(--muted); font-size: 13px; }
-  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
-            font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px; }
+
+  /* The headline reading. Big, mono, tabular, and it NEVER animates: hard rule 10
+     says animating a compliance value implies uncertainty about it. */
+  .reading {
+    font-family: var(--mono); font-size: clamp(30px, 4vw, 44px); line-height: 1.1;
+    font-weight: 600; letter-spacing: -0.02em; margin-top: 4px;
+  }
+  .against { color: var(--muted); font-size: var(--t-cell); line-height: var(--lh-cell); }
+
+  .status {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 16px;
+    font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    font-size: var(--t-micro);
+    padding: 6px 10px 6px 8px; border-radius: 999px;
+    border: 1px solid var(--border-strong); background: #0F1013;
+  }
   /* Distinct SHAPES, not distinct colours. The glyph vocabulary is the build
      spec's: curtailed is a crossed circle, conditional a half ring, suspended a
      pause, exempt a check, pending a hollow ring. Printed in grayscale, or read by
      someone with a colour vision deficiency, the five stay separable, and the
      uppercase text label beside each one carries the meaning on its own. */
-  .glyph { font-size: 14px; line-height: 1; flex: none; }
-  .s-curtailed { color: var(--curtailed); }
-  .s-conditional { color: var(--conditional); }
-  .s-suspended { color: var(--suspended); }
-  .s-exempt { color: var(--exempt); }
+  .glyph { font-size: var(--t-body); line-height: 1; flex: none; }
+  .s-curtailed { color: var(--curtailed); border-color: color-mix(in srgb, var(--curtailed) 40%, var(--border-strong)); }
+  .s-conditional { color: var(--conditional); border-color: color-mix(in srgb, var(--conditional) 40%, var(--border-strong)); }
+  .s-suspended { color: var(--suspended); border-color: color-mix(in srgb, var(--suspended) 40%, var(--border-strong)); }
+  .s-exempt { color: var(--exempt); border-color: color-mix(in srgb, var(--exempt) 40%, var(--border-strong)); }
   .s-pending { color: var(--pending); }
   /* Deliberately OFF the five-hue status palette. Refused and Unavailable are
      statements about the system, not about the river. */
   .s-system { color: var(--fg); }
-  .note { color: var(--muted); font-size: 12px; margin-top: 10px; max-width: 66ch; }
+
+  .note {
+    color: var(--muted); font-size: var(--t-micro); line-height: var(--lh-micro);
+    margin-top: 12px; max-width: 72ch;
+  }
+
   /* The ledger scrolls inside its own box. The page body never scrolls sideways. */
-  .ledger { max-height: 340px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
-  table { border-collapse: collapse; width: 100%; font-size: 12px; }
-  th { position: sticky; top: 0; background: var(--popover); text-align: left;
-       font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px;
-       color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--border-strong); }
-  td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
+  .ledger {
+    max-height: 340px; overflow: auto;
+    border: 1px solid var(--border); border-radius: 8px;
+    scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: var(--t-cell); line-height: var(--lh-cell); }
+  th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--popover);          /* defined now. It was not, and it showed. */
+    text-align: left; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; font-size: 11px; color: var(--muted);
+    padding: 10px; border-bottom: 1px solid var(--border-strong);
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #17181c; }
   td.num { text-align: right; font-family: var(--mono); }
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .fact { border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-  .fact dt { color: var(--muted); font-size: 11px; letter-spacing: 0.04em;
-             text-transform: uppercase; margin: 0 0 4px; }
-  .fact dd { margin: 0; font: 600 18px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
-  .refusal { color: var(--conditional); font-size: 13px; margin-top: 12px; max-width: 70ch; }
-  code { font-family: var(--mono); color: var(--muted); }
-  a { color: var(--ring); }
-  footer { border-top: 1px solid var(--border); padding: 16px 24px; color: var(--muted); font-size: 12px; }
+  td:first-child { font-family: var(--mono); }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .fact {
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+    background: #0F1013;
+  }
+  .fact dt {
+    color: var(--muted); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; font-weight: 600; margin: 0 0 6px;
+  }
+  .fact dd {
+    margin: 0; font-family: var(--mono); font-size: var(--t-view); line-height: var(--lh-view);
+    font-weight: 600; font-variant-numeric: tabular-nums;
+  }
+
+  .refusal {
+    color: var(--conditional); font-size: var(--t-cell); line-height: var(--lh-cell);
+    margin-top: 14px; max-width: 74ch;
+  }
+  code { font-family: var(--mono); color: var(--muted); font-size: 0.92em; }
+  a { color: var(--ring); text-underline-offset: 3px; }
+  a:hover { text-decoration-thickness: 2px; }
+
+  /* Drafted order prose reads as a DOCUMENT: serif, 16/26, measure capped, exactly
+     as the spec requires, so a draft looks like the thing it will become. */
+  .legal, .draft-text {
+    font-family: var(--serif); font-size: var(--t-legal); line-height: var(--lh-legal);
+    max-width: 68ch; color: var(--fg);
+  }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 28px 24px 48px;
+    color: var(--muted); font-size: var(--t-micro); line-height: var(--lh-micro);
+  }
+  footer .shell { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+
+  /* Motion lives on CHROME only, and it is gated. Rows and panels may ease; a cfs
+     reading, a priority date and a right count appear instantly at final value. */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 
 <header>
-  <h1>Watermaster Console</h1>
-  <div class="sub">Prior-appropriation curtailment administration, Scott and Shasta rivers</div>
-  <p class="disclaimer">
-    <strong>Demonstration system. Not an official government system.</strong>
-    It carries no government authority and produces drafts for human review only.
-    23 CCR 875(b) vests the determination in a named human official; nothing here
-    self-executes.
-  </p>
+  <div class="shell">
+    <div class="eyebrow">Prior-appropriation curtailment administration &middot; Scott and Shasta rivers</div>
+    <h1>The rule still prints <span class="mark">$500</span> a day.</h1>
+    <p class="lede">
+      Water Code 1846(b) raised it to <strong>$10,000</strong> on January 1, 2025, and
+      23 CCR 875.9(b) has not caught up. Curtail computes who must stop diverting from
+      the law that actually applies, and <strong>a human official signs every order</strong>.
+    </p>
+    <p class="disclaimer">
+      <strong>Demonstration system. Not an official government system.</strong>
+      It carries no government authority and produces drafts for human review only.
+      23 CCR 875(b) vests the determination in a named human official; nothing here
+      self-executes.
+    </p>
+  </div>
 </header>
 
 <main>
   <section class="card">
     <h2>Classify a gage reading</h2>
-    <div class="row">
+    <div class="split">
+     <div class="row" style="align-items:end">
       <div>
         <label for="basin">Basin</label>
         <select id="basin">
@@ -125,9 +332,10 @@
         <input id="at" type="date" value="2025-07-20">
       </div>
       <button id="go">Classify</button>
-    </div>
-    <div id="out" style="margin-top:18px">
+     </div>
+     <div id="out">
       <div class="status s-pending"><span class="glyph">&#9675;</span><span>Awaiting a reading</span></div>
+     </div>
     </div>
   </section>
 
