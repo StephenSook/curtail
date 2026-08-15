@@ -76,5 +76,15 @@ means the variable did not land, and the message says so.
 - `*.keystore`, `*.jks`, `android/` and `twa-manifest.json` are gitignored. A leaked
   keystore lets somebody ship an update that Android trusts as us, so it never enters
   the repository, and a test asserts the ignore rules exist.
-- The package name is `app.curtail.field`, which is also compiled into the asset links
-  statement. Changing one without the other breaks verification.
+- **The package id is decided at build time, not here.** Bubblewrap derives its default
+  from the host, so the real one came out as
+  `app.run.us_central1.curtail_console_api_672785135387.twa`, not the
+  `app.curtail.field` this document first assumed. The endpoint reads `TWA_PACKAGE_NAME`
+  and falls back to the generated id. If you accept a different id at the prompt, set
+  that variable to match, because a mismatch fails verification SILENTLY and the only
+  symptom is an installed app showing a browser URL bar.
+
+- **Move the keystore out of `/tmp` immediately.** macOS purges it. Losing the keystore
+  means never shipping an update Android accepts as the same app:
+  `mkdir -p ~/keys/curtail && mv /private/tmp/twa/android.keystore ~/keys/curtail/`
+  Then update `signingKey.path` in `twa-manifest.json` to the new location.
