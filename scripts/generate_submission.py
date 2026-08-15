@@ -67,6 +67,34 @@ SCHEMA = REPO / "docs" / "submission_schema.json"
 #: The live service, named once. A judge-facing URL that appears in two places drifts.
 SERVICE_URL = "https://curtail-console-api-672785135387.us-central1.run.app"
 
+#: The exact strings to paste into the two free-text judge-facing fields. They live here
+#: rather than in somebody's head because the Devpost form discarded them silently on
+#: three separate save attempts, and a long answer retyped from memory is a long answer
+#: that drifts. Both are code-audited: every path and constant named below was grepped.
+JUDGE_INSTRUCTIONS = (
+    "No login is needed for anything that matters. Open the hosted URL and the console "
+    "runs on load. Classify and Run the fleet need no credentials, and Run the fleet "
+    "drives one real ADK traversal, so it takes a moment because it calls Gemini "
+    "through Vertex. Draft an order also needs no passphrase and takes about 80 "
+    "seconds, because it calls the model and runs both hallucination guards; it queues "
+    "two drafts, one clean and one deliberately UNVERIFIED. ONLY the final signature "
+    "needs the demo passphrase, because a signature binds a legal artifact and an "
+    "unauthenticated minting endpoint would make every signature fabricated. Message us "
+    "if you want it. Everything else is open: /api/facts serves the generated fact "
+    "sheet every number in the writeup is drawn from, and /api/season/shasta shows the "
+    "Firestore-backed season with its statutory clocks and reports whether it is durable."
+)
+
+AI_MODELS_ANSWER = (
+    "Gemini 3.5 Flash through Vertex AI, which drafts every order "
+    "(agents/src/curtail_agents/scribe.py line 49, DEFAULT_MODEL = gemini-3.5-flash). "
+    "Plus Gemma 3 4B run LOCALLY through Ollama for document normalization "
+    "(normalizer.py line 49, DEFAULT_MODEL = gemma3:4b), so no document leaves the "
+    "machine: an agency that cannot send landowner records to a third-party inference "
+    "API can host those weights itself. Both are greppable in the shipped source. "
+    "Neither is claimed without being wired."
+)
+
 
 def _human_authors() -> list[str]:
     """Distinct human authors in the history, so Submitter Type is derived not assumed.
@@ -312,8 +340,8 @@ def main(argv: list[str] | None = None) -> int:
         "| Field | Answer |",
         "|---|---|",
         f"| Hosted project URL | {SERVICE_URL} |",
-        "| Testing instructions | seen by judges only. Name the one page that runs the "
-        "whole loop, and say which actions need the signing passphrase |",
+        f"| Testing instructions (judges only) | {JUDGE_INSTRUCTIONS} |",
+        f"| Google AI models, long form | {AI_MODELS_ANSWER} |",
         "",
         "## What is NOT ticked, and why that is deliberate",
         "",
