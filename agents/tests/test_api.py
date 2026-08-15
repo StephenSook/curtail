@@ -791,3 +791,42 @@ class TestTheServiceCanSayWhichCodeItRuns:
         way. Liveness and provenance are different questions, and a probe answering both
         invites one to be read as the other."""
         assert client.get("/api/healthz").json() == {"status": "ok"}
+
+
+class TestTheFleetResponseDoesNotUnderstateWhatPersists:
+    """The most-clicked endpoint said nothing survives, which stopped being the truth.
+
+    The ADK session state is genuinely per-request and genuinely vanishes. But a judge
+    reading that on the fleet endpoint could take it as "nothing in this system
+    persists", and signing an order now writes its statutory clocks to a durable store.
+    Saying only the first half understates the project, which is the direction nobody
+    guards for and which this repository has already been bitten by twice.
+
+    Asserted on the constant rather than through the route: reaching the fleet endpoint
+    needs a model, the suite deliberately has none, and mocking the Scribe to test a
+    sentence would test the mock.
+    """
+
+    def test_it_still_says_the_traversal_keeps_nothing(self) -> None:
+        """The honest half must survive the correction. It is true and it matters."""
+        from curtail_agents.api import FLEET_PERSISTENCE_NOTE
+
+        assert "nothing this traversal recorded survives" in FLEET_PERSISTENCE_NOTE
+
+    def test_it_points_at_the_record_that_does_survive(self) -> None:
+        from curtail_agents.api import FLEET_PERSISTENCE_NOTE
+
+        assert "/api/season/" in FLEET_PERSISTENCE_NOTE, (
+            "the note denies persistence without naming the endpoint that reports the "
+            "durable record, so a reader concludes there is none"
+        )
+        assert "Season Ledger" in FLEET_PERSISTENCE_NOTE
+
+    def test_the_route_actually_serves_that_note(self) -> None:
+        """The wiring, so the constant cannot drift away from the response.
+
+        A named constant nothing reads is the same defect as the sentence it replaced,
+        one step further back.
+        """
+        source = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+        assert '"persistence": FLEET_PERSISTENCE_NOTE' in source

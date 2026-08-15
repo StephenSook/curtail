@@ -114,6 +114,25 @@ CONSOLE = Path(__file__).resolve().parent / "data" / "console.html"
 #: Set at deploy time to the commit being shipped. Read by /api/version.
 REVISION_ENV = "CURTAIL_REVISION"
 
+#: What the fleet response says about what survives it.
+#:
+#: **Two facts, because one of them stopped being the whole story.** The ADK session
+#: state really is per-request and really does vanish, which this said and still says.
+#: But a reader on the most-clicked endpoint could take it as "nothing in this system
+#: persists", and that is now false: signing an order writes its statutory clocks to a
+#: durable store, and the season is what the "weeks of asynchronous operations"
+#: criterion is actually about. Saying only the first half understates the project,
+#: which is the direction nobody guards for.
+#:
+#: A named constant rather than an inline string, because the fleet route needs a model
+#: to reach and the suite has none, so this is the only place the claim can be asserted.
+FLEET_PERSISTENCE_NOTE = (
+    "in-process and per-request: a fresh in-memory session service is built for each "
+    "call, so nothing this traversal recorded survives the response. The SEASON does "
+    "survive: signing an order writes its statutory clocks to the Season Ledger, and "
+    "GET /api/season/{basin} reports where that record lives and whether it is durable."
+)
+
 #: The Season Ledger's store, built LAZILY and cached on first success.
 #:
 #: **Not at import, and the difference is a whole class of outage.** `store_for` now
@@ -1144,10 +1163,15 @@ def _fleet_json(run: FleetRun, which: Basin, moment: datetime) -> dict[str, Any]
         # know when a trace a judge went looking for is not there.
         "traces_exported": is_exporting(),
         "traces_not_exported_because": why_not_exporting(),
-        "persistence": (
-            "in-process and per-request: a fresh in-memory session service is built for "
-            "each call, so nothing this traversal recorded survives the response"
-        ),
+        # **Two facts, because one of them stopped being the whole story.** The ADK
+        # session state really is per-request and really does vanish, which this said
+        # and still says. But a reader on the most-clicked endpoint could take it as
+        # "nothing in this system persists", and that is now false: signing an order
+        # writes its statutory clocks to a durable store, and the season is the thing
+        # the "weeks of asynchronous operations" criterion is actually about. Saying
+        # only the first half understates the project to whoever reads it, which is the
+        # direction nobody guards for.
+        "persistence": FLEET_PERSISTENCE_NOTE,
         "disclaimer": (
             "A recommendation and a draft. 23 CCR 875(b) vests the determination in a "
             "named human official, nothing here self-executes, and every delivery below "
