@@ -1,8 +1,10 @@
 {
   "_note": "What no command can derive. Fill these in as they become true; `make pre-submit` reads this file and can only report READY once they are. Committed so the state is visible in review rather than living in somebody's head.",
   "video_url": "",
-  "organization_name": "",
-  "diagram_uploaded_at": "",
+  "organization_name": "N/A, submitting as an individual",
+  "diagram_uploaded_at": "2026-08-14",
+  "_diagram_evidence": "Not self-certified after all. Devpost returned attachment_id 9929 for docs/architecture.png, 928687 bytes, on submission 1138035, field 28092, with attachment_count 1. The byte count matches the local file exactly, which is the check that distinguishes an upload that happened from an upload that was reported.",
+  "_devpost_project": "https://devpost.com/software/curtail (draft, project 1385364). Created and filled; NOT submitted. Submitting is a separate authorized step.",
   "content_bonus_url": "",
   "social_bonus_url": ""
 }

@@ -121,10 +121,17 @@ def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
     )
 
     uploaded = str(data.get("diagram_uploaded_at", "")).strip()
+    # **Report the evidence actually held, which is not always the weakest kind.**
+    # This read "SELF-CERTIFIED: no API can confirm it" unconditionally, and by the time
+    # the upload happened that was false: Devpost returned an attachment id and a byte
+    # count matching the local file. A gate that understates its own evidence is the
+    # same drift as one that overstates it, and the README already shipped the
+    # understating version of this mistake once.
+    evidence = str(data.get("_diagram_evidence", "")).strip()
     items.append(
         (
             "architecture diagram uploaded",
-            "SELF-CERTIFIED: no API can confirm it, so this is your word, dated",
+            evidence or "SELF-CERTIFIED: no API can confirm it, so this is your word, dated",
             bool(uploaded),
         )
     )
