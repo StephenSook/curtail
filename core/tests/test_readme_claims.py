@@ -1319,3 +1319,43 @@ def test_every_figure_in_the_devpost_description_traces_to_a_source() -> None:
         f"nor the README: {missing}. A number sourced from a memory ledger is how a "
         "published artifact ends up contradicting its own repository."
     )
+
+
+def test_every_figure_on_the_thumbnail_traces_to_a_source() -> None:
+    """The thumbnail carries numbers, and it is the artifact least able to be corrected.
+
+    A judge sees it in a grid before reading a word, and unlike a README it cannot be
+    edited after they have seen it. So the same rule the description lives under applies
+    here: every figure comes from `FACTS.md` or the README.
+
+    The HTML is checked rather than the PNG, because the HTML is the source the PNG is
+    rendered from. Guarding the generated file instead would be guarding the copy.
+    """
+    source_html = (REPO / "docs" / "thumbnail.html").read_text()
+    body = source_html.split("<body>", 1)[-1]
+    sources = (REPO / "docs" / "FACTS.md").read_text() + (REPO / "README.md").read_text()
+    claims = set(re.findall(r"\$?[0-9][0-9,]+(?:\.[0-9]+)?", body))
+    assert claims, "the thumbnail carries no figures, so this asserts nothing"
+
+    flat = sources.replace(",", "")
+    missing = sorted(c for c in claims if c not in sources and c.replace(",", "") not in flat)
+    assert not missing, (
+        f"the thumbnail states {missing}, which appears in neither FACTS.md nor the "
+        "README. An image cannot be corrected after a judge has seen it."
+    )
+
+
+def test_the_rendered_thumbnail_and_gallery_exist_and_are_not_blank() -> None:
+    """Generated images, guarded by size the way the diagram already is.
+
+    A blank PNG uploads perfectly well and looks like a successful upload, which is the
+    false-green shape this project keeps finding in other forms.
+    """
+    thumbnail = REPO / "docs" / "thumbnail.png"
+    assert thumbnail.is_file(), "docs/thumbnail.png is missing. Run `make thumbnail`."
+    assert thumbnail.stat().st_size > 20_000, "the thumbnail is blank or unstyled"
+
+    gallery = sorted((REPO / "docs" / "gallery").glob("*.png"))
+    assert len(gallery) >= 4, f"expected at least 4 gallery captures, found {len(gallery)}"
+    thin = [p.name for p in gallery if p.stat().st_size < 20_000]
+    assert not thin, f"these gallery captures are suspiciously small and may be blank: {thin}"
