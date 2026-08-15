@@ -156,31 +156,50 @@ def state() -> dict[str, Any]:
         if isinstance(item, dict) and isinstance(item.get("id"), str):
             included[item["id"]] = item
 
-    def related(kind: str, *, required: bool) -> dict[str, Any]:
+    def related(kind: str, *, may_be_absent: bool) -> dict[str, Any]:
         """The included resource for one relationship.
 
-        `required` separates "Apple did not send it" from "there is none". A build with
-        no external submission legitimately has no `betaAppReviewSubmission`, and that
-        is an ANSWER. A build with no `buildBetaDetail` means the read did not carry the
-        field the verdict is computed from, and that is not an answer.
+        **The thing that separates an answer from a failed read is the `data` VALUE, not
+        whether the caller considers the relationship optional.** The first version keyed
+        on the caller's flag, so for `betaAppReviewSubmission` a resource Apple said
+        EXISTS but that we then failed to read came back as `{}` and was reported as "no
+        beta review", which is a degraded read wearing an answer's clothes. That is the
+        same defect this function was written to remove, reintroduced one line below the
+        fix. Verified against the live envelope, where Apple sends both relationships with
+        a `data` member, `data: null` meaning there genuinely is no submission.
+
+        - `data` absent entirely: the linkage was not provided, so this is UNKNOWN.
+        - `data` null: Apple says there is no such resource. An ANSWER, and permitted
+          only where the caller says absence is meaningful.
+        - `data` a reference: the resource EXISTS, so failing to read it is UNKNOWN
+          regardless of whether the caller called this optional.
         """
         relationships = build.get("relationships")
-        ref = (relationships or {}).get(kind, {})
-        ref = ref.get("data") if isinstance(ref, dict) else None
-        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
-            if required:
-                raise WatchError(f"the build carried no {kind} relationship to read")
+        entry = (relationships or {}).get(kind)
+        if not isinstance(entry, dict) or "data" not in entry:
+            raise WatchError(f"the build carried no {kind} linkage to read")
+
+        ref = entry["data"]
+        if ref is None:
+            if not may_be_absent:
+                raise WatchError(f"the build reports no {kind}, which the verdict needs")
             return {}
+
+        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
+            raise WatchError(f"the {kind} linkage carried an unreadable reference")
         resource = included.get(ref["id"])
         if not isinstance(resource, dict):
-            if required:
-                raise WatchError(f"{kind} {ref['id']} was referenced but not included")
-            return {}
+            raise WatchError(
+                f"{kind} {ref['id']} was referenced but not included, so whether it "
+                "applies is UNKNOWN rather than no."
+            )
         attributes = resource.get("attributes")
-        return attributes if isinstance(attributes, dict) else {}
+        if not isinstance(attributes, dict):
+            raise WatchError(f"{kind} {ref['id']} carried no attributes object")
+        return attributes
 
-    beta_detail = related("buildBetaDetail", required=True)
-    review = related("betaAppReviewSubmission", required=False)
+    beta_detail = related("buildBetaDetail", may_be_absent=False)
+    review = related("betaAppReviewSubmission", may_be_absent=True)
 
     internal = beta_detail.get("internalBuildState")
     if not isinstance(internal, str):

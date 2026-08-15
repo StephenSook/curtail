@@ -267,6 +267,23 @@ class TestAFailedNotificationIsRetriedRatherThanForgotten:
         )
 
 
+def _with_review(envelope: Any, data: Any) -> dict[str, Any]:
+    """The envelope with `betaAppReviewSubmission` pointing at `data`."""
+    build = envelope["data"][0]
+    return {
+        **envelope,
+        "data": [
+            {
+                **build,
+                "relationships": {
+                    **build["relationships"],
+                    "betaAppReviewSubmission": {"links": {}, "data": data},
+                },
+            }
+        ],
+    }
+
+
 class TestAMalformedAnswerIsNotAPendingAnswer:
     """`state()` used to turn a missing field into None, which made
     `installable_internally` False, which made main() exit 1 and print "not yet".
@@ -282,7 +299,16 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
                         "expired": False,
                         "uploadedDate": "2026-08-15T16:00:45-07:00",
                     },
-                    "relationships": {"buildBetaDetail": {"data": {"id": "detail-1"}}},
+                    # The shape Apple actually returns, read off the live envelope:
+                    # every relationship carries `data` and `links`, and `data` is null
+                    # when the resource genuinely does not exist.
+                    "relationships": {
+                        "buildBetaDetail": {
+                            "links": {},
+                            "data": {"type": "buildBetaDetails", "id": "detail-1"},
+                        },
+                        "betaAppReviewSubmission": {"links": {}, "data": None},
+                    },
                 }
             ],
             "included": [
@@ -332,6 +358,33 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
                 "an included item has no id",
                 lambda e: {**e, "included": [{"attributes": {}}]},
             ),
+            # The OPTIONAL relationship, which the first fix let degrade silently.
+            # Apple saying a submission exists and us failing to read it is not the
+            # same fact as Apple saying there is none, and reporting the second when
+            # the first happened is the whole defect this function removes.
+            (
+                "a review submission exists but was not included",
+                lambda e: _with_review(e, {"type": "betaAppReviewSubmissions", "id": "sub-1"}),
+            ),
+            (
+                "a review submission is referenced without an id",
+                lambda e: _with_review(e, {"type": "betaAppReviewSubmissions"}),
+            ),
+            (
+                "the review linkage carries no data member at all",
+                lambda e: {
+                    **e,
+                    "data": [
+                        {
+                            **e["data"][0],
+                            "relationships": {
+                                **e["data"][0]["relationships"],
+                                "betaAppReviewSubmission": {"links": {}},
+                            },
+                        }
+                    ],
+                },
+            ),
         ],
     )
     def test_a_shape_problem_raises_rather_than_reading_as_not_ready(
@@ -340,11 +393,24 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
         with pytest.raises(watcher.WatchError):
             self._state(mutate(self.ENVELOPE), monkeypatch)
 
-    def test_an_absent_review_submission_is_an_answer_not_an_error(self, monkeypatch: Any) -> None:
-        """A build with no EXTERNAL submission legitimately has no
-        betaAppReviewSubmission. Required and optional are different questions, and
-        treating them the same would make the common case unreadable."""
+    def test_an_explicit_null_review_submission_is_an_answer(self, monkeypatch: Any) -> None:
+        """`data: null` is Apple saying there IS no external submission. That is the
+        live shape and the common case, so it must stay readable or every run of the
+        normal path would report UNKNOWN."""
         assert self._state(self.ENVELOPE, monkeypatch)["beta_review_state"] is None
+
+    def test_a_readable_review_submission_is_reported(self, monkeypatch: Any) -> None:
+        """The other side of the same guard. Without this, raising on every reference
+        would satisfy the cases above while making the external path unreadable."""
+        envelope = _with_review(self.ENVELOPE, {"type": "betaAppReviewSubmissions", "id": "sub-1"})
+        envelope = {
+            **envelope,
+            "included": [
+                *envelope["included"],
+                {"id": "sub-1", "attributes": {"betaReviewState": "IN_REVIEW"}},
+            ],
+        }
+        assert self._state(envelope, monkeypatch)["beta_review_state"] == "IN_REVIEW"
 
     def test_an_unexpected_exception_still_exits_two(self, monkeypatch: Any) -> None:
         """The last line of defence. A traceback under launchd is a silent watcher."""
