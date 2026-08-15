@@ -324,7 +324,11 @@ def build() -> str:
         if served_rev
         else "- Commit the container reports: **NOT STAMPED**, so its vintage is unknown"
     )
-    add(f"- Season Ledger durable in production: **{caps['durable']}**, store: {caps['store']}")
+    # Only the store NAME here. The durable/not-durable BOOLEAN lives in the compared
+    # capability block below, and stating it in both places would be one fact with two
+    # renderings, of which the header copy is the one `--check` never looks at. Two
+    # statements of a fact drift the moment only one is updated.
+    add(f"- Store the live service names: {caps['store']}")
     add(f"- Probed at repository commit: `{sha}`")
     add(f"- {STAMP_LABEL} `{_now()}`")
     add(f"- {REVISION_LABEL} `{_serving_revision()}`")
