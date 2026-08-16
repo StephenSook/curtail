@@ -48,7 +48,19 @@ def allowed_accounts() -> frozenset[str]:
     return frozenset(part.strip() for part in raw.split(",") if part.strip())
 
 
-def audience_hint(audience: str) -> str:
+def is_audience_failure(cause: str) -> bool:
+    """Whether a verifier's complaint is about the audience specifically.
+
+    Google's message is `Token has wrong audience X, expected one of [Y]`. Matching on the
+    word is deliberate and safe here BECAUSE this only decides whether to append a hint: it
+    never changes whether a caller is admitted, so a wrong guess costs a sentence rather
+    than a security decision. The wording is pinned by a test against the real library, so
+    a future rename fails loudly rather than silently switching the hint off.
+    """
+    return "audience" in cause.lower()
+
+
+def audience_hint(audience: str, cause: str | None = None) -> str:
     """The actionable half of an audience failure, wherever that failure surfaces.
 
     Shared by both paths because the reachable one is not the obvious one. It exists at all
@@ -56,8 +68,18 @@ def audience_hint(audience: str) -> str:
     against every basin's token, so a per-basin path admits one river and refuses the rest.
     A dead watch gets noticed. One river reporting while the other silently never does does
     not, and the operator has no reason to suspect the audience.
+
+    **`cause` is what keeps it honest.** The first version attached this to EVERY verifier
+    exception whenever the configured audience carried a path, so an expired token, a bad
+    signature or a failed certificate fetch would all have told the operator to go and fix
+    their audience configuration. A confident wrong diagnosis is worse than none: it sends
+    somebody to the one place the problem is not. Pass the exception text and the hint only
+    appears when the complaint is actually about the audience; pass nothing from a call site
+    that is definitionally an audience mismatch.
     """
     if "/internal/" not in audience:
+        return ""
+    if cause is not None and not is_audience_failure(cause):
         return ""
     return (
         f" {AUDIENCE_ENV} names a path. It must be the service root, because one value is "
@@ -121,7 +143,7 @@ def verify(
         # been printed in production. The test that covered it passed only because the fake
         # verifier modelled a contract the library does not have.
         raise SchedulerAuthError(
-            f"the token could not be verified: {exc}{audience_hint(audience)}"
+            f"the token could not be verified: {exc}{audience_hint(audience, str(exc))}"
         ) from exc
 
     if not isinstance(claims, dict):
@@ -157,5 +179,6 @@ __all__ = [
     "SchedulerAuthError",
     "allowed_accounts",
     "audience_hint",
+    "is_audience_failure",
     "verify",
 ]
