@@ -198,8 +198,21 @@ jobs:
           # `$?` report the if-statement, so an errored grep (rc>=2) would fall
           # through and read as clean, which is the exact defect this gate
           # exists to catch.
+          # VENDORED third-party bundles are excluded, and the exclusion is narrow on
+          # purpose. The rule bans the character in OUR prose; ECharts is 1.1 MB of
+          # minified upstream code we cannot edit and would not want to, and the
+          # constitution already exempts quoted source where the original author wrote
+          # the character. Excluding it is scoping the guard to what it governs, not
+          # weakening it.
+          #
+          # The exclusion cannot quietly grow to cover our own writing:
+          # `test_vendor_directory_holds_only_third_party_bundles` asserts that the
+          # directory contains exactly the allowlisted files and nothing else, so a
+          # future prose file dropped in there fails the suite rather than escaping
+          # this gate.
           rc=0
-          out=$(git grep -n -I "$(printf '\xe2\x80\x94')" -- .) || rc=$?
+          out=$(git grep -n -I "$(printf '\xe2\x80\x94')" -- . \
+                ':(exclude)agents/src/curtail_agents/data/vendor/*') || rc=$?
           if [ "$rc" -ge 2 ]; then
             echo "::error::git grep errored (rc=$rc). Counting as failure, not a pass."
             exit 1
