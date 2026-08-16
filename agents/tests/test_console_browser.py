@@ -2008,3 +2008,113 @@ class TestASlowerAnswerNeverRepaintsOverANewerOne:
             assert body.index(mutating) > gate, (
                 f"{mutating} runs before the generation check in the load callback"
             )
+
+
+class TestTheRightsLedger:
+    """469 real rights across two basins, and the 14 the ladder cannot place."""
+
+    def _loaded(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.state === 'loaded'",
+            timeout=60_000,
+        )
+
+    def test_it_lists_every_right_the_order_names(self, page: Page, console_url: str) -> None:
+        """Scott's attachment names 384. A ledger showing fewer under-reports the
+        order's scope, which is the failure the map's caveat exists to prevent."""
+        self._loaded(page, console_url)
+        assert page.locator("#ledgercard").get_attribute("data-shown") == "384"
+        assert "Addendum 12" in page.locator("#ledger-source").inner_text()
+
+    def test_shasta_shows_all_eighty_five_including_the_unplaceable(
+        self, page: Page, console_url: str
+    ) -> None:
+        """71 are placeable and 85 are named. Rendering only the placeable list
+        dropped 14 rights, and that is exactly what the first version did."""
+        self._loaded(page, console_url)
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '85'",
+            timeout=30_000,
+        )
+
+    def test_the_unplaceable_filter_finds_them(self, page: Page, console_url: str) -> None:
+        """The check that caught the original bug. The filter returned zero while the
+        note beside it said 14, because the flag compared an id to a sentence."""
+        self._loaded(page, console_url)
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '85'",
+            timeout=30_000,
+        )
+        page.check("#ledger-only")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '14'",
+            timeout=15_000,
+        )
+        row = page.locator("#ledger-body tr").first
+        assert row.get_attribute("data-placed") == "false"
+        assert "cannot place" in row.inner_text()
+
+    def test_an_unplaceable_row_carries_its_reason_where_a_reader_can_reach_it(
+        self, page: Page, console_url: str
+    ) -> None:
+        self._loaded(page, console_url)
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '85'",
+            timeout=30_000,
+        )
+        page.check("#ledger-only")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '14'",
+            timeout=15_000,
+        )
+        title = page.locator("#ledger-body tr").first.locator("td").nth(4).get_attribute("title")
+        assert title and "priority" in title
+
+    def test_absence_is_written_out_rather_than_left_blank(
+        self, page: Page, console_url: str
+    ) -> None:
+        """A blank cell reads as an oversight. A stated absence reads as a fact, and
+        here it is one: the Board's attachment does not carry a group for Shasta."""
+        self._loaded(page, console_url)
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '85'",
+            timeout=30_000,
+        )
+        text = page.locator("#ledger-body").inner_text()
+        assert "not stated" in text
+        assert "\t\t" not in page.locator("#ledger-body tr").first.inner_text(), (
+            "a cell rendered empty instead of naming its absence"
+        )
+
+    def test_the_reasons_are_grouped_rather_than_repeated_fourteen_times(
+        self, page: Page, console_url: str
+    ) -> None:
+        """All 14 carry an identical sentence. Printing it 14 times is a wall a
+        reader skips, and every id must still be on screen."""
+        self._loaded(page, console_url)
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.shown === '85'",
+            timeout=30_000,
+        )
+        text = page.locator("#ledger-open").inner_text()
+        assert "14 rights cannot be placed" in text
+        for right in ("SG005433", "SG005922", "SG005957"):
+            assert right in text, f"{right} vanished when the reasons were grouped"
+        assert text.count("no priority precise enough") <= 3, (
+            "the identical reason is still printed once per right"
+        )
+
+    def test_the_filter_narrows_without_reloading(self, page: Page, console_url: str) -> None:
+        self._loaded(page, console_url)
+        page.fill("#ledger-filter", "A0273")
+        page.wait_for_timeout(300)
+        shown = int(page.locator("#ledgercard").get_attribute("data-shown") or "0")
+        assert 0 < shown < 384
+        for row in page.locator("#ledger-body tr").all()[:5]:
+            assert "A0273" in row.inner_text()
