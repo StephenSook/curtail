@@ -1718,3 +1718,109 @@ class TestTheHydrograph:
         note = page.locator("#graph-note").inner_text()
         assert "not a river at zero" in note
         assert page.locator("#chart canvas").count() == 0
+
+
+class TestTheDiversionMap:
+    """294 real points of diversion, and the 30 percent the map cannot show.
+
+    Asserted on the GeoJSON the page builds rather than on pixels. At this density a
+    screenshot cannot tell one dot's colour from another's, and the thing that matters
+    most here is not visible at all: whether the caveat about the missing 139 rights
+    is rendered beside the dots.
+    """
+
+    def _drawn(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.locator("#mapcard").scroll_into_view_if_needed()
+        page.wait_for_function(
+            "() => document.getElementById('mapcard')?.dataset.state === 'drawn'",
+            timeout=90_000,
+        )
+
+    def test_it_draws_more_points_than_rights(self, page: Page, console_url: str) -> None:
+        """A right diverts in more than one place, and an earlier generator kept one
+        point each and discarded 41 real ones."""
+        self._drawn(page, console_url)
+        counts = page.evaluate(
+            "() => ({points: window.__mapSource.features.length,"
+            " rights: new Set(window.__mapSource.features.map(f => f.properties.right)).size})"
+        )
+        assert counts["points"] > counts["rights"], (
+            "one point per right means the collision that plotted a Scott right near "
+            "Sacramento has returned"
+        )
+
+    def test_the_missing_groundwater_rights_are_counted_on_screen(
+        self, page: Page, console_url: str
+    ) -> None:
+        """**The most important assertion in this class.** 139 of 469 curtailed rights
+        have no coordinate anywhere in the Board's layer. A map drawing the other 330
+        and saying nothing under-reports who is curtailed by 30 percent, which is a
+        calm wrong answer of exactly the kind this console exists to prevent."""
+        self._drawn(page, console_url)
+        note = page.locator("#map-note").inner_text()
+        assert "no point of diversion" in note
+        assert "groundwater" in note
+        assert "does not pretend to" in note
+
+    def test_the_cross_dataset_disagreement_is_drawn_and_named(
+        self, page: Page, console_url: str
+    ) -> None:
+        """One right is listed in this basin by the order and placed in another
+        watershed by the Board's own layer. Both statements are the Board's. It is
+        drawn where the layer puts it, in the neutral rather than a river status
+        colour, and named in the note."""
+        self._drawn(page, console_url)
+        grey = page.evaluate(
+            "() => window.__mapSource.features"
+            ".filter(f => f.properties.status === 's-pending')"
+            ".map(f => ({right: f.properties.right, watershed: f.properties.watershed}))"
+        )
+        assert grey, "the disagreement is no longer drawn"
+        assert grey[0]["right"] in page.locator("#map-note").inner_text()
+        assert grey[0]["watershed"] != "Scott"
+
+    def test_no_feature_carries_an_owner_name(self, page: Page, console_url: str) -> None:
+        """The owner column is never requested from the source. This asserts none of
+        it reached the browser either, which is where it would actually be exposed."""
+        self._drawn(page, console_url)
+        keys = page.evaluate(
+            "() => [...new Set(window.__mapSource.features"
+            ".flatMap(f => Object.keys(f.properties)))]"
+        )
+        for forbidden in ("owner", "primary_owner", "name", "address", "phone", "email"):
+            assert forbidden not in keys, f"the map carries {forbidden}"
+
+    def test_both_attributions_are_shown(self, page: Page, console_url: str) -> None:
+        """The basemap licence requires its string verbatim, and redistributing the
+        Board's data should credit the Board even though it is public domain."""
+        self._drawn(page, console_url)
+        attribution = page.locator("#map-attr").inner_text()
+        assert "Water Resources Control Board" in attribution
+        assert "OpenFreeMap" in attribution and "OpenStreetMap" in attribution
+
+    def test_a_failed_fetch_says_why_and_draws_no_map(self, page: Page, console_url: str) -> None:
+        page.route("**/api/diversions/**", _fulfil({"detail": "not packaged"}, 503))
+        page.goto(console_url)
+        page.locator("#mapcard").scroll_into_view_if_needed()
+        page.wait_for_function(
+            "() => document.getElementById('mapcard')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert "not packaged" in page.locator("#map-note").inner_text()
+
+    def test_the_library_is_not_fetched_before_the_card_is_reached(
+        self, page: Page, console_url: str
+    ) -> None:
+        """MapLibre is 1.15 MB across three modules and a worker. Pulling it for every
+        visitor to serve a card most never scroll to would slow the surface a judge
+        actually lands on."""
+        requested: list[str] = []
+        page.on("request", lambda r: requested.append(r.url))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state", timeout=60_000
+        )
+        assert not any("maplibre" in url for url in requested), (
+            "the map library loaded before the map card was anywhere near the viewport"
+        )
