@@ -634,3 +634,102 @@ class TestOneAudienceServesEveryBasin:
             "against every basin's token, so a per-basin path admits one river and 403s "
             "the rest, on every firing, forever."
         )
+
+
+class TestTheHintOnlyFiresForAnAudienceFailure:
+    """A confident wrong diagnosis is worse than none.
+
+    The hint's first version attached to EVERY verifier exception whenever the configured
+    audience carried a path, so an expired token, a bad signature or a failed certificate
+    fetch would all have told the operator to go and fix their audience configuration,
+    which is the one place the problem is not.
+    """
+
+    PATH_AUDIENCE = "https://service/internal/poll/shasta"
+
+    def failing(self, message: str) -> Any:
+        def verifier(_token: str, _request: Any, _audience: str) -> Any:
+            raise ValueError(message)
+
+        return verifier
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "Token expired, iat 1 exp 2",
+            "Could not verify token signature.",
+            "Unsupported signature algorithm none",
+            "Certificate for key id abc not found.",
+            "Failed to fetch certificates",
+        ],
+    )
+    def test_an_unrelated_failure_carries_no_audience_advice(
+        self, monkeypatch: Any, message: str
+    ) -> None:
+        monkeypatch.setenv(AUDIENCE_ENV, self.PATH_AUDIENCE)
+        with pytest.raises(SchedulerAuthError) as raised:
+            verify("Bearer t", verifier=self.failing(message))
+        text = str(raised.value)
+        assert message in text, "the real reason must still reach the operator"
+        assert "service root" not in text, (
+            f"a {message!r} failure was diagnosed as an audience misconfiguration, which "
+            "sends somebody to the one place the problem is not"
+        )
+
+    def test_an_audience_failure_still_carries_it(self, monkeypatch: Any) -> None:
+        """Guards the guard. Narrowing the hint could have switched it off entirely and
+        every test above would still pass."""
+        monkeypatch.setenv(AUDIENCE_ENV, self.PATH_AUDIENCE)
+        with pytest.raises(SchedulerAuthError, match="service root"):
+            verify(
+                "Bearer t",
+                verifier=self.failing(
+                    "Token has wrong audience https://service/internal/poll/scott, "
+                    "expected one of ['https://service/internal/poll/shasta']"
+                ),
+            )
+
+    def test_a_root_audience_never_carries_it(self, monkeypatch: Any) -> None:
+        """There is nothing to fix, so there is nothing to say."""
+        monkeypatch.setenv(AUDIENCE_ENV, "https://service")
+        with pytest.raises(SchedulerAuthError) as raised:
+            verify("Bearer t", verifier=self.failing("Token has wrong audience x"))
+        assert "service root" not in str(raised.value)
+
+    def test_the_real_library_still_says_audience(self) -> None:
+        """**The premise the detection rests on**, pinned against the installed library.
+
+        The hint is selected by looking for the word in the verifier's own message. If a
+        future version renames it, this fails loudly rather than silently switching the
+        hint off and leaving a misconfiguration undiagnosed again.
+        """
+        import datetime as stdlib_datetime
+
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from google.auth import crypt, jwt
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_pem = key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        public_pem = key.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        issued = int(stdlib_datetime.datetime.now(stdlib_datetime.UTC).timestamp())
+        token = jwt.encode(  # type: ignore[no-untyped-call]
+            crypt.RSASigner.from_string(private_pem),  # type: ignore[no-untyped-call]
+            {"aud": "https://other", "email": SCHEDULER, "iat": issued, "exp": issued + 600},
+        )
+        with pytest.raises(Exception) as raised:
+            jwt.decode(  # type: ignore[no-untyped-call]
+                token, certs=public_pem, audience="https://expected"
+            )
+        from curtail_agents.scheduler_auth import is_audience_failure
+
+        assert is_audience_failure(str(raised.value)), (
+            f"the library no longer says 'audience' ({raised.value!r}), so the hint would "
+            "never fire again"
+        )
