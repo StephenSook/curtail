@@ -2088,6 +2088,29 @@
     document.getElementById("ledgercard").dataset.shown = String(shown.length);
   }
 
+  //: Everything the ledger card shows, cleared together.
+  //:
+  //: A failed load used to empty the table body and leave the rest standing: the source
+  //: line still named the PREVIOUS basin's order and issue date, the open questions
+  //: still listed the previous basin's unplaceable rights, and `ledgerRows` still held
+  //: the previous basin's rows, so ticking the filter checkbox repopulated the table
+  //: from data the page had just failed to refresh. A judge switching to Shasta, seeing
+  //: an error, then ticking a box would have been shown Scott's rights under Shasta's
+  //: heading with no indication anything was wrong.
+  //:
+  //: One function, so a new element added to this card cannot be forgotten in the
+  //: failure path the way three of them already were.
+  function clearLedger(reason) {
+    ledgerRows = [];
+    document.getElementById("ledger-body").replaceChildren();
+    document.getElementById("ledger-open").replaceChildren();
+    document.getElementById("ledger-source").textContent = "";
+    document.getElementById("ledger-note").textContent = reason;
+    const card = document.getElementById("ledgercard");
+    card.dataset.shown = "0";
+    card.dataset.state = "unavailable";
+  }
+
   async function loadLedger() {
     const mine = ++generation.ledger;
     const basin = document.getElementById("ledger-basin").value;
@@ -2101,15 +2124,12 @@
       if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
     } catch (error) {
       if (mine !== generation.ledger) return;
-      note.textContent = `Could not load the ledger: ${error.message}`;
-      document.getElementById("ledger-body").replaceChildren();
-      card.dataset.state = "unavailable";
+      clearLedger(`Could not load the ledger: ${error.message}`);
       return;
     }
     if (mine !== generation.ledger) return;
     if (!Array.isArray(body.rows) || typeof body.count !== "number") {
-      note.textContent = "The service returned a ledger this page cannot render.";
-      card.dataset.state = "unavailable";
+      clearLedger("The service returned a ledger this page cannot render.");
       return;
     }
 
