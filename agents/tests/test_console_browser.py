@@ -1824,3 +1824,131 @@ class TestTheDiversionMap:
         assert not any("maplibre" in url for url in requested), (
             "the map library loaded before the map card was anywhere near the viewport"
         )
+
+
+class TestASlowerAnswerNeverRepaintsOverANewerOne:
+    """The race a second-model review found on the map, and which was equally present
+    on the chart.
+
+    Switch basin twice quickly and two fetches are in flight. Without a generation
+    gate the SLOWER one repaints last, so the select reads Shasta while the card shows
+    Scott's data, with a note underneath naming Scott's gage and counting Scott's
+    rights. Every number on screen is internally consistent and belongs to the wrong
+    basin, which is the worst kind of wrong: nothing looks broken.
+
+    **The first version of these tests was vacuous and mutation testing caught it.**
+    It delayed the first response with `page.wait_for_timeout` inside a route handler,
+    which does not delay anything: removing the gate under test changed no result. A
+    test for a race that cannot lose the race proves only that the page renders.
+
+    So the response is HELD OPEN in the page, using the same `window.fetch` wrapper
+    this file already uses for the superseded-classification test. The second request
+    completes while the first is still pending, and only then is the first released.
+    That ordering is deterministic rather than timing-dependent.
+    """
+
+    HOLD = """
+        (() => {
+          const real = window.fetch;
+          window.__release = null;
+          window.fetch = (...args) => {
+            const url = String(args[0] || "");
+            if (!window.__release && url.includes(window.__holdPath)) {
+              return new Promise((resolve, reject) => {
+                window.__release = () => real(...args).then(resolve, reject);
+              });
+            }
+            return real(...args);
+          };
+        })();
+    """
+
+    def _arm(self, page: Page, path: str) -> None:
+        page.add_init_script(f"window.__holdPath = {json.dumps(path)};")
+        page.add_init_script(self.HOLD)
+
+    def test_the_hydrograph_keeps_the_newer_basin(self, page: Page, console_url: str) -> None:
+        scott = dict(TestTheHydrograph.PAYLOAD)
+        shasta = {
+            **dict(TestTheHydrograph.PAYLOAD),
+            "basin": "shasta",
+            "gage_id": "USGS-11517500",
+            "minimum_steps": [{"from": "2026-07-17", "minimum_cfs": 50.0}],
+        }
+
+        def handler(route: Route) -> None:
+            body = shasta if "shasta" in route.request.url else scott
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(body))
+
+        page.route("**/api/hydrograph/**", handler)
+        self._arm(page, "/api/hydrograph/")
+        page.goto(console_url)
+        page.wait_for_function("() => window.__release !== null", timeout=30_000)
+
+        # The newer selection overtakes the held one and settles.
+        page.select_option("#graph-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'drawn'", timeout=60_000
+        )
+        assert "USGS-11517500" in page.locator("#graph-note").inner_text()
+
+        # Now let the superseded Scott request finish. It must not repaint.
+        page.evaluate("window.__release()")
+        page.wait_for_timeout(2_000)
+        note = page.locator("#graph-note").inner_text()
+        assert "USGS-11517500" in note, (
+            f"a superseded Scott response repainted over the newer Shasta selection: {note}"
+        )
+
+    def test_the_map_keeps_the_newer_basin(self, page: Page, console_url: str) -> None:
+        def payload(basin: str, gage: str, right: str) -> dict[str, Any]:
+            return {
+                "basin": basin,
+                "gage": {"id": gage, "lon": -122.9, "lat": 41.6},
+                "rights_total": 10,
+                "located_rights": 1,
+                "points_total": 1,
+                "without_coordinate": 9,
+                "without_coordinate_groundwater": 9,
+                "without_coordinate_note": "wells excluded",
+                "watershed_discrepancies": [],
+                "watershed_discrepancy_note": "none",
+                "located": [
+                    {
+                        "application_number": right,
+                        "points": [{"lon": -122.9, "lat": 41.6, "huc8_name": "Scott"}],
+                    }
+                ],
+                "attribution": "California State Water Resources Control Board",
+                "licence": "Public domain",
+                "disclaimer": "A recommendation.",
+            }
+
+        def handler(route: Route) -> None:
+            body = (
+                payload("shasta", "USGS-11517500", "B000002")
+                if "shasta" in route.request.url
+                else payload("scott", "USGS-11519500", "A000001")
+            )
+            route.fulfill(status=200, content_type="application/json", body=json.dumps(body))
+
+        page.route("**/api/diversions/**", handler)
+        self._arm(page, "/api/diversions/")
+        page.goto(console_url)
+        page.locator("#mapcard").scroll_into_view_if_needed()
+        page.wait_for_function("() => window.__release !== null", timeout=45_000)
+
+        page.select_option("#map-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('mapcard')?.dataset.state === 'drawn'", timeout=90_000
+        )
+        assert page.evaluate("() => window.__mapSource.features.map(f => f.properties.right)") == [
+            "B000002"
+        ]
+
+        page.evaluate("window.__release()")
+        page.wait_for_timeout(2_500)
+        drawn = page.evaluate("() => window.__mapSource.features.map(f => f.properties.right)")
+        assert drawn == ["B000002"], (
+            f"a superseded Scott response repainted over the newer Shasta selection: {drawn}"
+        )
