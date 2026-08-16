@@ -2233,3 +2233,109 @@ class TestAValidTwoHundredCarryingNothingUseful:
             timeout=60_000,
         )
         assert int(page.locator("#ledgercard").get_attribute("data-shown") or "0") > 0
+
+
+class TestAFailedRefreshLeavesNothingOfTheOldBasin:
+    """The third card with the same defect, and the rule the three of them share.
+
+    A success path writes several surfaces. A failure path that writes fewer leaves a
+    card LOOKING reset while the rest still describes something else, which is worse
+    than clearing nothing: an untouched card at least reads as untouched.
+
+    The map removed its previous instance only AFTER the payload validated, so a
+    failed basin refresh set an error note and left the previous basin's 294 dots on
+    screen underneath it.
+    """
+
+    def _fail_from_now_on(self, page: Page, path: str) -> None:
+        """Installed AFTER the first successful load, so the next refresh fails.
+
+        An earlier version tried to let the first request through and fail the second,
+        but the route is registered after the initial load has already completed, so
+        the "first" request it saw was the refresh and the refresh succeeded. The test
+        then waited forever for a failure it had arranged not to happen.
+        """
+        page.route(
+            path,
+            lambda route: route.fulfill(
+                status=503,
+                content_type="application/json",
+                body=json.dumps({"detail": "the record is unreadable"}),
+            ),
+        )
+
+    def test_the_map_canvas_is_gone_not_just_captioned(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.locator("#mapcard").scroll_into_view_if_needed()
+        page.wait_for_function(
+            "() => document.getElementById('mapcard')?.dataset.state === 'drawn'",
+            timeout=90_000,
+        )
+        assert page.locator("#map canvas").count() >= 1
+
+        self._fail_from_now_on(page, "**/api/diversions/**")
+        page.select_option("#map-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('mapcard')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+
+        assert page.locator("#map canvas").count() == 0, (
+            "the previous basin's dots are still on screen under an error message"
+        )
+        assert page.evaluate("() => window.__mapSource") is None
+        assert page.locator("#map-attr").inner_text().strip() == "", (
+            "the attribution still credits a layer that is no longer displayed"
+        )
+        assert "unreadable" in page.locator("#map-note").inner_text()
+
+    def test_the_chart_is_disposed_not_just_emptied(self, page: Page, console_url: str) -> None:
+        """A live ECharts instance bound to a detached node keeps its resize listener
+        alive and its option readable, so the superseded configuration survives."""
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'drawn'",
+            timeout=60_000,
+        )
+        assert page.evaluate("() => window.__chartOption") is not None
+
+        self._fail_from_now_on(page, "**/api/hydrograph/**")
+        page.select_option("#graph-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert page.locator("#chart canvas").count() == 0
+        assert page.evaluate("() => window.__chartOption") is None, (
+            "the superseded chart's configuration is still readable"
+        )
+
+    def test_every_card_clears_through_one_function(self, console_source: str) -> None:
+        """Structural, and the point of the whole class.
+
+        Three cards had this defect one after another because each failure path was
+        written inline and drifted from its own success path. One clear function per
+        card means a surface added later cannot be forgotten in the failure path the
+        way five already were.
+        """
+        import re
+
+        for card in ("Ledger", "Map", "Graph"):
+            assert f"function clear{card}(" in console_source, f"clear{card} is gone"
+
+        # No CARD may reach the unavailable state except through its clear function.
+        # The live strip is excluded BY ELEMENT rather than by count: its per-gage
+        # tiles carry their own state and are rebuilt wholesale on every render, so
+        # they have no stale surface to leave behind. An earlier version counted the
+        # bare string and failed on that legitimate fourth write.
+        for element in ("ledgercard", "graph", "mapcard"):
+            writes = re.findall(
+                r'getElementById\("' + element + r'"\)\.dataset\.state = "unavailable"',
+                console_source,
+            )
+            assert len(writes) <= 1, (
+                element
+                + " sets its unavailable state in "
+                + str(len(writes))
+                + " places; it should only be set inside that card's clear function"
+            )
