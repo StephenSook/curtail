@@ -1630,6 +1630,18 @@
     return out;
   }
 
+  //: Same rule as `clearLedger` and `clearMap`. The chart instance is DISPOSED rather
+  //: than just emptied of its container: leaving a live ECharts instance bound to a
+  //: detached node keeps its resize listener alive and its option readable, so a test
+  //: or a reader could still see the superseded chart's configuration.
+  function clearGraph(reason) {
+    if (chart) { chart.dispose(); chart = null; }
+    window.__chartOption = null;
+    document.getElementById("chart").replaceChildren();
+    document.getElementById("graph-note").textContent = reason;
+    document.getElementById("graph").dataset.state = "unavailable";
+  }
+
   async function drawGraph() {
     //: Generation-gated like every other card on this page, and it was not, which is
     //: the bug a second-model review found on the map and which was equally present
@@ -1651,19 +1663,18 @@
       // The card says why and shows NOTHING. A chart drawn from a partial answer is
       // a shape a reader will believe.
       if (mine !== generation.graph) return;
-      note.textContent = `Could not draw the hydrograph: ${error.message}`;
-      document.getElementById("chart").replaceChildren();
-      document.getElementById("graph").dataset.state = "unavailable";
+      clearGraph(`Could not draw the hydrograph: ${error.message}`);
       return;
     }
     if (mine !== generation.graph) return;
 
     if (!Array.isArray(body.series) || !Array.isArray(body.minimum_steps)) {
-      note.textContent = "The service returned a hydrograph this page cannot render.";
-      document.getElementById("graph").dataset.state = "unavailable";
+      clearGraph("The service returned a hydrograph this page cannot render.");
       return;
     }
     if (body.count === 0) {
+      if (chart) { chart.dispose(); chart = null; }
+      window.__chartOption = null;
       note.textContent =
         `USGS published no readings for ${body.gage_id} over this window. ` +
         "That is an empty window, not a river at zero.";
@@ -1677,8 +1688,7 @@
       echarts = await echartsReady();
     } catch (error) {
       if (mine !== generation.graph) return;
-      note.textContent = `The charting bundle did not load: ${error.message}`;
-      document.getElementById("graph").dataset.state = "unavailable";
+      clearGraph(`The charting bundle did not load: ${error.message}`);
       return;
     }
     // The bundle import is the longest await here, so this is the check that matters.
@@ -1839,6 +1849,26 @@
     return css.getPropertyValue(cls === "s-pending" ? "--pending" : "--curtailed").trim();
   }
 
+  //: Everything the map card shows, cleared together, symmetric with `clearLedger`.
+  //:
+  //: **The failed path used to leave the canvas standing.** `drawMap` removes the
+  //: previous instance only AFTER the payload validates, so a failed basin refresh set
+  //: the note to an error and left the previous basin's 294 dots on screen underneath
+  //: it. Third card with this defect: the success path writes five surfaces and the
+  //: failure path wrote two.
+  //:
+  //: The rule the three of them share: a failure path must reset every surface the
+  //: success path writes. Partial cleanup is worse than none, because clearing the most
+  //: visible surface makes a card LOOK reset while the rest still describes something
+  //: else.
+  function clearMap(reason) {
+    if (map) { map.remove(); map = null; }
+    window.__mapSource = null;
+    document.getElementById("map-note").textContent = reason;
+    document.getElementById("map-attr").textContent = "";
+    document.getElementById("mapcard").dataset.state = "unavailable";
+  }
+
   async function drawMap() {
     //: Generation-gated. Without it, switching Scott to Shasta twice quickly lets the
     //: slower response repaint last, so the select reads Shasta while 294 Scott
@@ -1856,14 +1886,12 @@
       body = await payloadOf(await fetch(`/api/diversions/${basin}`), "the diversion layer");
     } catch (error) {
       if (mine !== generation.map) return;
-      note.textContent = `Could not load diversion points: ${error.message}`;
-      card.dataset.state = "unavailable";
+      clearMap(`Could not load diversion points: ${error.message}`);
       return;
     }
     if (mine !== generation.map) return;
     if (!Array.isArray(body.located) || typeof body.without_coordinate !== "number") {
-      note.textContent = "The service returned diversion data this page cannot render.";
-      card.dataset.state = "unavailable";
+      clearMap("The service returned diversion data this page cannot render.");
       return;
     }
 
@@ -1872,8 +1900,7 @@
       gl = await maplibreReady();
     } catch (error) {
       if (mine !== generation.map) return;
-      note.textContent = `The map library did not load: ${error.message}`;
-      card.dataset.state = "unavailable";
+      clearMap(`The map library did not load: ${error.message}`);
       return;
     }
     // 1.15 MB across three modules: the longest await on this card by far, and the
