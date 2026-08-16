@@ -19,6 +19,7 @@ raises nothing, and nothing on screen says so.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import httpx
@@ -117,6 +118,14 @@ def embed_query(
         )
 
     norm = sum(value * value for value in values) ** 0.5
+    if not math.isfinite(norm):
+        # NaN survives every arithmetic step that follows: `norm == 0.0` is False, the
+        # division yields an all-NaN vector, and the ranking downstream then reorders
+        # passages that have nothing to do with the bad one. Refused where it enters.
+        raise EmbeddingUnavailableError(
+            f"the embedding model returned a vector whose length is {norm}, which is not "
+            "a finite number, so it cannot be normalised or compared."
+        )
     if norm == 0.0:
         raise EmbeddingUnavailableError(
             "a zero vector came back. It would score every passage identically and "

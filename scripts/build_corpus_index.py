@@ -38,6 +38,7 @@ import argparse
 import base64
 import hashlib
 import json
+import math
 import re
 import shutil
 import struct
@@ -269,6 +270,10 @@ def normalise(values: list[float]) -> list[float]:
     everywhere downstream.
     """
     norm = sum(value * value for value in values) ** 0.5
+    if not math.isfinite(norm):
+        # Checked before the zero test, because `nan == 0.0` is False and a NaN would
+        # otherwise divide cleanly into an all-NaN vector and be written to the artifact.
+        raise BuildError(f"a vector came back with length {norm}, which is not a finite number")
     if norm == 0.0:
         raise BuildError("a zero vector came back, which cannot be normalised or compared")
     return [value / norm for value in values]
@@ -433,7 +438,9 @@ def check() -> list[str]:
             break
         norm = sum(value * value for value in values) ** 0.5
         # float16 rounding moves the norm slightly. Anything beyond this is not rounding.
-        if abs(norm - 1.0) > 0.01:
+        # The finiteness test is separate and comes first: every comparison with NaN is
+        # False, so a tolerance check alone reports a NaN vector as perfectly fine.
+        if not math.isfinite(norm) or abs(norm - 1.0) > 0.01:
             off += 1
     if off:
         problems.append(f"{off} vectors are not unit length, so ranking would be skewed")

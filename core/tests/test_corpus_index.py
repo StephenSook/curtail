@@ -301,6 +301,51 @@ class TestTheLoaderRefusesABadArtifact:
         with pytest.raises(CorpusIndexUnavailableError, match="rather than 1"):
             load()
 
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+    def test_a_non_finite_vector_is_refused(
+        self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any], bad: float
+    ) -> None:
+        """The hole inside the previous fix, found by a second review of it.
+
+        **Every comparison with NaN is False**, so `abs(norm - 1.0) > UNIT_TOLERANCE`
+        PASSES a NaN vector: a tolerance check written the obvious way is not a guard
+        against the worst input it can receive. float16 stores NaN and infinity perfectly
+        well, so a corrupted index can carry them.
+
+        And a NaN score does not merely misplace itself. Python's sort compares pairwise,
+        so one NaN reorders passages that have nothing to do with it: `[0.9, nan, 0.5,
+        0.7]` sorted descending gives `[0.7, 0.9, nan, 0.5]`, and 0.5 outranks 0.7.
+        Nothing raises and the page looks entirely normal.
+        """
+        payload = self.sound(index)
+        dimensions = payload["source"]["dimensions"]
+        values = [0.0] * dimensions
+        values[0] = bad
+        payload["entries"][1]["vector"] = base64.b64encode(
+            struct.pack(f"<{dimensions}e", *values)
+        ).decode()
+        self.with_index(monkeypatch, tmp_path, payload)
+
+        with pytest.raises(CorpusIndexUnavailableError, match="not a finite number"):
+            load()
+
+    def test_a_non_finite_query_is_refused(self) -> None:
+        """The query path had the identical hole, because it was the identical line."""
+        loaded = load()
+        query = list(loaded.vectors[0])
+        query[0] = float("nan")
+        with pytest.raises(CorpusIndexUnavailableError, match="not a finite number"):
+            search(query)
+
+    def test_the_check_still_accepts_the_real_vectors(self) -> None:
+        """Guards the guard. A finiteness test bolted on carelessly could reject
+        everything, and every test above would then pass for the wrong reason."""
+        from curtail_core.corpus_search import require_unit_length
+
+        loaded = load()
+        for vector in loaded.vectors[:20]:
+            require_unit_length(vector, describe="a real vector")
+
     def test_the_refusal_names_the_offending_passage(
         self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
     ) -> None:
@@ -430,3 +475,60 @@ class TestTheFiltersThemselves:
         that drops it has broken the product to protect nobody.
         """
         assert not builder().is_table_fragment(passage)
+
+
+class TestTheBuilderRefusesNonFiniteToo:
+    """The builder's own two guards, which the artifact tests cannot reach.
+
+    Kept honest by an embarrassment worth recording: a first mutation run reported both of
+    these KILLED, and a clean re-run of the same mutation passed. **The harness produced a
+    false kill, in the flattering direction**, which is more dangerous than a false
+    survival because it ends the investigation. The trustworthy result is that nothing
+    covered these, so here they are.
+
+    They matter because the builder is where a bad vector would ENTER the artifact.
+    `normalise()` divides by the norm, and `nan == 0.0` is False, so a NaN component
+    divides cleanly into an all-NaN vector and gets written to disk. `check()` then had
+    the same blind spot in the opposite direction: a tolerance comparison reports a NaN
+    vector as perfectly fine.
+    """
+
+    @pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+    def test_normalise_refuses_a_non_finite_vector(self, bad: float) -> None:
+        module = builder()
+        values = [0.0] * 8
+        values[0] = bad
+        with pytest.raises(module.BuildError, match="not a finite number"):
+            module.normalise(values)
+
+    def test_normalise_still_returns_a_unit_vector(self) -> None:
+        """The other direction. A finiteness test bolted on carelessly could reject
+        everything, and the test above would pass for the wrong reason."""
+        module = builder()
+        result = module.normalise([3.0, 4.0])
+        assert sum(value * value for value in result) ** 0.5 == pytest.approx(1.0)
+
+    def test_check_reports_a_non_finite_vector_as_a_problem(
+        self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
+    ) -> None:
+        """`--check` is what CI runs against the committed artifact, so a blind spot here
+        is a blind spot in the gate itself."""
+        module = builder()
+        entries: list[dict[str, Any]] = [dict(entry) for entry in index["entries"][:3]]
+        payload: dict[str, Any] = {
+            "source": dict(index["source"]),
+            "counts": dict(index["counts"]),
+            "absent": list(index["absent"]),
+            "entries": entries,
+        }
+        dimensions = int(payload["source"]["dimensions"])
+        values = [0.0] * dimensions
+        values[0] = float("nan")
+        entries[1]["vector"] = base64.b64encode(struct.pack(f"<{dimensions}e", *values)).decode()
+
+        path = tmp_path / "corpus_index.json"
+        path.write_text(json.dumps(payload))
+        monkeypatch.setattr(module, "OUT", path)
+
+        problems = module.check()
+        assert any("not unit length" in problem for problem in problems), problems
