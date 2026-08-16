@@ -1,0 +1,3875 @@
+{
+  "source": {
+    "service": "https://services.arcgis.com/Wvy1i2QPQwOxNumH/arcgis/rest/services/point_of_diversion/FeatureServer/0/query",
+    "layer": "California State Water Resources Control Board, points of diversion",
+    "licence": "Public domain (data.ca.gov license_id other-pd)",
+    "attribution": "California State Water Resources Control Board",
+    "projection": "EPSG:4326, requested explicitly"
+  },
+  "privacy": "The primary_owner field is not requested and never written. No third-party personal data enters this repository, and a public source does not change that. Matches the same decision recorded in the rights tables.",
+  "basins": {
+    "scott": {
+      "rights_total": 384,
+      "located": [
+        {
+          "application_number": "A000512",
+          "points": [
+            {
+              "lon": -122.845644,
+              "lat": 41.438345,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A001492",
+          "points": [
+            {
+              "lon": -122.736466,
+              "lat": 41.31197,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A007529",
+          "points": [
+            {
+              "lon": -123.074064,
+              "lat": 41.633487,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A007825",
+          "points": [
+            {
+              "lon": -122.992087,
+              "lat": 41.558738,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A007884",
+          "points": [
+            {
+              "lon": -123.130391,
+              "lat": 41.643384,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A008053",
+          "points": [
+            {
+              "lon": -123.099212,
+              "lat": 41.627764,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A008219",
+          "points": [
+            {
+              "lon": -123.099212,
+              "lat": 41.627764,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A009529",
+          "points": [
+            {
+              "lon": -123.026658,
+              "lat": 41.713641,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A009656",
+          "points": [
+            {
+              "lon": -123.108059,
+              "lat": 41.642638,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A010165",
+          "points": [
+            {
+              "lon": -123.020678,
+              "lat": 41.741275,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A010185",
+          "points": [
+            {
+              "lon": -123.021084,
+              "lat": 41.743879,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A010312",
+          "points": [
+            {
+              "lon": -123.026658,
+              "lat": 41.713641,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A010789",
+          "points": [
+            {
+              "lon": -122.889269,
+              "lat": 41.670309,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A011463",
+          "points": [
+            {
+              "lon": -122.860986,
+              "lat": 41.606849,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A012738",
+          "points": [
+            {
+              "lon": -122.927723,
+              "lat": 41.42533,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A012929",
+          "points": [
+            {
+              "lon": -122.823224,
+              "lat": 41.262804,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A013446",
+          "points": [
+            {
+              "lon": -123.107019,
+              "lat": 41.635238,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A015212",
+          "points": [
+            {
+              "lon": -122.888749,
+              "lat": 41.266163,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A015613",
+          "points": [
+            {
+              "lon": -122.899538,
+              "lat": 41.257022,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A015769",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A015770",
+          "points": [
+            {
+              "lon": -122.843706,
+              "lat": 41.328532,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A015994",
+          "points": [
+            {
+              "lon": -123.107019,
+              "lat": 41.635238,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A016304",
+          "points": [
+            {
+              "lon": -122.961361,
+              "lat": 41.431369,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A016536",
+          "points": [
+            {
+              "lon": -122.856239,
+              "lat": 41.593299,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A016711",
+          "points": [
+            {
+              "lon": -122.693549,
+              "lat": 41.454409,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A016916",
+          "points": [
+            {
+              "lon": -122.744318,
+              "lat": 41.459584,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A017651",
+          "points": [
+            {
+              "lon": -122.716556,
+              "lat": 41.32225,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.714371,
+              "lat": 41.322264,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A018457",
+          "points": [
+            {
+              "lon": -122.847878,
+              "lat": 41.738952,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A018922",
+          "points": [
+            {
+              "lon": -122.981396,
+              "lat": 41.540165,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A019353",
+          "points": [
+            {
+              "lon": -123.084172,
+              "lat": 41.691852,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A020124",
+          "points": [
+            {
+              "lon": -123.074712,
+              "lat": 41.695507,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A021199",
+          "points": [
+            {
+              "lon": -123.078971,
+              "lat": 41.631521,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A021767",
+          "points": [
+            {
+              "lon": -122.784797,
+              "lat": 41.611367,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A021890",
+          "points": [
+            {
+              "lon": -122.951678,
+              "lat": 41.54398,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A021903",
+          "points": [
+            {
+              "lon": -122.925182,
+              "lat": 41.426173,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.886122,
+              "lat": 41.450356,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022466",
+          "points": [
+            {
+              "lon": -122.919751,
+              "lat": 41.638374,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022482",
+          "points": [
+            {
+              "lon": -122.992279,
+              "lat": 41.571499,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022521",
+          "points": [
+            {
+              "lon": -122.979225,
+              "lat": 41.652161,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022553",
+          "points": [
+            {
+              "lon": -122.971784,
+              "lat": 41.520073,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022882",
+          "points": [
+            {
+              "lon": -122.981667,
+              "lat": 41.607405,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022951",
+          "points": [
+            {
+              "lon": -123.119123,
+              "lat": 41.637043,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A022954",
+          "points": [
+            {
+              "lon": -123.092752,
+              "lat": 41.701378,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A023362",
+          "points": [
+            {
+              "lon": -122.845684,
+              "lat": 41.668163,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A023631",
+          "points": [
+            {
+              "lon": -123.087183,
+              "lat": 41.630347,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A023635",
+          "points": [
+            {
+              "lon": -122.823224,
+              "lat": 41.262804,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A023996",
+          "points": [
+            {
+              "lon": -123.026248,
+              "lat": 41.722564,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024148",
+          "points": [
+            {
+              "lon": -122.874007,
+              "lat": 41.444547,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024149",
+          "points": [
+            {
+              "lon": -122.787606,
+              "lat": 41.479335,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024150",
+          "points": [
+            {
+              "lon": -122.883976,
+              "lat": 41.439943,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024151",
+          "points": [
+            {
+              "lon": -122.787606,
+              "lat": 41.479335,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024153",
+          "points": [
+            {
+              "lon": -122.74328,
+              "lat": 41.551533,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.741106,
+              "lat": 41.550499,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024154",
+          "points": [
+            {
+              "lon": -122.942917,
+              "lat": 41.633798,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024162",
+          "points": [
+            {
+              "lon": -122.843159,
+              "lat": 41.642521,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024176",
+          "points": [
+            {
+              "lon": -122.775093,
+              "lat": 41.59469,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024177",
+          "points": [
+            {
+              "lon": -122.784717,
+              "lat": 41.589274,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024179",
+          "points": [
+            {
+              "lon": -122.948354,
+              "lat": 41.642948,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.94765,
+              "lat": 41.644875,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024180",
+          "points": [
+            {
+              "lon": -122.873484,
+              "lat": 41.432612,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024249",
+          "points": [
+            {
+              "lon": -122.797335,
+              "lat": 41.683687,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024291",
+          "points": [
+            {
+              "lon": -122.881484,
+              "lat": 41.267042,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024303",
+          "points": [
+            {
+              "lon": -122.850382,
+              "lat": 41.621061,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024407",
+          "points": [
+            {
+              "lon": -122.991793,
+              "lat": 41.624198,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024413",
+          "points": [
+            {
+              "lon": -122.683132,
+              "lat": 41.541124,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024414",
+          "points": [
+            {
+              "lon": -122.692896,
+              "lat": 41.555864,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.691696,
+              "lat": 41.556106,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024417",
+          "points": [
+            {
+              "lon": -122.834055,
+              "lat": 41.368537,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024424",
+          "points": [
+            {
+              "lon": -122.803645,
+              "lat": 41.298075,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024430",
+          "points": [
+            {
+              "lon": -122.900263,
+              "lat": 41.457384,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024435",
+          "points": [
+            {
+              "lon": -122.993278,
+              "lat": 41.613482,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024437",
+          "points": [
+            {
+              "lon": -122.847959,
+              "lat": 41.392562,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024438",
+          "points": [
+            {
+              "lon": -122.850246,
+              "lat": 41.398201,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.845301,
+              "lat": 41.396315,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024450",
+          "points": [
+            {
+              "lon": -122.808815,
+              "lat": 41.423199,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024451",
+          "points": [
+            {
+              "lon": -122.926071,
+              "lat": 41.64546,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024454",
+          "points": [
+            {
+              "lon": -122.716653,
+              "lat": 41.633486,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024458",
+          "points": [
+            {
+              "lon": -122.929112,
+              "lat": 41.523989,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024466",
+          "points": [
+            {
+              "lon": -122.808909,
+              "lat": 41.371323,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024495",
+          "points": [
+            {
+              "lon": -122.851934,
+              "lat": 41.599643,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.844717,
+              "lat": 41.607106,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024546",
+          "points": [
+            {
+              "lon": -122.668996,
+              "lat": 41.371664,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.668996,
+              "lat": 41.371664,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.668996,
+              "lat": 41.371664,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.6683,
+              "lat": 41.374962,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024547",
+          "points": [
+            {
+              "lon": -122.66795,
+              "lat": 41.376336,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.66795,
+              "lat": 41.376336,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.66795,
+              "lat": 41.376336,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.666868,
+              "lat": 41.37744,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024549",
+          "points": [
+            {
+              "lon": -122.67348,
+              "lat": 41.382617,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024550",
+          "points": [
+            {
+              "lon": -122.713573,
+              "lat": 41.383201,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024737",
+          "points": [
+            {
+              "lon": -122.763523,
+              "lat": 41.590101,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A024907",
+          "points": [
+            {
+              "lon": -122.779096,
+              "lat": 41.407757,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "A027331",
+          "points": [
+            {
+              "lon": -122.981572,
+              "lat": 41.539752,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.969356,
+              "lat": 41.541227,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.968997,
+              "lat": 41.541641,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A028183",
+          "points": [
+            {
+              "lon": -122.847221,
+              "lat": 41.332898,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A028483",
+          "points": [
+            {
+              "lon": -122.794162,
+              "lat": 41.675249,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A028875",
+          "points": [
+            {
+              "lon": -123.096329,
+              "lat": 41.630398,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A028967",
+          "points": [
+            {
+              "lon": -122.729913,
+              "lat": 41.328343,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A029099",
+          "points": [
+            {
+              "lon": -122.996488,
+              "lat": 41.649212,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A029159",
+          "points": [
+            {
+              "lon": -123.086993,
+              "lat": 41.629937,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "A029575",
+          "points": [
+            {
+              "lon": -122.94991,
+              "lat": 41.583553,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 1
+        },
+        {
+          "application_number": "C000248",
+          "points": [
+            {
+              "lon": -122.859147,
+              "lat": 41.451931,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C000900",
+          "points": [
+            {
+              "lon": -122.922821,
+              "lat": 41.570286,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C001969",
+          "points": [
+            {
+              "lon": -122.814778,
+              "lat": 41.551742,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C001970",
+          "points": [
+            {
+              "lon": -122.80965,
+              "lat": 41.55068,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C001971",
+          "points": [
+            {
+              "lon": -122.821711,
+              "lat": 41.551007,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C001972",
+          "points": [
+            {
+              "lon": -122.817899,
+              "lat": 41.552955,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C001973",
+          "points": [
+            {
+              "lon": -122.817293,
+              "lat": 41.548294,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C004086",
+          "points": [
+            {
+              "lon": -122.911529,
+              "lat": 41.637752,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "C004540",
+          "points": [
+            {
+              "lon": -122.840361,
+              "lat": 41.523703,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D029991",
+          "points": [
+            {
+              "lon": -122.980705,
+              "lat": 41.641034,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D030039",
+          "points": [
+            {
+              "lon": -123.099056,
+              "lat": 41.629412,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D030419",
+          "points": [
+            {
+              "lon": -123.096898,
+              "lat": 41.631628,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D030524",
+          "points": [
+            {
+              "lon": -123.06094,
+              "lat": 41.727057,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D030763",
+          "points": [
+            {
+              "lon": -122.81466,
+              "lat": 41.394476,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "D030849",
+          "points": [
+            {
+              "lon": -122.709985,
+              "lat": 41.619464,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -122.709532,
+              "lat": 41.617612,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 3
+        },
+        {
+          "application_number": "S000312",
+          "points": [
+            {
+              "lon": -122.959503,
+              "lat": 41.529369,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000407",
+          "points": [
+            {
+              "lon": -122.971242,
+              "lat": 41.74348,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000419",
+          "points": [
+            {
+              "lon": -122.988069,
+              "lat": 41.741555,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000428",
+          "points": [
+            {
+              "lon": -122.955521,
+              "lat": 41.745942,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000429",
+          "points": [
+            {
+              "lon": -122.949642,
+              "lat": 41.744893,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000430",
+          "points": [
+            {
+              "lon": -122.835904,
+              "lat": 41.661784,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000485",
+          "points": [
+            {
+              "lon": -122.973074,
+              "lat": 41.743465,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000519",
+          "points": [
+            {
+              "lon": -122.741011,
+              "lat": 41.392636,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000699",
+          "points": [
+            {
+              "lon": -122.893673,
+              "lat": 41.630755,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000701",
+          "points": [
+            {
+              "lon": -122.920997,
+              "lat": 41.635894,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S000774",
+          "points": [
+            {
+              "lon": -122.911947,
+              "lat": 41.576821,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001129",
+          "points": [
+            {
+              "lon": -122.904524,
+              "lat": 41.462154,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001223",
+          "points": [
+            {
+              "lon": -122.826923,
+              "lat": 41.384097,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S001364",
+          "points": [
+            {
+              "lon": -122.92121,
+              "lat": 41.402875,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001365",
+          "points": [
+            {
+              "lon": -122.936708,
+              "lat": 41.364599,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001539",
+          "points": [
+            {
+              "lon": -122.721621,
+              "lat": 41.352685,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001540",
+          "points": [
+            {
+              "lon": -122.720565,
+              "lat": 41.355986,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S001809",
+          "points": [
+            {
+              "lon": -122.874012,
+              "lat": 41.444959,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S002374",
+          "points": [
+            {
+              "lon": -122.904524,
+              "lat": 41.462154,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S002514",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S004986",
+          "points": [
+            {
+              "lon": -122.946413,
+              "lat": 41.584368,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006191",
+          "points": [
+            {
+              "lon": -123.173437,
+              "lat": 41.625806,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006202",
+          "points": [
+            {
+              "lon": -122.687699,
+              "lat": 41.348225,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006203",
+          "points": [
+            {
+              "lon": -122.658198,
+              "lat": 41.311891,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006205",
+          "points": [
+            {
+              "lon": -122.881311,
+              "lat": 41.226693,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006206",
+          "points": [
+            {
+              "lon": -122.857426,
+              "lat": 41.263379,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006207",
+          "points": [
+            {
+              "lon": -122.932859,
+              "lat": 41.350082,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006210",
+          "points": [
+            {
+              "lon": -122.891594,
+              "lat": 41.288374,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006211",
+          "points": [
+            {
+              "lon": -122.906652,
+              "lat": 41.271788,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006212",
+          "points": [
+            {
+              "lon": -122.758652,
+              "lat": 41.31018,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006213",
+          "points": [
+            {
+              "lon": -122.787755,
+              "lat": 41.339081,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006214",
+          "points": [
+            {
+              "lon": -122.933717,
+              "lat": 41.256065,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006215",
+          "points": [
+            {
+              "lon": -122.639391,
+              "lat": 41.362224,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006216",
+          "points": [
+            {
+              "lon": -122.634761,
+              "lat": 41.335352,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S006217",
+          "points": [
+            {
+              "lon": -122.617761,
+              "lat": 41.347795,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008066",
+          "points": [
+            {
+              "lon": -122.955264,
+              "lat": 41.690508,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008068",
+          "points": [
+            {
+              "lon": -122.977993,
+              "lat": 41.655465,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008070",
+          "points": [
+            {
+              "lon": -122.831206,
+              "lat": 41.37693,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008087",
+          "points": [
+            {
+              "lon": -122.912241,
+              "lat": 41.439725,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008111",
+          "points": [
+            {
+              "lon": -122.75544,
+              "lat": 41.618422,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008336",
+          "points": [
+            {
+              "lon": -122.98148,
+              "lat": 41.742022,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008432",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008433",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S008434",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S009419",
+          "points": [
+            {
+              "lon": -122.75544,
+              "lat": 41.618422,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010158",
+          "points": [
+            {
+              "lon": -122.95108,
+              "lat": 41.553179,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010228",
+          "points": [
+            {
+              "lon": -122.75544,
+              "lat": 41.618422,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010230",
+          "points": [
+            {
+              "lon": -122.898743,
+              "lat": 41.439555,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010231",
+          "points": [
+            {
+              "lon": -122.853202,
+              "lat": 41.500006,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 5
+        },
+        {
+          "application_number": "S010232",
+          "points": [
+            {
+              "lon": -122.847365,
+              "lat": 41.500323,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 5
+        },
+        {
+          "application_number": "S010233",
+          "points": [
+            {
+              "lon": -122.841889,
+              "lat": 41.500363,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 5
+        },
+        {
+          "application_number": "S010234",
+          "points": [
+            {
+              "lon": -122.747505,
+              "lat": 41.644271,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010235",
+          "points": [
+            {
+              "lon": -122.907654,
+              "lat": 41.583578,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010237",
+          "points": [
+            {
+              "lon": -122.90712,
+              "lat": 41.438667,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010240",
+          "points": [
+            {
+              "lon": -122.86416,
+              "lat": 41.416899,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010243",
+          "points": [
+            {
+              "lon": -122.824528,
+              "lat": 41.338276,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010247",
+          "points": [
+            {
+              "lon": -122.86012,
+              "lat": 41.694541,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010250",
+          "points": [
+            {
+              "lon": -122.979681,
+              "lat": 41.621419,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010253",
+          "points": [
+            {
+              "lon": -122.921187,
+              "lat": 41.427303,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010254",
+          "points": [
+            {
+              "lon": -122.86012,
+              "lat": 41.694541,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010257",
+          "points": [
+            {
+              "lon": -122.751407,
+              "lat": 41.633542,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010268",
+          "points": [
+            {
+              "lon": -122.898743,
+              "lat": 41.439555,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010271",
+          "points": [
+            {
+              "lon": -122.720771,
+              "lat": 41.329995,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010273",
+          "points": [
+            {
+              "lon": -122.989087,
+              "lat": 41.624906,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010274",
+          "points": [
+            {
+              "lon": -122.824359,
+              "lat": 41.353923,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S010275",
+          "points": [
+            {
+              "lon": -122.815186,
+              "lat": 41.348498,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010276",
+          "points": [
+            {
+              "lon": -122.821085,
+              "lat": 41.35422,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S010277",
+          "points": [
+            {
+              "lon": -122.816626,
+              "lat": 41.347115,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010278",
+          "points": [
+            {
+              "lon": -122.808997,
+              "lat": 41.348816,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010279",
+          "points": [
+            {
+              "lon": -122.826493,
+              "lat": 41.34979,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S010281",
+          "points": [
+            {
+              "lon": -122.846183,
+              "lat": 41.436656,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S010282",
+          "points": [
+            {
+              "lon": -122.8435,
+              "lat": 41.42652,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S010302",
+          "points": [
+            {
+              "lon": -122.848145,
+              "lat": 41.419076,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S010303",
+          "points": [
+            {
+              "lon": -122.843363,
+              "lat": 41.415817,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S010308",
+          "points": [
+            {
+              "lon": -122.893101,
+              "lat": 41.453871,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010428",
+          "points": [
+            {
+              "lon": -122.760143,
+              "lat": 41.629781,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010429",
+          "points": [
+            {
+              "lon": -122.755411,
+              "lat": 41.63187,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010430",
+          "points": [
+            {
+              "lon": -122.750364,
+              "lat": 41.638352,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010431",
+          "points": [
+            {
+              "lon": -122.831217,
+              "lat": 41.667443,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010569",
+          "points": [
+            {
+              "lon": -122.86012,
+              "lat": 41.694541,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010572",
+          "points": [
+            {
+              "lon": -122.886122,
+              "lat": 41.450356,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010583",
+          "points": [
+            {
+              "lon": -122.883554,
+              "lat": 41.748979,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -121.492,
+              "lat": 38.58191,
+              "huc8_name": "Lower Sacramento"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010587",
+          "points": [
+            {
+              "lon": -122.741158,
+              "lat": 41.633059,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010673",
+          "points": [
+            {
+              "lon": -122.952869,
+              "lat": 41.531759,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010677",
+          "points": [
+            {
+              "lon": -122.776392,
+              "lat": 41.301829,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010678",
+          "points": [
+            {
+              "lon": -122.775252,
+              "lat": 41.297719,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010679",
+          "points": [
+            {
+              "lon": -122.762333,
+              "lat": 41.282159,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010681",
+          "points": [
+            {
+              "lon": -122.919678,
+              "lat": 41.502244,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010682",
+          "points": [
+            {
+              "lon": -122.929419,
+              "lat": 41.50697,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010683",
+          "points": [
+            {
+              "lon": -122.913111,
+              "lat": 41.502571,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010690",
+          "points": [
+            {
+              "lon": -122.815756,
+              "lat": 41.247211,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010719",
+          "points": [
+            {
+              "lon": -122.69696,
+              "lat": 41.518337,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010854",
+          "points": [
+            {
+              "lon": -122.815877,
+              "lat": 41.404485,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S010896",
+          "points": [
+            {
+              "lon": -122.867071,
+              "lat": 41.610784,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 4
+        },
+        {
+          "application_number": "S012475",
+          "points": [
+            {
+              "lon": -122.7601,
+              "lat": 41.467716,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S012551",
+          "points": [
+            {
+              "lon": -122.828129,
+              "lat": 41.334957,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S013785",
+          "points": [
+            {
+              "lon": -122.833371,
+              "lat": 41.3319,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S013919",
+          "points": [
+            {
+              "lon": -122.906714,
+              "lat": 41.475449,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S014405",
+          "points": [
+            {
+              "lon": -122.776361,
+              "lat": 41.299221,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S014708",
+          "points": [
+            {
+              "lon": -123.097273,
+              "lat": 41.632173,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S014709",
+          "points": [
+            {
+              "lon": -123.097061,
+              "lat": 41.630392,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S014912",
+          "points": [
+            {
+              "lon": -122.817439,
+              "lat": 41.398162,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S015280",
+          "points": [
+            {
+              "lon": -122.820212,
+              "lat": 41.338972,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S016310",
+          "points": [
+            {
+              "lon": -123.026894,
+              "lat": 41.767646,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S016588",
+          "points": [
+            {
+              "lon": -122.952449,
+              "lat": 41.532082,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S017367",
+          "points": [
+            {
+              "lon": -122.762794,
+              "lat": 41.306283,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S017373",
+          "points": [
+            {
+              "lon": -122.761292,
+              "lat": 41.281311,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S017376",
+          "points": [
+            {
+              "lon": -122.766236,
+              "lat": 41.310811,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S017379",
+          "points": [
+            {
+              "lon": -122.736097,
+              "lat": 41.3122,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S017385",
+          "points": [
+            {
+              "lon": -122.75393,
+              "lat": 41.355505,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S018116",
+          "points": [
+            {
+              "lon": -122.847661,
+              "lat": 41.284064,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S018119",
+          "points": [
+            {
+              "lon": -122.668564,
+              "lat": 41.372714,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S018122",
+          "points": [
+            {
+              "lon": -122.843314,
+              "lat": 41.287286,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S018897",
+          "points": [
+            {
+              "lon": -122.891982,
+              "lat": 41.507827,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S019169",
+          "points": [
+            {
+              "lon": -122.966202,
+              "lat": 41.617325,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S019230",
+          "points": [
+            {
+              "lon": -122.885004,
+              "lat": 41.266724,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S019640",
+          "points": [
+            {
+              "lon": -122.934468,
+              "lat": 41.53649,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S019936",
+          "points": [
+            {
+              "lon": -122.719347,
+              "lat": 41.357477,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S020340",
+          "points": [
+            {
+              "lon": -122.92072,
+              "lat": 41.42796,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S020457",
+          "points": [
+            {
+              "lon": -122.904604,
+              "lat": 41.437721,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021512",
+          "points": [
+            {
+              "lon": -122.673672,
+              "lat": 41.306089,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021517",
+          "points": [
+            {
+              "lon": -122.690035,
+              "lat": 41.292059,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021518",
+          "points": [
+            {
+              "lon": -122.704035,
+              "lat": 41.306038,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021730",
+          "points": [
+            {
+              "lon": -122.956937,
+              "lat": 41.572193,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021762",
+          "points": [
+            {
+              "lon": -122.924372,
+              "lat": 41.539786,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S021810",
+          "points": [
+            {
+              "lon": -122.857593,
+              "lat": 41.418223,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S022044",
+          "points": [
+            {
+              "lon": -122.897986,
+              "lat": 41.440394,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S022111",
+          "points": [
+            {
+              "lon": -123.01786,
+              "lat": 41.6717,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S022115",
+          "points": [
+            {
+              "lon": -122.972699,
+              "lat": 41.668554,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S022472",
+          "points": [
+            {
+              "lon": -122.850501,
+              "lat": 41.508241,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 5
+        },
+        {
+          "application_number": "S022720",
+          "points": [
+            {
+              "lon": -122.879989,
+              "lat": 41.512964,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S022915",
+          "points": [
+            {
+              "lon": -122.694958,
+              "lat": 41.317147,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S023325",
+          "points": [
+            {
+              "lon": -122.82788,
+              "lat": 41.383835,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S023326",
+          "points": [
+            {
+              "lon": -122.82924,
+              "lat": 41.37234,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 6
+        },
+        {
+          "application_number": "S023329",
+          "points": [
+            {
+              "lon": -122.842764,
+              "lat": 41.328673,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S023479",
+          "points": [
+            {
+              "lon": -122.896884,
+              "lat": 41.458165,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S023974",
+          "points": [
+            {
+              "lon": -122.820648,
+              "lat": 41.340003,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 7
+        },
+        {
+          "application_number": "S024037",
+          "points": [
+            {
+              "lon": -122.979883,
+              "lat": 41.614167,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024049",
+          "points": [
+            {
+              "lon": -122.980344,
+              "lat": 41.619266,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024106",
+          "points": [
+            {
+              "lon": -122.984385,
+              "lat": 41.606541,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024360",
+          "points": [
+            {
+              "lon": -122.959066,
+              "lat": 41.618186,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024361",
+          "points": [
+            {
+              "lon": -122.961326,
+              "lat": 41.617591,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024496",
+          "points": [
+            {
+              "lon": -122.866075,
+              "lat": 41.417761,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S024629",
+          "points": [
+            {
+              "lon": -122.958875,
+              "lat": 41.574547,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S025108",
+          "points": [
+            {
+              "lon": -122.893934,
+              "lat": 41.739706,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S025109",
+          "points": [
+            {
+              "lon": -122.90998,
+              "lat": 41.718117,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S025620",
+          "points": [
+            {
+              "lon": -122.667058,
+              "lat": 41.350895,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S025622",
+          "points": [
+            {
+              "lon": -122.636069,
+              "lat": 41.345111,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S026181",
+          "points": [
+            {
+              "lon": -122.991527,
+              "lat": 41.593236,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S026182",
+          "points": [
+            {
+              "lon": -122.999991,
+              "lat": 41.591873,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S027410",
+          "points": [
+            {
+              "lon": -122.829522,
+              "lat": 41.333553,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S027847",
+          "points": [
+            {
+              "lon": -123.045368,
+              "lat": 41.869997,
+              "huc8_name": "Upper Klamath"
+            }
+          ],
+          "curtailment_group": 8,
+          "watershed_discrepancy": {
+            "order_says": "Scott",
+            "diversion_layer_says": [
+              "Upper Klamath"
+            ]
+          }
+        },
+        {
+          "application_number": "S027941",
+          "points": [
+            {
+              "lon": -122.874388,
+              "lat": 41.751958,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028058",
+          "points": [
+            {
+              "lon": -122.65824,
+              "lat": 41.39996,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028059",
+          "points": [
+            {
+              "lon": -122.6727,
+              "lat": 41.38681,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028060",
+          "points": [
+            {
+              "lon": -122.67696,
+              "lat": 41.38432,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028061",
+          "points": [
+            {
+              "lon": -122.68288,
+              "lat": 41.38031,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028062",
+          "points": [
+            {
+              "lon": -122.7128,
+              "lat": 41.36539,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028063",
+          "points": [
+            {
+              "lon": -122.72264,
+              "lat": 41.34802,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028064",
+          "points": [
+            {
+              "lon": -122.7074,
+              "lat": 41.33872,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028065",
+          "points": [
+            {
+              "lon": -122.69141,
+              "lat": 41.34564,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028066",
+          "points": [
+            {
+              "lon": -122.70993,
+              "lat": 41.38429,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028067",
+          "points": [
+            {
+              "lon": -122.63477,
+              "lat": 41.3349,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028068",
+          "points": [
+            {
+              "lon": -122.62026,
+              "lat": 41.40556,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028069",
+          "points": [
+            {
+              "lon": -122.61096,
+              "lat": 41.33529,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028076",
+          "points": [
+            {
+              "lon": -122.952172,
+              "lat": 41.532269,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028082",
+          "points": [
+            {
+              "lon": -122.959167,
+              "lat": 41.529167,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028117",
+          "points": [
+            {
+              "lon": -122.96242,
+              "lat": 41.60678,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028235",
+          "points": [
+            {
+              "lon": -122.821944,
+              "lat": 41.260833,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S028571",
+          "points": [
+            {
+              "lon": -122.904595,
+              "lat": 41.437338,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S029183",
+          "points": [
+            {
+              "lon": -122.96083,
+              "lat": 41.586266,
+              "huc8_name": "Scott"
+            }
+          ],
+          "curtailment_group": 8
+        },
+        {
+          "application_number": "S029197",
+          "points": [
+            {
+              "lon": -122.845776,
+              "lat": 41.438309,
+              "huc8_name": "Scott"
+            },
+            {
+              "lon": -121.492,
+              "lat": 38.58191,
+              "huc8_name": "Lower Sacramento"
+            }
+          ],
+          "curtailment_group": 6
+        }
+      ],
+      "without_coordinate": 108,
+      "without_coordinate_groundwater": 108,
+      "watershed_discrepancies": [
+        "S027847"
+      ],
+      "watershed_discrepancy_note": "The curtailment order lists these rights in this basin. The Board's own point-of-diversion layer places the diversion in a different watershed. Both statements are the Board's, and this system reports the disagreement rather than resolving it.",
+      "without_coordinate_note": "The Board's own dataset excludes groundwater extraction points: 'Ground water extraction points (such as water supply wells) are generally not included in this dataset.' Every right below is a groundwater right, so this is a limit of the source and not a gap in the join."
+    },
+    "shasta": {
+      "rights_total": 85,
+      "located": [
+        {
+          "application_number": "A000448",
+          "points": [
+            {
+              "lon": -122.475041,
+              "lat": 41.609198,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A003544",
+          "points": [
+            {
+              "lon": -122.374386,
+              "lat": 41.54086,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A003555",
+          "points": [
+            {
+              "lon": -122.448014,
+              "lat": 41.45287,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A003952",
+          "points": [
+            {
+              "lon": -122.438313,
+              "lat": 41.458753,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A004831",
+          "points": [
+            {
+              "lon": -122.498697,
+              "lat": 41.666732,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A004909",
+          "points": [
+            {
+              "lon": -122.382642,
+              "lat": 41.723702,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A008809",
+          "points": [
+            {
+              "lon": -122.412035,
+              "lat": 41.562372,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A010930",
+          "points": [
+            {
+              "lon": -122.471556,
+              "lat": 41.429036,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.471539,
+              "lat": 41.426566,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A010982",
+          "points": [
+            {
+              "lon": -122.458235,
+              "lat": 41.716569,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A011059",
+          "points": [
+            {
+              "lon": -122.350561,
+              "lat": 41.718315,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A011092",
+          "points": [
+            {
+              "lon": -122.517907,
+              "lat": 41.526682,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.512806,
+              "lat": 41.528214,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A011705",
+          "points": [
+            {
+              "lon": -122.383306,
+              "lat": 41.712037,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A013150",
+          "points": [
+            {
+              "lon": -122.348261,
+              "lat": 41.733552,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A013200",
+          "points": [
+            {
+              "lon": -122.458235,
+              "lat": 41.716569,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A013283",
+          "points": [
+            {
+              "lon": -122.538845,
+              "lat": 41.653106,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A013631",
+          "points": [
+            {
+              "lon": -122.508493,
+              "lat": 41.679313,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A014074",
+          "points": [
+            {
+              "lon": -122.351186,
+              "lat": 41.732446,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A014580",
+          "points": [
+            {
+              "lon": -122.383306,
+              "lat": 41.712037,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A015687",
+          "points": [
+            {
+              "lon": -122.439594,
+              "lat": 41.640212,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A016392",
+          "points": [
+            {
+              "lon": -122.629517,
+              "lat": 41.740745,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A017334",
+          "points": [
+            {
+              "lon": -122.528353,
+              "lat": 41.736444,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.526913,
+              "lat": 41.739606,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A017639",
+          "points": [
+            {
+              "lon": -122.463973,
+              "lat": 41.647253,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.454262,
+              "lat": 41.645096,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.45167,
+              "lat": 41.640577,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.451472,
+              "lat": 41.638383,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional"
+        },
+        {
+          "application_number": "A018186",
+          "points": [
+            {
+              "lon": -122.651382,
+              "lat": 41.710163,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A018434",
+          "points": [
+            {
+              "lon": -122.513173,
+              "lat": 41.753013,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A018557",
+          "points": [
+            {
+              "lon": -122.593542,
+              "lat": 41.773864,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A019522",
+          "points": [
+            {
+              "lon": -122.210538,
+              "lat": 41.800428,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A020016",
+          "points": [
+            {
+              "lon": -122.446186,
+              "lat": 41.641147,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A021141",
+          "points": [
+            {
+              "lon": -122.533449,
+              "lat": 41.709664,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A021180",
+          "points": [
+            {
+              "lon": -122.533449,
+              "lat": 41.709664,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A021238",
+          "points": [
+            {
+              "lon": -122.538205,
+              "lat": 41.709093,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A021986",
+          "points": [
+            {
+              "lon": -122.716608,
+              "lat": 41.730089,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A022099",
+          "points": [
+            {
+              "lon": -122.526509,
+              "lat": 41.734943,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A022336",
+          "points": [
+            {
+              "lon": -122.544105,
+              "lat": 41.736097,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A022961",
+          "points": [
+            {
+              "lon": -122.297077,
+              "lat": 41.716679,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A023117",
+          "points": [
+            {
+              "lon": -122.469582,
+              "lat": 41.689768,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.383306,
+              "lat": 41.712037,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A023767",
+          "points": [
+            {
+              "lon": -122.468755,
+              "lat": 41.496701,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.444546,
+              "lat": 41.506539,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A023796",
+          "points": [
+            {
+              "lon": -122.487635,
+              "lat": 41.433498,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A024200",
+          "points": [
+            {
+              "lon": -122.643692,
+              "lat": 41.635421,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.640242,
+              "lat": 41.638048,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A025024",
+          "points": [
+            {
+              "lon": -122.6827,
+              "lat": 41.710533,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A025786",
+          "points": [
+            {
+              "lon": -122.206196,
+              "lat": 41.64374,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.203084,
+              "lat": 41.64306,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A026316",
+          "points": [
+            {
+              "lon": -122.509575,
+              "lat": 41.700851,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A026590",
+          "points": [
+            {
+              "lon": -122.562126,
+              "lat": 41.722702,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.561107,
+              "lat": 41.72342,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.557904,
+              "lat": 41.725796,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A026792",
+          "points": [
+            {
+              "lon": -122.680213,
+              "lat": 41.717957,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A027483",
+          "points": [
+            {
+              "lon": -122.43177,
+              "lat": 41.711193,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.424106,
+              "lat": 41.710946,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.421814,
+              "lat": 41.710955,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.383306,
+              "lat": 41.712037,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A027528",
+          "points": [
+            {
+              "lon": -122.205647,
+              "lat": 41.643604,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.202717,
+              "lat": 41.642649,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A028119",
+          "points": [
+            {
+              "lon": -122.723616,
+              "lat": 41.734436,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A028120",
+          "points": [
+            {
+              "lon": -122.723616,
+              "lat": 41.734436,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A028250",
+          "points": [
+            {
+              "lon": -122.439659,
+              "lat": 41.400754,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.439586,
+              "lat": 41.400754,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.438214,
+              "lat": 41.405425,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A029415",
+          "points": [
+            {
+              "lon": -122.523323,
+              "lat": 41.633828,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A029558",
+          "points": [
+            {
+              "lon": -122.347433,
+              "lat": 41.750157,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.305492,
+              "lat": 41.754116,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "A031522",
+          "points": [
+            {
+              "lon": -122.506522,
+              "lat": 41.698823,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.505553,
+              "lat": 41.698882,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.498266,
+              "lat": 41.695965,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.458316,
+              "lat": 41.716547,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "C001014",
+          "points": [
+            {
+              "lon": -122.659701,
+              "lat": 41.736187,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "D031166",
+          "points": [
+            {
+              "lon": -122.419013,
+              "lat": 41.375555,
+              "huc8_name": "Shasta"
+            },
+            {
+              "lon": -122.418311,
+              "lat": 41.375656,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        },
+        {
+          "application_number": "D031892",
+          "points": [
+            {
+              "lon": -122.713702,
+              "lat": 41.735665,
+              "huc8_name": "Shasta"
+            }
+          ],
+          "band": "conditional_with_additional_conditions"
+        }
+      ],
+      "without_coordinate": 31,
+      "without_coordinate_groundwater": 31,
+      "watershed_discrepancies": [],
+      "watershed_discrepancy_note": "The curtailment order lists these rights in this basin. The Board's own point-of-diversion layer places the diversion in a different watershed. Both statements are the Board's, and this system reports the disagreement rather than resolving it.",
+      "without_coordinate_note": "The Board's own dataset excludes groundwater extraction points: 'Ground water extraction points (such as water supply wells) are generally not included in this dataset.' Every right below is a groundwater right, so this is a limit of the source and not a gap in the join."
+    }
+  }
+}
