@@ -488,3 +488,61 @@ class TestAPollThatSucceeds:
         stored = polled.load(Basin.SHASTA).observations[0]
         assert stored.minimum_cfs == body["minimum_cfs"]
         assert stored.classification == body["classification"]
+
+
+class TestOneAudienceServesEveryBasin:
+    """The defect a second-model review found in the TEMPLATE while production was fine.
+
+    `.env.example` told a stranger to set the audience to `.../internal/poll/shasta`. One
+    configured value is compared against every basin's token, so a per-basin path matches
+    the Shasta job and rejects Scott with a 403 on every single firing. **The deployment
+    was correct and the template disagreed with it**, which is the worst way for those two
+    to differ: a healthy running system is no evidence at all that the template is a trap,
+    and this repository has already recorded that config templates are where wrong claims
+    survive after the prose has been fixed.
+    """
+
+    def test_one_audience_admits_every_basin(self, monkeypatch: Any) -> None:
+        """The property that makes a single value correct, asserted directly. Cloud
+        Scheduler is told the same root for both jobs, so both mint an identical audience
+        while addressing different paths."""
+        root = "https://curtail-console-api-672785135387.us-central1.run.app"
+        monkeypatch.setenv(AUDIENCE_ENV, root)
+        for basin in ("shasta", "scott"):
+            token = claims(aud=root)
+            assert verify("Bearer t", verifier=verifier_returning(token)) == SCHEDULER, (
+                f"the {basin} job's token was refused by the shared audience"
+            )
+
+    def test_a_path_audience_refuses_the_other_basin_and_says_why(self, monkeypatch: Any) -> None:
+        """The misconfiguration itself, reproduced. It is a PARTIAL failure, which is far
+        harder to notice than a dead watch, so the refusal names the likely cause."""
+        shasta_path = "https://service/internal/poll/shasta"
+        monkeypatch.setenv(AUDIENCE_ENV, shasta_path)
+
+        # Shasta's own token still works, which is exactly what makes this dangerous.
+        assert verify("Bearer t", verifier=verifier_returning(claims(aud=shasta_path)))
+
+        scott_path = "https://service/internal/poll/scott"
+        with pytest.raises(SchedulerAuthError, match="must be the service root"):
+            verify("Bearer t", verifier=verifier_returning(claims(aud=scott_path)))
+
+    def test_the_template_does_not_teach_a_path_audience(self) -> None:
+        """The guard on the artifact a stranger actually follows. The code was never
+        wrong; the instructions were."""
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[2]
+        line = next(
+            entry
+            for entry in (repo / ".env.example").read_text().splitlines()
+            if entry.startswith(f"{AUDIENCE_ENV}=")
+        )
+        value = line.split("=", 1)[1].strip()
+        assert value.startswith("https://"), value
+        remainder = value.removeprefix("https://")
+        assert "/" not in remainder.rstrip("/"), (
+            f"{AUDIENCE_ENV} in .env.example carries a path ({value}). One value is checked "
+            "against every basin's token, so a per-basin path admits one river and 403s "
+            "the rest, on every firing, forever."
+        )

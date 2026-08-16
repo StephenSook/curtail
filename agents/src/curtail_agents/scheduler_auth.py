@@ -115,7 +115,18 @@ def verify(
     # again here means a future refactor that drops the argument cannot silently widen the
     # endpoint to every Google-signed token in existence.
     if claims.get("aud") != audience:
-        raise SchedulerAuthError("the token was minted for a different audience")
+        # The diagnostic matters more than usual here, because the likely misconfiguration
+        # fails PARTIALLY. One audience is compared against every basin's token, so an
+        # audience carrying a per-basin path matches one river and rejects the others, and
+        # a half-working watch is far harder to notice than a dead one.
+        hint = ""
+        if "/internal/" in audience:
+            hint = (
+                f" {AUDIENCE_ENV} names a path. It must be the service root, because one "
+                "value is checked against every basin's token and a per-basin path admits "
+                "one river and refuses the rest."
+            )
+        raise SchedulerAuthError(f"the token was minted for a different audience.{hint}")
 
     return caller
 
