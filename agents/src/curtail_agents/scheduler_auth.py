@@ -48,6 +48,24 @@ def allowed_accounts() -> frozenset[str]:
     return frozenset(part.strip() for part in raw.split(",") if part.strip())
 
 
+def audience_hint(audience: str) -> str:
+    """The actionable half of an audience failure, wherever that failure surfaces.
+
+    Shared by both paths because the reachable one is not the obvious one. It exists at all
+    because this misconfiguration fails PARTIALLY: one configured audience is compared
+    against every basin's token, so a per-basin path admits one river and refuses the rest.
+    A dead watch gets noticed. One river reporting while the other silently never does does
+    not, and the operator has no reason to suspect the audience.
+    """
+    if "/internal/" not in audience:
+        return ""
+    return (
+        f" {AUDIENCE_ENV} names a path. It must be the service root, because one value is "
+        "checked against every basin's token and a per-basin path admits one river and "
+        "refuses the rest."
+    )
+
+
 def verify(
     authorization: str | None,
     *,
@@ -95,7 +113,16 @@ def verify(
     try:
         claims = verifier(token, request, audience)
     except Exception as exc:
-        raise SchedulerAuthError(f"the token could not be verified: {exc}") from exc
+        # **The hint belongs HERE, and putting it only after the call made it dead code.**
+        # `google.auth.jwt.decode` raises `InvalidValue("Token has wrong audience ...")` on
+        # a mismatch; it does not return claims carrying the wrong `aud`. So every real
+        # audience failure lands in this branch and never reaches the check below, and the
+        # actionable message promised for the most likely misconfiguration would never have
+        # been printed in production. The test that covered it passed only because the fake
+        # verifier modelled a contract the library does not have.
+        raise SchedulerAuthError(
+            f"the token could not be verified: {exc}{audience_hint(audience)}"
+        ) from exc
 
     if not isinstance(claims, dict):
         raise SchedulerAuthError("the verified token did not carry claims")
@@ -111,22 +138,15 @@ def verify(
             f"{caller or 'an unnamed caller'} is not permitted to write to the watch"
         )
 
-    # Belt and braces on the audience. `verify_oauth2_token` checks it, and asserting it
-    # again here means a future refactor that drops the argument cannot silently widen the
-    # endpoint to every Google-signed token in existence.
+    # Belt and braces, and honestly labelled as such: with Google's verifier this is
+    # UNREACHABLE, because a mismatch raises above rather than returning. It stays because a
+    # future refactor that drops the audience argument, or a verifier that reports rather
+    # than raises, would otherwise widen this endpoint to every Google-signed token in
+    # existence, and that failure would be silent.
     if claims.get("aud") != audience:
-        # The diagnostic matters more than usual here, because the likely misconfiguration
-        # fails PARTIALLY. One audience is compared against every basin's token, so an
-        # audience carrying a per-basin path matches one river and rejects the others, and
-        # a half-working watch is far harder to notice than a dead one.
-        hint = ""
-        if "/internal/" in audience:
-            hint = (
-                f" {AUDIENCE_ENV} names a path. It must be the service root, because one "
-                "value is checked against every basin's token and a per-basin path admits "
-                "one river and refuses the rest."
-            )
-        raise SchedulerAuthError(f"the token was minted for a different audience.{hint}")
+        raise SchedulerAuthError(
+            f"the token was minted for a different audience.{audience_hint(audience)}"
+        )
 
     return caller
 
@@ -136,5 +156,6 @@ __all__ = [
     "AUDIENCE_ENV",
     "SchedulerAuthError",
     "allowed_accounts",
+    "audience_hint",
     "verify",
 ]
