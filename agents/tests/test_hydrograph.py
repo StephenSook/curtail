@@ -201,3 +201,61 @@ class TestTheVendoredBundle:
         assert 'import("/vendor/echarts.js")' in page
         for host in ("cdn.jsdelivr.net", "unpkg.com", "cdnjs.", "//cdn."):
             assert host not in page, f"the console fetches from {host}"
+
+
+class TestTheVendorExclusionCannotGrow:
+    """The em-dash gate excludes the vendor directory, so this bounds it.
+
+    ECharts is 1.1 MB of minified upstream code containing the character the
+    constitution bans, and it cannot be edited. Excluding it scopes the guard to what
+    it governs. But an exclusion is a hole, and a hole that can widen without anyone
+    noticing is how a rule quietly stops applying: a prose file dropped into that
+    directory would escape the gate entirely.
+
+    So the directory's contents are asserted against the same allowlist the route
+    serves from. Adding a bundle means adding it to `VENDOR`, which is a visible code
+    change; dropping anything else in there fails here.
+    """
+
+    def test_the_directory_holds_only_the_allowlisted_bundles(self) -> None:
+        from pathlib import Path
+
+        from curtail_agents.api import VENDOR
+
+        directory = (
+            Path(__file__).resolve().parents[1] / "src" / "curtail_agents" / "data" / "vendor"
+        )
+        present = {p.name for p in directory.iterdir() if p.is_file()}
+        assert present == set(VENDOR.values()), (
+            f"the vendor directory holds files the allowlist does not name: "
+            f"{present - set(VENDOR.values())}. That directory is excluded from the "
+            f"em-dash gate, so anything unlisted there is unguarded prose."
+        )
+
+    def test_every_allowlisted_bundle_is_third_party_and_carries_its_licence(self) -> None:
+        """A file is only exempt from our prose rules because it is somebody else's
+        work. This asserts that is still true of each one."""
+        from pathlib import Path
+
+        from curtail_agents.api import VENDOR
+
+        directory = (
+            Path(__file__).resolve().parents[1] / "src" / "curtail_agents" / "data" / "vendor"
+        )
+        for filename in VENDOR.values():
+            head = (directory / filename).read_bytes()[:4000]
+            assert b"Licensed to the Apache Software Foundation" in head or b"License" in head, (
+                f"{filename} carries no upstream licence notice, so it does not look "
+                "like a vendored third-party bundle"
+            )
+
+    def test_the_exclusion_path_in_ci_matches_the_real_directory(self) -> None:
+        """A guard exclusion written against a path that does not exist protects
+        nothing and hides nothing, and nobody would notice either way."""
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[2]
+        workflow = (repo / ".github" / "workflows" / "ci.yml").read_text()
+        excluded = "agents/src/curtail_agents/data/vendor/"
+        assert excluded in workflow, "the em-dash gate no longer excludes the vendor path"
+        assert (repo / excluded).is_dir(), f"{excluded} is excluded in CI but does not exist"
