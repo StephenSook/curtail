@@ -1817,26 +1817,44 @@
       properties: { id: body.gage.id },
     };
 
+    //: A LOCAL instance, and every callback below closes over it rather than reading
+    //: the module-level `map`.
+    //:
+    //: The gate added a moment ago was necessary and not sufficient: the `load`
+    //: callback read the GLOBAL, so a superseded callback firing after a newer
+    //: `drawMap` had replaced it would add its own sources and layers to the NEWER
+    //: map. The newer map's own load then calls `addSource("pods")` a second time and
+    //: MapLibre throws "There is already a source with this ID", leaving a map holding
+    //: one basin's dots while the note describes the other. Gating at the end of the
+    //: callback cannot help, because the damage is done by then.
+    //:
+    //: The generation check is now the FIRST statement in every callback, and the
+    //: instance is local, so a superseded callback can neither touch the live map nor
+    //: resurrect a removed one.
     if (map) { map.remove(); map = null; }
-    map = new gl.Map({
+    const instance = new gl.Map({
       container: "map",
       style: "https://tiles.openfreemap.org/styles/dark",
       center: [body.gage.lon, body.gage.lat],
       zoom: 8,
       attributionControl: false,
     });
-    map.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
+    map = instance;
+    instance.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
 
     //: Exposed for the same reason the chart option is: what a map DRAWS is not
     //: assertable from a payload, and a screenshot cannot tell one dot's colour from
     //: another's at this density.
+    if (mine !== generation.map) return;
     window.__mapSource = { type: "FeatureCollection", features };
 
-    map.on("load", () => {
-      map.addSource("pods", { type: "geojson", data: window.__mapSource });
-      map.addSource("gage", { type: "geojson", data: gage });
+    instance.on("load", () => {
+      // FIRST statement. Everything after it mutates a map.
+      if (mine !== generation.map) return;
+      instance.addSource("pods", { type: "geojson", data: window.__mapSource });
+      instance.addSource("gage", { type: "geojson", data: gage });
 
-      map.addLayer({
+      instance.addLayer({
         id: "pods-circle",
         type: "circle",
         source: "pods",
@@ -1854,7 +1872,7 @@
       });
       //: A triangle, not another dot. The gage is a different KIND of thing from a
       //: diversion, and shape carries that where colour alone would not.
-      map.addLayer({
+      instance.addLayer({
         id: "gage-symbol",
         type: "symbol",
         source: "gage",
@@ -1879,13 +1897,13 @@
           [Math.min(q(lons, 0.02), body.gage.lon), Math.min(q(lats, 0.02), body.gage.lat)],
           [Math.max(q(lons, 0.98), body.gage.lon), Math.max(q(lats, 0.98), body.gage.lat)]
         );
-        map.fitBounds(bounds, { padding: 40, duration: 0 });
+        instance.fitBounds(bounds, { padding: 40, duration: 0 });
       }
-      if (mine !== generation.map) return;
       card.dataset.state = "drawn";
     });
 
-    map.on("click", "pods-circle", (event) => {
+    instance.on("click", "pods-circle", (event) => {
+      if (mine !== generation.map) return;
       const props = event.features[0].properties;
       new gl.Popup({ closeButton: true })
         .setLngLat(event.lngLat)
@@ -1894,10 +1912,14 @@
           (props.group ? ` \u00b7 curtailment group ${props.group}` : "") +
           (props.watershed ? ` \u00b7 ${props.watershed} watershed` : "")
         )
-        .addTo(map);
+        .addTo(instance);
     });
-    map.on("mouseenter", "pods-circle", () => { map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "pods-circle", () => { map.getCanvas().style.cursor = ""; });
+    instance.on("mouseenter", "pods-circle", () => {
+      instance.getCanvas().style.cursor = "pointer";
+    });
+    instance.on("mouseleave", "pods-circle", () => {
+      instance.getCanvas().style.cursor = "";
+    });
 
     //: The caveat is rendered with the dots, never separately, because a map showing
     //: 330 of 469 and saying nothing under-reports who is curtailed by 30 percent.
