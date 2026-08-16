@@ -273,6 +273,67 @@ class TestTheLoaderRefusesABadArtifact:
         with pytest.raises(CorpusIndexUnavailableError, match="no entries"):
             load()
 
+    def test_an_index_that_lies_about_normalisation_is_refused(
+        self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
+    ) -> None:
+        """The gap a second-model review found, and the reason it is worth a named test.
+
+        `"normalised": true` is a sentence the artifact writes about itself. The builder
+        measures norms and `test_every_vector_is_unit_length` measures the committed file,
+        and NEITHER of those runs in the container that answers a request. So an artifact
+        claiming normalisation while carrying vectors of any length loaded happily and
+        ranked by magnitude, with the module's own docstring promising otherwise.
+
+        A claim and a check are different things. This repository has met that already as
+        a quote nobody grepped against its source and as an eval artifact reporting a
+        metric nothing computed.
+        """
+        payload = self.sound(index)
+        assert payload["source"]["normalised"] is True, "the fixture must still claim it"
+        # Same width, same shape, twice the length. Nothing about it looks wrong.
+        dimensions = payload["source"]["dimensions"]
+        stretched = [2.0 / dimensions**0.5] * dimensions
+        payload["entries"][1]["vector"] = base64.b64encode(
+            struct.pack(f"<{dimensions}e", *stretched)
+        ).decode()
+        self.with_index(monkeypatch, tmp_path, payload)
+
+        with pytest.raises(CorpusIndexUnavailableError, match="rather than 1"):
+            load()
+
+    def test_the_refusal_names_the_offending_passage(
+        self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
+    ) -> None:
+        """A rebuild that goes wrong on one document is a different problem from one that
+        goes wrong on all of them, and a bare "the index is bad" sends whoever diagnoses
+        it back to the file to find out which."""
+        payload = self.sound(index)
+        dimensions = payload["source"]["dimensions"]
+        payload["entries"][2]["vector"] = base64.b64encode(
+            struct.pack(f"<{dimensions}e", *([0.5 / dimensions**0.5] * dimensions))
+        ).decode()
+        self.with_index(monkeypatch, tmp_path, payload)
+
+        with pytest.raises(CorpusIndexUnavailableError) as raised:
+            load()
+        assert payload["entries"][2]["file"] in str(raised.value)
+
+    def test_float16_rounding_is_still_accepted(
+        self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
+    ) -> None:
+        """Guards the guard from the other side. Vectors are stored as float16, so every
+        norm is slightly off 1, and a check with no tolerance would reject the real
+        artifact on every load: a guard that cannot pass is as useless as one that cannot
+        fail."""
+        payload = self.sound(index)
+        self.with_index(monkeypatch, tmp_path, payload)
+        loaded = load()
+        norms = [sum(v * v for v in vector) ** 0.5 for vector in loaded.vectors]
+        assert all(norm != 1.0 for norm in norms), (
+            "no norm is exactly 1, so the tolerance is doing real work rather than "
+            "passing by accident"
+        )
+
     def test_a_vector_of_the_wrong_width_is_refused(
         self, monkeypatch: Any, tmp_path: Path, index: dict[str, Any]
     ) -> None:

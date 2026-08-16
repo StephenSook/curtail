@@ -8,8 +8,16 @@ be decided without it lives here where it can be tested exactly.
 
 *A dot product is only a cosine over unit vectors,* and `gemini-embedding-001` does not
 return one below its full 3072 dimensions: the 768-dimension vector measures about 0.59.
-The builder normalises, and this module REFUSES an index that does not claim it and a
-query vector that is not unit length, rather than quietly ranking by magnitude.
+The builder normalises, and this module refuses an index that does not claim normalisation,
+an index whose vectors are not ACTUALLY unit length, and a query vector that is not unit
+length, rather than quietly ranking by magnitude.
+
+The middle one was missing until a second-model review pointed at it, and the gap is worth
+stating because it is a shape this repository keeps meeting. The `"normalised": true` field
+is a sentence the artifact writes about itself. The builder measures norms and a test
+measures the committed file, and NEITHER of those runs in the container serving a request,
+so an artifact that claimed normalisation while carrying vectors of any length would have
+loaded and ranked happily. A claim and a check are different things.
 
 *The corpus repeats itself, heavily.* 2,072 chunks carry only 864 distinct texts, because
 every addendum restates the same standard paragraphs. Ranked naively, a reader asking one
@@ -96,6 +104,17 @@ def load() -> Index:
             "the corpus index does not claim normalised vectors, so a dot product would "
             "not be a cosine and the ranking would be silently wrong"
         )
+    # **The flag above is a SENTENCE the artifact writes about itself. The measurement is
+    # below.** Checking only the claim left this module's stated guarantee resting on a
+    # field the artifact sets, so an index that said `"normalised": true` while carrying
+    # vectors of any length loaded happily and ranked by magnitude. The builder verifies
+    # norms and a test verifies the committed file, and neither of those is running in the
+    # container that answers a request. This is the same defect this repository has already
+    # met as a quote nobody grepped against its source and as an eval artifact claiming a
+    # metric nothing computed: a claim and a check are different things.
+    #
+    # The cost is one pass over values already unpacked below, so it is folded into that
+    # loop rather than paid twice.
     dimensions = int(source.get("dimensions", 0))
     entries = payload.get("entries", [])
     if not entries:
@@ -118,6 +137,13 @@ def load() -> Index:
         if len(values) != dimensions:
             raise CorpusIndexUnavailableError(
                 f"{entry['file']} carries {len(values)} dimensions and the index says {dimensions}"
+            )
+        norm = sum(value * value for value in values) ** 0.5
+        if abs(norm - 1.0) > UNIT_TOLERANCE:
+            raise CorpusIndexUnavailableError(
+                f"{entry['file']} chunk {entry.get('chunk')} has vector length {norm:.3f} "
+                "rather than 1, so the index claims normalised vectors and does not hold "
+                "them. Ranking would order results partly by magnitude."
             )
         vectors.append(values)
 
