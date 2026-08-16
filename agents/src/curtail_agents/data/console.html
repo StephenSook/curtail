@@ -495,6 +495,23 @@
     <div id="ledger-open"></div>
   </section>
 
+  <!--
+    The season timeline.
+
+    Ordered by the PDF's creation timestamp, and the caption says so. These documents do
+    not print an adoption date, and two heuristics for inferring one were tried and both
+    were wrong, so this plots a fact about the file rather than a guess about the order.
+    The two documents whose adoption date IS established independently are marked, and
+    the measured gap between the two dates on those documents is printed rather than
+    assumed to hold for the other 99.
+  -->
+  <section class="card" id="timelinecard">
+    <h2>Five years of curtailment administration</h2>
+    <p class="muted" id="timeline-method"></p>
+    <div id="timeline" style="height: 300px"></div>
+    <p class="note" id="timeline-note"></p>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -693,7 +710,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -2239,6 +2256,188 @@
   document.getElementById("ledger-filter").addEventListener("input", renderLedger);
   document.getElementById("ledger-only").addEventListener("change", renderLedger);
 
+  // ── The season timeline ────────────────────────────────────────
+  //
+  //: Ordered by the PDF's creation timestamp, and the caption says so out loud.
+  //:
+  //: These documents do not print an adoption date. Two heuristics for inferring one
+  //: were tried and both were wrong: the modal date in the text fails on a document
+  //: listing gage readings by date, and the latest date fails because 73 of 101
+  //: documents name a date AFTER their file was made, since an addendum states when it
+  //: expires. Plotting a fact about the file and labelling it is honest; plotting a
+  //: guess and calling it an order date is not.
+  let tlChart = null;
+
+  //: Colour carries the MEANING CLASS and shape carries the specific action.
+  //:
+  //: Impose and reinstate both mean curtailment applies, so both are the curtailed
+  //: hue; continue and amend are both conditional. Drawn on colour alone the legend
+  //: showed two pairs of identical swatches, which is the exact ambiguity this
+  //: project's own palette rule forbids and which no test would have caught.
+  const ACTION_STYLE = {
+    impose: ["--curtailed", "circle"],
+    reinstate: ["--curtailed", "triangle"],
+    suspend: ["--suspended", "circle"],
+    continue: ["--conditional", "diamond"],
+    amend: ["--conditional", "rect"],
+    unrecorded: ["--pending", "circle"],
+  };
+
+  function clearTimeline(reason) {
+    if (tlChart) { tlChart.dispose(); tlChart = null; }
+    window.__timelineOption = null;
+    document.getElementById("timeline").replaceChildren();
+    document.getElementById("timeline-method").textContent = "";
+    document.getElementById("timeline-note").textContent = reason;
+    document.getElementById("timelinecard").dataset.state = "unavailable";
+  }
+
+  async function drawTimeline() {
+    const mine = ++generation.tl;
+    const card = document.getElementById("timelinecard");
+    let body;
+    try {
+      body = await payloadOf(await fetch("/api/timeline"), "the timeline");
+    } catch (error) {
+      if (mine !== generation.tl) return;
+      clearTimeline(`Could not load the timeline: ${error.message}`);
+      return;
+    }
+    if (mine !== generation.tl) return;
+    if (!Array.isArray(body.events) || !body.events.length) {
+      clearTimeline("The service returned a timeline this page cannot render.");
+      return;
+    }
+
+    let echarts;
+    try {
+      echarts = await echartsReady();
+    } catch (error) {
+      if (mine !== generation.tl) return;
+      clearTimeline(`The charting bundle did not load: ${error.message}`);
+      return;
+    }
+    if (mine !== generation.tl) return;
+
+    const css = getComputedStyle(document.documentElement);
+    const tok = (n) => css.getPropertyValue(n).trim();
+
+    //: One row per series, so four separate curtailment programmes read as four
+    //: parallel lives rather than one undifferentiated stream.
+    const rows = ["scott_2021", "scott_2024", "shasta_2021", "shasta_2024"];
+    const label = {
+      scott_2021: "Scott 2021",
+      scott_2024: "Scott 2024",
+      shasta_2021: "Shasta 2021",
+      shasta_2024: "Shasta 2024",
+    };
+
+    const byAction = {};
+    for (const event of body.events) {
+      const row = rows.indexOf(event.series);
+      if (row < 0) continue;
+      (byAction[event.action] ||= []).push({
+        value: [event.file_date, row],
+        event,
+      });
+    }
+
+    const series = Object.entries(byAction).map(([action, points]) => {
+      const [colour, symbol] = ACTION_STYLE[action] || ["--pending", "circle"];
+      return {
+        name: action,
+        type: "scatter",
+        symbol,
+        symbolSize: symbol === "triangle" ? 13 : 11,
+        data: points.map((p) => ({ value: p.value, ev: p.event })),
+        itemStyle: { color: tok(colour), opacity: 0.85 },
+      };
+    });
+
+    //: The two documents whose adoption date is independently established, drawn as
+    //: rings so a reader can see that exactly two of a hundred are legally dated.
+    const verified = body.events.filter((e) => e.adoption_date);
+    if (verified.length) {
+      series.push({
+        name: "adoption date verified",
+        type: "scatter",
+        symbol: "circle",
+        symbolSize: 20,
+        data: verified.map((e) => ({ value: [e.file_date, rows.indexOf(e.series)], ev: e })),
+        itemStyle: { color: "transparent", borderColor: tok("--fg"), borderWidth: 2 },
+      });
+    }
+
+    const option = {
+      animation: false,
+      backgroundColor: "transparent",
+      grid: { left: 96, right: 24, top: 34, bottom: 34 },
+      tooltip: {
+        trigger: "item",
+        backgroundColor: tok("--shell"),
+        borderColor: tok("--border"),
+        textStyle: { color: tok("--fg"), fontFamily: "var(--mono)", fontSize: 11 },
+        formatter: (p) => {
+          const e = p.data.ev;
+          if (!e) return "";
+          const kind = e.kind === "addenda" ? `Addendum ${e.number}` : e.number || e.kind;
+          return (
+            `${label[e.series] || e.series} \u00b7 ${kind}<br>` +
+            `action: ${e.action}<br>` +
+            `file created: ${e.file_date}<br>` +
+            (e.adoption_date
+              ? `adopted: ${e.adoption_date} (verified)`
+              : "adoption date: not stated in the document")
+          );
+        },
+      },
+      legend: {
+        top: 0,
+        textStyle: { color: tok("--muted"), fontSize: 11 },
+        inactiveColor: tok("--border-strong"),
+      },
+      xAxis: {
+        type: "time",
+        axisLine: { lineStyle: { color: tok("--border") } },
+        axisLabel: { color: tok("--muted") },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        type: "category",
+        data: rows.map((r) => label[r]),
+        axisLine: { lineStyle: { color: tok("--border") } },
+        axisLabel: { color: tok("--muted") },
+        splitLine: { lineStyle: { color: tok("--border"), opacity: 0.4 } },
+      },
+      series,
+    };
+
+    const element = document.getElementById("timeline");
+    if (tlChart) tlChart.dispose();
+    tlChart = echarts.init(element, null, { renderer: "canvas" });
+    tlChart.setOption(option);
+    window.__timelineOption = JSON.stringify(option);
+
+    const counts = body.counts.by_action || {};
+    const parts = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([action, n]) => `${n} ${action}`);
+    document.getElementById("timeline-method").textContent = body.method;
+    document.getElementById("timeline-note").textContent =
+      `${body.events.length} documents: ${parts.join(", ")}. ` +
+      `${body.counts.with_verified_adoption_date} of ${body.counts.documents} carry an ` +
+      `adoption date this system can verify, and those two are ringed. ` +
+      body.measured_offsets
+        .map((o) => `${o.file} was created ${o.file_days_after_adoption} day(s) after adoption`)
+        .join("; ") +
+      (body.gaps.length
+        ? `. ${body.gaps.length} document cannot be placed at all: ${body.gaps[0].why}.`
+        : ".");
+    card.dataset.state = "drawn";
+  }
+
+  window.addEventListener("resize", () => { if (tlChart) tlChart.resize(); });
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
@@ -2246,6 +2445,7 @@
   loadLive();
   drawGraph();
   loadLedger();
+  drawTimeline();
   run();
   loadQueue();
 </script>

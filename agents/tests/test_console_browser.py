@@ -2339,3 +2339,84 @@ class TestAFailedRefreshLeavesNothingOfTheOldBasin:
                 + str(len(writes))
                 + " places; it should only be set inside that card's clear function"
             )
+
+
+class TestTheSeasonTimeline:
+    """101 documents over five years, and the caption that keeps it honest."""
+
+    def _drawn(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('timelinecard')?.dataset.state === 'drawn'",
+            timeout=60_000,
+        )
+
+    def test_it_says_what_kind_of_date_it_is_plotting(self, page: Page, console_url: str) -> None:
+        """**The most important assertion here.** The dots are placed by file creation
+        timestamp, not by adoption date, and a reader who is not told that will read a
+        legal chronology off a filesystem artefact."""
+        self._drawn(page, console_url)
+        method = page.locator("#timeline-method").inner_text()
+        assert "do not print an adoption date" in method
+        assert "not the date an order was adopted" in method
+
+    def test_the_two_verified_documents_are_marked_and_counted(
+        self, page: Page, console_url: str
+    ) -> None:
+        self._drawn(page, console_url)
+        option = json.loads(page.evaluate("() => window.__timelineOption"))
+        ringed = next(s for s in option["series"] if s["name"] == "adoption date verified")
+        assert len(ringed["data"]) == 2
+        note = page.locator("#timeline-note").inner_text()
+        assert "2 of 101" in note
+        assert "day(s) after adoption" in note
+
+    def test_colour_carries_the_class_and_shape_carries_the_action(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Impose and reinstate share the curtailed hue because both mean curtailment
+        applies; continue and amend share the conditional hue. Drawn on colour alone
+        the legend showed two pairs of identical swatches, which is the ambiguity this
+        project's palette rule exists to forbid."""
+        self._drawn(page, console_url)
+        option = json.loads(page.evaluate("() => window.__timelineOption"))
+        style = {
+            s["name"]: (s.get("symbol"), s["itemStyle"]["color"])
+            for s in option["series"]
+            if s["name"] != "adoption date verified"
+        }
+        for a, b in (("impose", "reinstate"), ("continue", "amend")):
+            if a in style and b in style:
+                assert style[a][1] == style[b][1], f"{a} and {b} should share a hue"
+                assert style[a][0] != style[b][0], (
+                    f"{a} and {b} are the same colour AND the same shape, so they are "
+                    "indistinguishable in the legend"
+                )
+        shapes = [v[0] for v in style.values()]
+        colours = [v[1] for v in style.values()]
+        assert len(set(zip(shapes, colours, strict=True))) == len(style), (
+            "two actions render identically"
+        )
+
+    def test_the_gap_is_named_rather_than_dropped(self, page: Page, console_url: str) -> None:
+        """One document carries no creation timestamp and cannot be placed at all.
+        Ninety-nine dots with no mention of the hundredth is a quiet undercount."""
+        self._drawn(page, console_url)
+        assert "cannot be placed at all" in page.locator("#timeline-note").inner_text()
+
+    def test_animation_is_off(self, page: Page, console_url: str) -> None:
+        self._drawn(page, console_url)
+        option = json.loads(page.evaluate("() => window.__timelineOption"))
+        assert option["animation"] is False
+
+    def test_a_failed_load_clears_the_card(self, page: Page, console_url: str) -> None:
+        page.route("**/api/timeline", _fulfil({"detail": "not packaged"}, 503))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('timelinecard')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert "not packaged" in page.locator("#timeline-note").inner_text()
+        assert page.locator("#timeline-method").inner_text().strip() == ""
+        assert page.locator("#timeline canvas").count() == 0
+        assert page.evaluate("() => window.__timelineOption") is None
