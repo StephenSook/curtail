@@ -1365,7 +1365,11 @@
     if (failure) {
       const state = document.createElement("div");
       state.className = "status s-system";
-      state.innerHTML = '<span class="glyph">—</span><span></span>';
+      // \u26A0, the glyph this page ALREADY uses for Unavailable, and written as an
+      // escape so the source stays ASCII. The first version used an em-dash, which the
+      // constitution bans everywhere and which `make tone` could not see because it
+      // scans prose files and this is markup. CI caught it on the whole tracked tree.
+      state.innerHTML = '<span class="glyph">\u26A0</span><span></span>';
       state.querySelector("span:last-child").textContent = "Gage unavailable";
       card.appendChild(state);
       const why = document.createElement("p");
