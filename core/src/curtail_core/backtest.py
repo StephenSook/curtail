@@ -52,7 +52,19 @@ from curtail_core.flow_minimums import (
     minimum_flow,
 )
 
-CASES_PATH = Path(__file__).resolve().parents[3] / "data" / "backtest_cases.json"
+#: The packaged copy FIRST, because that is the one that exists when installed.
+#:
+#: This resolved relative to the repository and a wheel contains only the package, so
+#: the container had no such file and `/api/backtest` returned 500 in production while
+#: every test passed locally. Identical defect to the one a review already found in the
+#: fact-sheet endpoint, in a file that documents the fix, which is the argument for
+#: reusing a packaging guard rather than rediscovering the hole.
+#:
+#: The repository path stays as a development fallback so the generators and the quote
+#: verifier keep working from a checkout, and a test asserts the two copies match.
+_PACKAGED_CASES = Path(__file__).resolve().parent / "data" / "backtest_cases.json"
+_REPO_CASES = Path(__file__).resolve().parents[3] / "data" / "backtest_cases.json"
+CASES_PATH = _PACKAGED_CASES if _PACKAGED_CASES.is_file() else _REPO_CASES
 
 
 class Direction(StrEnum):
