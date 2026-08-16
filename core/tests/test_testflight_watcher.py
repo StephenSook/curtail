@@ -284,6 +284,15 @@ def _with_review(envelope: Any, data: Any) -> dict[str, Any]:
     }
 
 
+def _with_reviewed(envelope: Any, attributes: Any) -> dict[str, Any]:
+    """The envelope with a review submission that IS referenced and IS included."""
+    referenced = _with_review(envelope, {"type": "betaAppReviewSubmissions", "id": "sub-1"})
+    return {
+        **referenced,
+        "included": [*referenced["included"], {"id": "sub-1", "attributes": attributes}],
+    }
+
+
 class TestAMalformedAnswerIsNotAPendingAnswer:
     """`state()` used to turn a missing field into None, which made
     `installable_internally` False, which made main() exit 1 and print "not yet".
@@ -370,6 +379,29 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
                 "a review submission is referenced without an id",
                 lambda e: _with_review(e, {"type": "betaAppReviewSubmissions"}),
             ),
+            # Having the RESOURCE is not having the VALUE. A submission read without a
+            # betaReviewState used to report None, which is what this reports when
+            # there is no submission at all, so the two were indistinguishable.
+            (
+                "a review submission was read but carries no betaReviewState",
+                lambda e: _with_reviewed(e, {}),
+            ),
+            (
+                "a review submission carries a non-string betaReviewState",
+                lambda e: _with_reviewed(e, {"betaReviewState": 7}),
+            ),
+            (
+                "buildBetaDetail carries no externalBuildState",
+                lambda e: {
+                    **e,
+                    "included": [
+                        {
+                            "id": "detail-1",
+                            "attributes": {"internalBuildState": "MISSING_EXPORT_COMPLIANCE"},
+                        }
+                    ],
+                },
+            ),
             (
                 "the review linkage carries no data member at all",
                 lambda e: {
@@ -402,14 +434,7 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
     def test_a_readable_review_submission_is_reported(self, monkeypatch: Any) -> None:
         """The other side of the same guard. Without this, raising on every reference
         would satisfy the cases above while making the external path unreadable."""
-        envelope = _with_review(self.ENVELOPE, {"type": "betaAppReviewSubmissions", "id": "sub-1"})
-        envelope = {
-            **envelope,
-            "included": [
-                *envelope["included"],
-                {"id": "sub-1", "attributes": {"betaReviewState": "IN_REVIEW"}},
-            ],
-        }
+        envelope = _with_reviewed(self.ENVELOPE, {"betaReviewState": "IN_REVIEW"})
         assert self._state(envelope, monkeypatch)["beta_review_state"] == "IN_REVIEW"
 
     def test_an_unexpected_exception_still_exits_two(self, monkeypatch: Any) -> None:

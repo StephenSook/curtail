@@ -156,7 +156,7 @@ def state() -> dict[str, Any]:
         if isinstance(item, dict) and isinstance(item.get("id"), str):
             included[item["id"]] = item
 
-    def related(kind: str, *, may_be_absent: bool) -> dict[str, Any]:
+    def related(kind: str, *, may_be_absent: bool) -> dict[str, Any] | None:
         """The included resource for one relationship.
 
         **The thing that separates an answer from a failed read is the `data` VALUE, not
@@ -183,7 +183,11 @@ def state() -> dict[str, Any]:
         if ref is None:
             if not may_be_absent:
                 raise WatchError(f"the build reports no {kind}, which the verdict needs")
-            return {}
+            # None, NOT an empty mapping. A resource that exists with empty attributes
+            # is also `{}`, and `{}` is falsy, so returning it here made "Apple says
+            # there is none" and "we read it and it was empty" the same value at the
+            # call site. The conflation this whole function removes, one level in.
+            return None
 
         if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
             raise WatchError(f"the {kind} linkage carried an unreadable reference")
@@ -200,21 +204,43 @@ def state() -> dict[str, Any]:
 
     beta_detail = related("buildBetaDetail", may_be_absent=False)
     review = related("betaAppReviewSubmission", may_be_absent=True)
+    if beta_detail is None:  # unreachable while may_be_absent is False, and stated anyway
+        raise WatchError("buildBetaDetail was reported absent, so the verdict is UNKNOWN")
 
-    internal = beta_detail.get("internalBuildState")
-    if not isinstance(internal, str):
-        raise WatchError(
-            "buildBetaDetail carried no internalBuildState, so whether this build is "
-            "installable is UNKNOWN rather than no."
-        )
-    external = beta_detail.get("externalBuildState")
+    def field(attributes: dict[str, Any], name: str, resource: str) -> str:
+        """One string attribute of a resource we successfully read.
+
+        **A resource that was read but is missing a field is not a resource that says
+        no.** `review.get("betaReviewState")` returned None for a real submission whose
+        state we could not read, which is the same value this reports when there is no
+        submission at all, so a submission in an unreadable state was indistinguishable
+        from no submission. The `data: null` fix stopped one level too shallow: having
+        the RESOURCE is not the same as having the VALUE.
+        """
+        value = attributes.get(name)
+        if not isinstance(value, str):
+            raise WatchError(
+                f"{resource} was read but carried no {name}, so its state is UNKNOWN "
+                "rather than absent."
+            )
+        return value
+
+    internal = field(beta_detail, "internalBuildState", "buildBetaDetail")
+    external = field(beta_detail, "externalBuildState", "buildBetaDetail")
+    # `is None`, NOT truthiness. None means Apple said there is NO submission
+    # (`data: null`), which is a fact. A submission that EXISTS with empty attributes is
+    # `{}`, which is falsy, so a truthiness test sent it down the same branch and
+    # reported "no review" for a submission whose state we simply could not read.
+    review_state = (
+        None if review is None else field(review, "betaReviewState", "betaAppReviewSubmission")
+    )
     return {
         "version": attrs.get("version"),
         "processing": attrs.get("processingState"),
         "expired": attrs.get("expired"),
         "internal_state": internal,
         "external_state": external,
-        "beta_review_state": review.get("betaReviewState"),
+        "beta_review_state": review_state,
         # The one line a human actually wants.
         "installable_internally": internal == "READY_FOR_BETA_TESTING",
         "uploaded_at": attrs.get("uploadedDate"),
