@@ -304,17 +304,65 @@ class TestCallerSuppliedReadingsAreLabelledAsSuch:
 
     def test_the_endpoint_never_claims_a_live_gage_reading(self) -> None:
         """Asserted on the source, because the label is a claim about where data
-        came from and no response body can prove the absence of a fetch."""
-        raw = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
-        # CODE only. The module explains in a comment what the label used to be, and
-        # scanning the whole file matched that explanation: the fourth time in this
-        # project that a scanner has found its own needle. Comments are stripped so
-        # the check is about what executes.
-        code = "\n".join(line for line in raw.splitlines() if not line.lstrip().startswith("#"))
-        assert "USGS_LIVE" not in code, (
-            "the API labels a caller-supplied reading as live USGS data. It never "
-            "contacts USGS, so that provenance is false."
+        came from and no response body can prove the absence of a fetch.
+
+        **Scoped to `classify`, not to the module.** The first version banned
+        `USGS_LIVE` anywhere in `api.py`, which was correct only while nothing in the
+        file ever fetched. `/api/gage` and `/api/hydrograph` do fetch, so they may
+        say so, and a module-wide ban would have forced the honest label off the two
+        endpoints that earned it.
+
+        Narrowing a guard to the thing it protects is the fix; deleting it because it
+        fired is not, and neither is weakening it to whatever passes today. The rule
+        it defends is unchanged and is now stated exactly: the endpoint that takes a
+        number from the caller must never dress that number as a gage reading.
+        """
+        import ast
+
+        source = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+        tree = ast.parse(source)
+        classify = next(
+            (
+                node
+                for node in tree.body
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+                and node.name == "classify"
+            ),
+            None,
         )
+        assert classify is not None, "the classify endpoint is gone, so this guard is vacuous"
+
+        # The AST carries no comments, so the module's own explanation of what the
+        # label USED to be cannot match. A scanner finding its own needle has happened
+        # four times in this project.
+        body = ast.unparse(classify)
+        assert "USGS_LIVE" not in body, (
+            "the classify endpoint labels a caller-supplied reading as live USGS "
+            "data. It never contacts USGS, so that provenance is false."
+        )
+        assert "UNSOURCED" in body, (
+            "classify no longer labels its reading unsourced, so a caller-supplied "
+            "number is travelling with no provenance at all"
+        )
+
+    def test_the_endpoints_that_do_fetch_are_allowed_to_say_so(self) -> None:
+        """The other half, without which the guard above could be satisfied by a
+        codebase that had simply stopped reading the river."""
+        import ast
+
+        source = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
+        tree = ast.parse(source)
+        fetchers = {
+            node.name: ast.unparse(node)
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+            and node.name in {"gage", "hydrograph"}
+        }
+        assert set(fetchers) == {"gage", "hydrograph"}, f"missing a fetcher: {set(fetchers)}"
+        for name, body in fetchers.items():
+            assert "USGS_LIVE" in body or "live.provenance" in body, (
+                f"{name} fetches from USGS and does not label its provenance"
+            )
 
 
 class TestTheFactSheetSurvivesPackaging:
@@ -498,8 +546,23 @@ class TestTheConsolePage:
         select is not a legal figure.
         """
         page = TestClient(app).get("/").text
+
+        # **`animation: false` is the guard's own goal, not a violation of it.** The
+        # first version banned the substring `animation:` outright, and the chart
+        # config that DISABLES ECharts' default animation on a compliance figure
+        # tripped it. That is the second time this guard has been wider than its rule,
+        # after `transition:`, and the fix is the same both times: make it precise.
+        # Excised first, so the check below still catches `animation: 2s ease` and
+        # anything else that actually moves.
+        import re
+
+        disabled = re.sub(r"animation:\s*false", "", page)
         for banned in ("animation:", "@keyframes"):
-            assert banned not in page, f"the console animates something ({banned})"
+            assert banned not in disabled, f"the console animates something ({banned})"
+        assert "animation: false" in page, (
+            "nothing explicitly disables chart animation, so a library default may be "
+            "moving a compliance value"
+        )
 
         style = page.split("<style>", 1)[1].split("</style>", 1)[0]
 

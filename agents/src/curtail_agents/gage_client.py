@@ -234,6 +234,70 @@ class GageClient:
             qualifier=props.get("qualifier"),
         )
 
+    async def discharge_series(
+        self,
+        monitoring_location_id: str,
+        *,
+        since: datetime,
+        until: datetime | None = None,
+        limit: int = 20_000,
+    ) -> list[Reading]:
+        """Every discharge reading in a window, oldest first.
+
+        The `continuous` collection was declared in `Collection` from the beginning and
+        nothing called it, so the only shape of the river this system could show was a
+        single point. A hydrograph is the difference between "the river is at 4.91 cfs"
+        and "the river fell from 17.9 to 4.91 over four weeks", and the second is what a
+        watermaster actually reasons about.
+
+        Readings that cannot be parsed are DROPPED rather than defaulted, and the count
+        of survivors is what the caller gets. A series is a shape, and one interpolated
+        point inside it is invisible in a way a single bad reading is not: it would be
+        drawn as though it were measured.
+
+        Raises:
+            GageError: on transport failure or non-200. An EMPTY window is not an error
+                here, unlike a missing latest reading: a gage genuinely may not have
+                reported over the range asked for, and the caller can say so.
+        """
+        window = f"{since.strftime('%Y-%m-%dT%H:%M:%SZ')}/"
+        window += until.strftime("%Y-%m-%dT%H:%M:%SZ") if until else ".."
+        payload = await self._get(
+            "continuous",
+            monitoring_location_id=monitoring_location_id,
+            parameter_code=PARAM_DISCHARGE,
+            datetime=window,
+            limit=min(limit, MAX_LIMIT),
+        )
+
+        out: list[Reading] = []
+        for feature in payload["features"]:
+            props = feature.get("properties") or {}
+            observed_at = _parse_time(props.get("time"))
+            raw_value = props.get("value")
+            if observed_at is None or raw_value is None:
+                continue
+            try:
+                cfs = float(raw_value)
+            except (TypeError, ValueError):
+                continue
+            try:
+                out.append(
+                    Reading(
+                        monitoring_location_id=monitoring_location_id,
+                        observed_at=observed_at,
+                        cfs=cfs,
+                        unit=str(props.get("unit_of_measure") or "ft^3/s"),
+                        qualifier=props.get("qualifier"),
+                    )
+                )
+            except ValueError:
+                # `Reading` refuses NaN, infinities and negatives. A sensor fault must
+                # not enter a series that a human will read a trend off.
+                continue
+        out.sort(key=lambda r: r.observed_at)
+        return out
+
     async def revisions(self, monitoring_location_id: str, *, limit: int = 100) -> list[Revision]:
         """Return published revisions for a gage's time series.
 

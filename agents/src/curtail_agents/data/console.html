@@ -367,6 +367,44 @@
     </div>
   </section>
 
+  <!--
+    The hydrograph.
+
+    The reason it is worth drawing rather than tabulating: the flow minimum is a STEP
+    function, not a constant. Scott drops from 125 to 90 cfs on June 24, Shasta from 125
+    to 105 on March 25 and back up to 75 on September 16. A chart drawing one flat rule
+    across a window that contains such a boundary shows the river crossing a threshold
+    that was not in force on the day it crossed, which is the exact error a month-keyed
+    table produces and the reason this system encodes date periods instead.
+  -->
+  <section class="card" id="graph">
+    <h2>The season so far</h2>
+    <p class="muted">
+      Every 15 minute reading USGS published for this gage over the window, with the
+      minimum in force drawn as it actually behaves. The rule STEPS on the days the
+      schedule changes, and the shaded band is the 10 cfs above it inside which a reading
+      is treated as near-threshold and points at field verification rather than an order.
+    </p>
+    <div class="row" style="align-items:end; margin-bottom:12px">
+      <label for="graph-basin">Basin
+        <select id="graph-basin">
+          <option value="scott">Scott</option>
+          <option value="shasta">Shasta</option>
+        </select>
+      </label>
+      <label for="graph-days">Window
+        <select id="graph-days">
+          <option value="14">14 days</option>
+          <option value="30" selected>30 days</option>
+          <option value="90">90 days</option>
+          <option value="180">180 days</option>
+        </select>
+      </label>
+    </div>
+    <div id="chart" style="height: 380px"></div>
+    <p class="note" id="graph-note"></p>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -1439,11 +1477,207 @@
     strip.dataset.loaded = "1";
   }
 
+  // ── The hydrograph ─────────────────────────────────────────────────────────
+  //
+  //: ECharts is loaded as a MODULE from this origin, never a CDN, so nothing about a
+  //: judge's visit is observable to a third party and the page cannot break because
+  //: somebody else's host has a bad afternoon during a month of judging.
+  //:
+  //: Imported lazily and awaited, so a 1.1 MB bundle failing to load degrades THIS
+  //: card and leaves every other surface on the page working. A chart is the least
+  //: important thing here and it must not be able to take the console down.
+  let echartsModule = null;
+  let chart = null;
+
+  async function echartsReady() {
+    if (echartsModule) return echartsModule;
+    echartsModule = await import("/vendor/echarts.js");
+    return echartsModule;
+  }
+
+  //: The step series, expanded from the boundaries the API returns.
+  //:
+  //: Two points per boundary, so ECharts draws a true step rather than a diagonal
+  //: ramp between two rules. A ramp would imply the minimum slid gradually from 50 to
+  //: 30 cfs across late July, and it did not: it changed on August 1, and every
+  //: reading before that date is judged against 50.
+  function stepPoints(steps, since, until, offset) {
+    const out = [];
+    steps.forEach((step, i) => {
+      const from = new Date(step.from + "T00:00:00Z").getTime();
+      const start = Math.max(from, new Date(since).getTime());
+      const end = i + 1 < steps.length
+        ? new Date(steps[i + 1].from + "T00:00:00Z").getTime()
+        : new Date(until).getTime();
+      out.push([start, step.minimum_cfs + offset], [end, step.minimum_cfs + offset]);
+    });
+    return out;
+  }
+
+  async function drawGraph() {
+    const note = document.getElementById("graph-note");
+    const basin = document.getElementById("graph-basin").value;
+    const days = document.getElementById("graph-days").value;
+    note.textContent = "";
+    let body;
+    try {
+      const response = await fetch(`/api/hydrograph/${basin}?days=${days}`);
+      body = await response.json();
+      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    } catch (error) {
+      // The card says why and shows NOTHING. A chart drawn from a partial answer is
+      // a shape a reader will believe.
+      note.textContent = `Could not draw the hydrograph: ${error.message}`;
+      document.getElementById("chart").replaceChildren();
+      document.getElementById("graph").dataset.state = "unavailable";
+      return;
+    }
+
+    if (!Array.isArray(body.series) || !Array.isArray(body.minimum_steps)) {
+      note.textContent = "The service returned a hydrograph this page cannot render.";
+      document.getElementById("graph").dataset.state = "unavailable";
+      return;
+    }
+    if (body.count === 0) {
+      note.textContent =
+        `USGS published no readings for ${body.gage_id} over this window. ` +
+        "That is an empty window, not a river at zero.";
+      document.getElementById("chart").replaceChildren();
+      document.getElementById("graph").dataset.state = "empty";
+      return;
+    }
+
+    let echarts;
+    try {
+      echarts = await echartsReady();
+    } catch (error) {
+      note.textContent = `The charting bundle did not load: ${error.message}`;
+      document.getElementById("graph").dataset.state = "unavailable";
+      return;
+    }
+
+    const css = getComputedStyle(document.documentElement);
+    const tok = (n) => css.getPropertyValue(n).trim();
+    const el = document.getElementById("chart");
+    if (chart) chart.dispose();
+    chart = echarts.init(el, null, { renderer: "canvas" });
+
+    const readings = body.series.map((p) => [new Date(p.t).getTime(), p.cfs]);
+    const minimums = stepPoints(body.minimum_steps, body.since, body.until, 0);
+
+
+    //: Exposed so a browser test can assert on the option the page BUILT, which is
+    //: the closest a machine gets to what a reader sees. The band defect that made
+    //: this necessary was correct in every payload field and wrong only in how it
+    //: was painted.
+    const option = {
+      animation: false,          // compliance-critical values never animate
+      backgroundColor: "transparent",
+      grid: { left: 56, right: 18, top: 28, bottom: 34 },
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: tok("--shell"),
+        borderColor: tok("--border"),
+        textStyle: { color: tok("--fg"), fontFamily: "var(--mono)" },
+        valueFormatter: (v) => (v === null ? "" : `${v} cfs`),
+      },
+      xAxis: {
+        type: "time",
+        axisLine: { lineStyle: { color: tok("--border") } },
+        axisLabel: { color: tok("--muted") },
+        splitLine: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        name: "Discharge (cfs)",   // the USGS convention, spelled out
+        nameTextStyle: { color: tok("--muted"), align: "left" },
+        axisLabel: { color: tok("--muted") },
+        splitLine: { lineStyle: { color: tok("--border"), opacity: 0.45 } },
+      },
+      series: [
+        {
+          //: The band's FLOOR, invisible, carrying the stepped minimum.
+          //:
+          //: The first version filled a single area with `origin: "start"`, which
+          //: paints from the axis zero up to minimum + 10. That shades the entire
+          //: BELOW-MINIMUM region as though it were the caution band, which inverts
+          //: the meaning of the most important region on the chart. It looked fine in
+          //: every test and was obvious the moment the render was opened.
+          //:
+          //: A stack is what draws a band between two curves: this series positions
+          //: the floor, and the one after it adds a constant 10 cfs on top, so the
+          //: fill occupies exactly minimum to minimum + 10 and steps with the rule.
+          name: "band base",
+          type: "line",
+          stack: "band",
+          data: minimums,
+          step: "end",
+          symbol: "none",
+          lineStyle: { width: 0 },
+          silent: true,
+          tooltip: { show: false },
+        },
+        {
+          name: "Near-threshold band",
+          type: "line",
+          stack: "band",
+          data: minimums.map(([t]) => [t, body.near_threshold_band_cfs]),
+          step: "end",
+          symbol: "none",
+          lineStyle: { width: 0 },
+          areaStyle: { color: tok("--conditional"), opacity: 0.14 },
+          silent: true,
+          tooltip: { show: false },
+        },
+        {
+          name: "Minimum in force",
+          type: "line",
+          data: minimums,
+          step: "end",
+          symbol: "none",
+          lineStyle: { color: tok("--curtailed"), width: 2 },
+        },
+        {
+          name: "Discharge",
+          type: "line",
+          data: readings,
+          symbol: "none",
+          //: Largest-Triangle-Three-Buckets. 5,758 points at 180 days would otherwise
+          //: be drawn as a solid smear; LTTB keeps the peaks and troughs that carry
+          //: the shape rather than averaging them away.
+          sampling: "lttb",
+          large: true,
+          lineStyle: { color: tok("--fg"), width: 1.5 },
+        },
+      ],
+    };
+    chart.setOption(option);
+    window.__chartOption = JSON.stringify(option);
+
+    const first = body.series[0], last = body.series[body.series.length - 1];
+    const boundaries = body.minimum_steps.length - 1;
+    note.textContent =
+      `${body.count.toLocaleString()} readings from ${body.gage_id}, ` +
+      `${first.cfs} cfs to ${last.cfs} cfs. ` +
+      (boundaries > 0
+        ? `The minimum changed ${boundaries} time${boundaries > 1 ? "s" : ""} inside this ` +
+          `window, so the rule is drawn as a step.`
+        : "The minimum did not change inside this window.");
+    document.getElementById("graph").dataset.state = "drawn";
+  }
+
+  document.getElementById("graph-basin").addEventListener("change", drawGraph);
+  document.getElementById("graph-days").addEventListener("change", drawGraph);
+  //: Redraw on resize, because a canvas chart sized at load is the wrong size on a
+  //: phone rotated after load, and a judge on a tablet is a real reader here.
+  window.addEventListener("resize", () => { if (chart) chart.resize(); });
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
   document.getElementById("fleet").addEventListener("click", runFleet);
   loadLive();
+  drawGraph();
   run();
   loadQueue();
 </script>
