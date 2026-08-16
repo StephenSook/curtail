@@ -583,6 +583,27 @@
   </section>
 
   <section class="card">
+    <h2>The same recommendation, spoken</h2>
+    <p class="note">
+      Chirp 3 HD reads the recommendation aloud. The words are composed from what the
+      Allocation Core computed, never from anything a caller types, and the transcript is
+      printed below because a spoken claim that cannot be read back cannot be checked.
+      The reason for a second channel is in this project's own evidence: reviewers of
+      machine drafts submitted 35 to 45 percent of the erroneous ones entirely unedited,
+      and hearing a figure is a different act from seeing it.
+    </p>
+    <div class="row" style="margin-bottom:14px">
+      <button id="speak">Hear this briefing</button>
+      <span class="note" style="margin:0">
+        Uses the basin, reading and date above. Calls Google's speech service.
+      </span>
+    </div>
+    <div id="briefout">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Not yet spoken</span></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>One traversal of the agent fleet</h2>
     <p class="note">
       Every other control on this page calls a domain function directly. This one runs
@@ -746,7 +767,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0, bt: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0, bt: 0, brief: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -2617,4 +2638,99 @@
   loadBacktest();
   run();
   loadQueue();
+
+  //: The spoken briefing.
+  //:
+  //: Two rules govern this card and both come from failures already recorded in this
+  //: repo. The transcript is rendered WITH the audio, in the same payload, because a
+  //: player alone is a claim nobody can check and a listener cannot re-read a sentence.
+  //: And the previous audio element is destroyed before a new request starts: an
+  //: <audio> left in the page while a newer reading is being fetched plays the OLD
+  //: briefing under the NEW numbers, which is the calm wrong answer this console exists
+  //: to avoid.
+  const briefOut = document.getElementById("briefout");
+
+  function briefSystemState(glyph, label, detail) {
+    briefOut.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    briefOut.querySelector(".glyph").textContent = glyph;
+    briefOut.querySelector(".status span:last-child").textContent = label;
+    briefOut.querySelector(".refusal").textContent = detail;
+  }
+
+  function clearBrief() {
+    const playing = briefOut.querySelector("audio");
+    if (playing) { playing.pause(); playing.removeAttribute("src"); playing.load(); }
+    briefOut.textContent = "";
+  }
+
+  document.getElementById("speak").addEventListener("click", async () => {
+    const mine = ++generation.brief;
+    const basin = document.getElementById("basin").value;
+    const cfs = document.getElementById("cfs").value;
+    const day = document.getElementById("at").value;
+    const at = encodeURIComponent(day + "T12:00:00+00:00");
+
+    //: This clear is the load-bearing one, and it is NOT the same as overwriting the
+    //: card. Overwriting detaches the old <audio>; a detached media element KEEPS
+    //: PLAYING, so without the explicit pause the previous briefing would speak the
+    //: previous numbers out of a player nobody can see or stop. Mutation is what
+    //: separated the two: deleting the overwrite failed a test, deleting this one did
+    //: not, until a test was written that watches the pause itself.
+    clearBrief();
+    briefOut.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Composing and speaking</span></div>';
+
+    let response;
+    let body;
+    try {
+      response = await fetch(
+        `/api/brief/${basin}?cfs=${encodeURIComponent(cfs)}&at=${at}`);
+      body = await payloadOf(response, "The briefing");
+    } catch (error) {
+      if (mine !== generation.brief) return;
+      briefSystemState("\u26A0", "Not spoken",
+        `No audio was produced, and nothing is played rather than playing silence: ${error}`);
+      stamp(briefOut, mine);
+      return;
+    }
+    if (mine !== generation.brief) return;
+
+    if (!body.audio_base64 || !body.script) {
+      briefSystemState("\u2298", "Refused",
+        "The service answered without both audio and a transcript, and one without the " +
+        "other is not checkable, so neither is shown.");
+      stamp(briefOut, mine);
+      return;
+    }
+
+    clearBrief();
+    const wrap = document.createElement("div");
+
+    const player = document.createElement("audio");
+    player.controls = true;
+    player.preload = "none";
+    player.style.width = "100%";
+    player.src = `data:${body.audio_mime};base64,${body.audio_base64}`;
+    wrap.appendChild(player);
+
+    const said = document.createElement("p");
+    said.className = "legal";
+    //: textContent, never innerHTML. The script is composed server side from computed
+    //: values, and that is exactly the reasoning that would make injecting it feel safe.
+    said.textContent = body.script;
+    wrap.appendChild(said);
+
+    const provenance = document.createElement("p");
+    provenance.className = "note";
+    provenance.textContent =
+      `${body.model}, voice ${body.voice}. Transcript above is the exact text spoken.` +
+      (body.truncated ? " The briefing was too long to speak in full and was cut." : "");
+    wrap.appendChild(provenance);
+
+    briefOut.appendChild(wrap);
+    stamp(briefOut, mine);
+  });
+
 </script>

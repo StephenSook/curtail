@@ -86,6 +86,7 @@ from curtail_agents.season_store import (
     store_for,
 )
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
+from curtail_agents.speech import SpeechUnavailableError, brief, synthesise
 from curtail_agents.telemetry import (
     CORRELATION_ATTRIBUTE,
     configure_tracing,
@@ -854,6 +855,72 @@ def ledger(basin: str) -> dict[str, Any]:
 
 
 _TIMELINE: dict[str, Any] | None = None
+
+
+@app.get("/api/brief/{basin}")
+def spoken_brief(basin: str, cfs: float, at: str | None = None) -> dict[str, Any]:
+    """The recommendation, spoken, with the exact words returned beside the audio.
+
+    **Not a text-to-speech proxy.** A caller supplies a basin and a reading, never a
+    sentence: the script is composed from what the Allocation Core computed, so nothing
+    can be put in this system's mouth. The script comes back in the response, which is the
+    only thing that makes a spoken claim auditable: a reader can compare what was said to
+    what was computed without listening to it.
+
+    The reason it exists is the automation-bias evidence this project is built against. In
+    the Biro study, 35 to 45 percent of erroneous machine drafts were submitted entirely
+    unedited while 80 percent of those same reviewers said the drafts reduced their
+    workload. A second channel is a second chance to notice, and hearing a number is a
+    different cognitive act from seeing one.
+
+    The disclaimer is SPOKEN, not merely displayed. An official who hears a recommendation
+    without its limits has been told the wrong thing.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    _check_reading(cfs)
+    moment = datetime.now(UTC) if at is None else _parse(at)
+
+    try:
+        record = rights_for(which)
+        recommendation = recommend(
+            basin=which, when=moment.date(), observed_cfs=cfs, rights=record.rights
+        )
+        minimum = float(minimum_flow(which, moment.date()))
+    except (RightsRecordUnavailableError, ScheduleGapError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    script = brief(recommendation, observed_cfs=cfs, minimum_cfs=minimum)
+    try:
+        spoken = synthesise(script)
+    except SpeechUnavailableError as exc:
+        # 503 with the reason, never silent audio. A zero-length payload plays as
+        # nothing, and a listener cannot tell that from a briefing with nothing to say.
+        log.warning("speech unavailable", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    log.info("spoken brief", basin=basin, cfs=cfs, characters=len(spoken.script))
+    return {
+        "basin": which.value,
+        "observed_cfs": cfs,
+        "minimum_cfs": minimum,
+        "action": recommendation.action.value,
+        # The words, so the audio is checkable without being played.
+        "script": spoken.script,
+        "truncated": spoken.truncated,
+        "voice": spoken.voice,
+        "model": "Chirp 3 HD",
+        "audio_mime": "audio/mpeg",
+        "audio_base64": spoken.audio_base64,
+        "recommendation_only": True,
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
 
 
 @app.get("/api/backtest")
