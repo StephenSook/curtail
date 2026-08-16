@@ -174,6 +174,21 @@ model does not get to make it. **Gemma identifies and files the document, the
 deterministic parsers read its table, and a human reads its law.** A real local run is
 recorded in [NORMALIZER.md](docs/NORMALIZER.md).
 
+**The briefing, spoken.** Chirp 3 HD reads the recommendation aloud
+([speech.py](agents/src/curtail_agents/speech.py), `GET /api/brief/{basin}`), and the
+transcript comes back in the same response as the audio. It is not a text-to-speech
+endpoint: a caller passes a basin and a reading, never a sentence, so the words are
+composed from what the Allocation Core computed and nothing can be put in this system's
+voice. The disclaimer is spoken, not merely printed, because an official who hears a
+conclusion without its limits has been told the wrong thing.
+
+The reason for a second channel is the same evidence the approval queue is designed
+against: reviewers of machine-drafted messages submitted 35 to 45 percent of the
+erroneous ones entirely unedited, while 80 percent reported the drafts reduced their
+workload. Hearing a figure is a different act from seeing it. Every failure path
+refuses rather than returning quiet, because a player with nothing behind it is
+indistinguishable from a briefing with nothing to say.
+
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
 flow-schedule refusal. A node timeout catches a model that loops rather than fails,

@@ -18,6 +18,7 @@ state that says so in words.
 
 from __future__ import annotations
 
+import base64
 import json
 import socket
 import threading
@@ -2519,3 +2520,198 @@ class TestTheDraftVersusActualComparison:
         assert page.locator("#backtest-cases .case").count() == 0
         assert page.locator("#backtest-excluded").inner_text().strip() == ""
         assert page.locator("#backtest-headline").inner_text().strip() == ""
+
+
+def _spoken(**overrides: Any) -> dict[str, Any]:
+    body = {
+        "basin": "shasta",
+        "observed_cfs": 45.3,
+        "minimum_cfs": 50.0,
+        "action": "consider_curtailment",
+        "script": "Curtail briefing for the shasta river. The gage reads 45.3.",
+        "truncated": False,
+        "voice": "en-US-Chirp3-HD-Achernar",
+        "model": "Chirp 3 HD",
+        "audio_mime": "audio/mpeg",
+        # Not real audio. Nothing in these tests plays it, and a real MP3 in a fixture
+        # would only make the file bigger without making the assertion stronger.
+        "audio_base64": base64.b64encode(b"\xff\xfb" + b"\x00" * 600).decode(),
+        "recommendation_only": True,
+        "disclaimer": "A recommendation.",
+    }
+    return body | overrides
+
+
+class TestTheSpokenBriefing:
+    """Audio has a failure mode text does not, so this card is mostly about refusing.
+
+    A player that shows up with nothing behind it, or plays the previous briefing under
+    the current numbers, is the calm wrong answer this console is built against. Every
+    test here is offline: the route is stubbed and Google's speech service is never
+    called, for the same reason the gage tests are stubbed after a third party's 429
+    broke a build three times.
+    """
+
+    def test_the_transcript_renders_with_the_audio(self, page: Page, console_url: str) -> None:
+        """Both, or neither. A spoken claim with no readable text cannot be checked
+        against what the engine computed, and this whole product is an argument that
+        machine output has to stay checkable."""
+        page.route("**/api/brief/**", _fulfil(_spoken()))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        assert page.locator("#briefout audio").count() == 1
+        assert "The gage reads 45.3." in page.locator("#briefout .legal").inner_text()
+        provenance = page.locator("#briefout .note").inner_text()
+        assert "Chirp 3 HD" in provenance
+        assert "en-US-Chirp3-HD-Achernar" in provenance
+
+    def test_audio_without_a_transcript_shows_neither(self, page: Page, console_url: str) -> None:
+        page.route("**/api/brief/**", _fulfil(_spoken(script="")))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        assert page.locator("#briefout audio").count() == 0, (
+            "audio played with no transcript beside it, so nobody can check what was said"
+        )
+        assert "REFUSED" in page.locator("#briefout .status").inner_text().upper()
+
+    def test_a_transcript_without_audio_shows_neither(self, page: Page, console_url: str) -> None:
+        page.route("**/api/brief/**", _fulfil(_spoken(audio_base64="")))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        assert page.locator("#briefout audio").count() == 0
+        assert "REFUSED" in page.locator("#briefout .status").inner_text().upper()
+
+    def test_a_failure_says_so_rather_than_playing_nothing(
+        self, page: Page, console_url: str
+    ) -> None:
+        """An empty player is indistinguishable from a briefing with nothing to say."""
+        page.route("**/api/brief/**", lambda route: route.abort())
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        assert page.locator("#briefout audio").count() == 0
+        assert "NOT SPOKEN" in page.locator("#briefout .status").inner_text().upper()
+        assert page.locator("#briefout .refusal").inner_text().strip()
+
+    def test_a_503_reports_the_reason(self, page: Page, console_url: str) -> None:
+        page.route(
+            "**/api/brief/**",
+            _fulfil({"detail": "no quota project is set"}, status=503),
+        )
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+        assert "quota project" in page.locator("#briefout .refusal").inner_text()
+
+    def test_the_previous_briefing_is_destroyed_before_the_next_request(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The stale-audio defect, stated plainly: an <audio> element left in the page
+        while a new reading is being fetched plays the OLD briefing under the NEW
+        numbers, and a listener has no way to know.
+
+        Deterministic rather than timed. The second response is held open, and the
+        assertion runs against the pending state, which is a POSITIVE marker on screen
+        rather than the absence of something.
+        """
+        page.route("**/api/brief/**", _fulfil(_spoken()))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+        assert page.locator("#briefout audio").count() == 1
+
+        held: list[Route] = []
+        page.route("**/api/brief/**", lambda route: held.append(route))
+        page.fill("#cfs", "60.0")
+        page.click("#speak")
+        page.wait_for_function(
+            "() => document.querySelector('#briefout .status') && "
+            "document.querySelector('#briefout .status').innerText"
+            ".toUpperCase().includes('COMPOSING')"
+        )
+        assert page.locator("#briefout audio").count() == 0, (
+            "the previous briefing is still in the page while a new reading is being "
+            "fetched, so it would play the old words under the new numbers"
+        )
+        for route in held:
+            route.abort()
+
+    def test_the_transcript_is_inserted_as_text_and_never_as_markup(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Found by mutation: swapping textContent for innerHTML changed no result.
+
+        The script is composed server side from computed values, which is exactly the
+        reasoning that makes injecting it feel safe, and this project's stated posture
+        is that a single layer is never the defence. If a future edit ever lets caller
+        text reach the script, the console must render it rather than run it.
+        """
+        payload = _spoken(script='Reading <img src=x onerror="window.__ran=1"> done.')
+        page.route("**/api/brief/**", _fulfil(payload))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        assert page.locator("#briefout .legal img").count() == 0, (
+            "the transcript was parsed as markup, so a script reaching this field runs"
+        )
+        assert page.evaluate("() => window.__ran") is None
+        assert "<img" in page.locator("#briefout .legal").inner_text(), (
+            "the transcript should read back literally, including the characters that "
+            "would have been markup"
+        )
+
+    def test_a_playing_briefing_is_stopped_and_not_merely_removed(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The defect the DOM check cannot see, and mutation is what surfaced it.
+
+        Removing the element from the page was already done by the pending-state write,
+        so the test above passed with `clearBrief()` deleted. But a detached `<audio>`
+        KEEPS PLAYING: the browser holds the media element alive while it has a source
+        and a play state, so the old briefing would go on speaking the old numbers out
+        of a player nobody can see or stop. That is strictly worse than the visible
+        version of the same bug.
+
+        So this asserts on the element itself, held by reference across the click.
+        """
+        page.route("**/api/brief/**", _fulfil(_spoken()))
+        page.goto(console_url)
+        page.click("#speak")
+        _settle_after(page, "#briefout", "")
+
+        # Watching the CALL rather than a play state, deliberately. Real playback needs
+        # decodable audio, and a fixture holding a real MP3 would make the test depend
+        # on a codec while testing none of it. Worse, a short clip that simply ENDS also
+        # reports `paused`, which would be a green for the wrong reason.
+        page.evaluate(
+            "() => { const a = document.querySelector('#briefout audio');"
+            "  window.__held = a; window.__paused = 0;"
+            "  a.pause = () => { window.__paused += 1; }; }"
+        )
+
+        held: list[Route] = []
+        page.route("**/api/brief/**", lambda route: held.append(route))
+        page.click("#speak")
+        page.wait_for_function(
+            "() => document.querySelector('#briefout .status') && "
+            "document.querySelector('#briefout .status').innerText"
+            ".toUpperCase().includes('COMPOSING')"
+        )
+        assert page.evaluate("() => window.__paused") >= 1, (
+            "the previous briefing was detached from the page and never stopped. A "
+            "detached <audio> keeps playing, so it would speak the old numbers from a "
+            "player the reader can neither see nor stop"
+        )
+        assert page.evaluate("() => !window.__held.getAttribute('src')"), (
+            "the old player still holds its source, so it can resume"
+        )
+        for route in held:
+            route.abort()
