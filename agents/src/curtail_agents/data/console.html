@@ -602,7 +602,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -1544,6 +1544,13 @@
   }
 
   async function drawGraph() {
+    //: Generation-gated like every other card on this page, and it was not, which is
+    //: the bug a second-model review found on the map and which was equally present
+    //: here. Two quick changes of basin or window start two fetches, and the SLOWER
+    //: one repaints last: the select says Shasta and the chart draws Scott, with a
+    //: note underneath naming Scott's gage, so nothing about the screen looks broken.
+    //: The counter is monotonic and every exit point after an await checks it.
+    const mine = ++generation.graph;
     const note = document.getElementById("graph-note");
     const basin = document.getElementById("graph-basin").value;
     const days = document.getElementById("graph-days").value;
@@ -1556,11 +1563,13 @@
     } catch (error) {
       // The card says why and shows NOTHING. A chart drawn from a partial answer is
       // a shape a reader will believe.
+      if (mine !== generation.graph) return;
       note.textContent = `Could not draw the hydrograph: ${error.message}`;
       document.getElementById("chart").replaceChildren();
       document.getElementById("graph").dataset.state = "unavailable";
       return;
     }
+    if (mine !== generation.graph) return;
 
     if (!Array.isArray(body.series) || !Array.isArray(body.minimum_steps)) {
       note.textContent = "The service returned a hydrograph this page cannot render.";
@@ -1580,10 +1589,13 @@
     try {
       echarts = await echartsReady();
     } catch (error) {
+      if (mine !== generation.graph) return;
       note.textContent = `The charting bundle did not load: ${error.message}`;
       document.getElementById("graph").dataset.state = "unavailable";
       return;
     }
+    // The bundle import is the longest await here, so this is the check that matters.
+    if (mine !== generation.graph) return;
 
     const css = getComputedStyle(document.documentElement);
     const tok = (n) => css.getPropertyValue(n).trim();
@@ -1741,6 +1753,12 @@
   }
 
   async function drawMap() {
+    //: Generation-gated. Without it, switching Scott to Shasta twice quickly lets the
+    //: slower response repaint last, so the select reads Shasta while 294 Scott
+    //: diversion points are on the map and the note counts Scott's rights. Every
+    //: number on screen is internally consistent and belongs to the wrong basin,
+    //: which is the worst kind of wrong: nothing looks broken.
+    const mine = ++generation.map;
     const note = document.getElementById("map-note");
     const attr = document.getElementById("map-attr");
     const basin = document.getElementById("map-basin").value;
@@ -1752,10 +1770,12 @@
       body = await response.json();
       if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
     } catch (error) {
+      if (mine !== generation.map) return;
       note.textContent = `Could not load diversion points: ${error.message}`;
       card.dataset.state = "unavailable";
       return;
     }
+    if (mine !== generation.map) return;
     if (!Array.isArray(body.located) || typeof body.without_coordinate !== "number") {
       note.textContent = "The service returned diversion data this page cannot render.";
       card.dataset.state = "unavailable";
@@ -1766,10 +1786,14 @@
     try {
       gl = await maplibreReady();
     } catch (error) {
+      if (mine !== generation.map) return;
       note.textContent = `The map library did not load: ${error.message}`;
       card.dataset.state = "unavailable";
       return;
     }
+    // 1.15 MB across three modules: the longest await on this card by far, and the
+    // window in which a second basin selection is most likely to arrive.
+    if (mine !== generation.map) return;
 
     const features = [];
     for (const entry of body.located) {
@@ -1857,6 +1881,7 @@
         );
         map.fitBounds(bounds, { padding: 40, duration: 0 });
       }
+      if (mine !== generation.map) return;
       card.dataset.state = "drawn";
     });
 
