@@ -42,6 +42,22 @@ def claims(**overrides: Any) -> dict[str, Any]:
     return {"email": SCHEDULER, "email_verified": True, "aud": AUDIENCE} | overrides
 
 
+def like_google(*, aud: str, **overrides: Any) -> Any:
+    """A verifier that behaves the way `google.auth.jwt.decode` actually does.
+
+    It RAISES on an audience mismatch rather than returning claims carrying the wrong
+    `aud`, which is the contract the first version of these tests got wrong and the reason
+    an actionable message sat in unreachable code.
+    """
+
+    def verifier(_token: str, _request: Any, audience: str) -> Any:
+        if aud != audience:
+            raise ValueError(f"Token has wrong audience {aud}, expected one of ['{audience}']")
+        return claims(aud=aud, **overrides)
+
+    return verifier
+
+
 def verifier_returning(payload: Any) -> Any:
     def verifier(_token: str, _request: Any, _audience: str) -> Any:
         return payload
@@ -82,7 +98,20 @@ class TestEachAuthCheckIsLoadBearing:
             verify("Bearer t", verifier=verifier_returning(other))
 
     def test_a_token_for_another_audience_is_refused(self) -> None:
-        """The confused-deputy shape: a token minted for a different service, replayed."""
+        """The confused-deputy shape: a token minted for a different service, replayed.
+
+        **This drives the DEFENSIVE branch, not the production one, and the distinction
+        matters enough to state.** It uses a verifier that RETURNS mismatched claims, which
+        `google.auth` never does: the real library raises, so in production the refusal
+        comes from the exception handler instead. The check being exercised here exists for
+        a future refactor that drops the audience argument, or a verifier that reports
+        rather than raises, either of which would otherwise widen this endpoint to every
+        Google-signed token in existence.
+
+        `TestOneAudienceServesEveryBasin` covers the path production actually takes, with a
+        fake that raises the way the library does. Assuming this test covered that path is
+        precisely how an actionable error message ended up in unreachable code.
+        """
         with pytest.raises(SchedulerAuthError, match="different audience"):
             verify("Bearer t", verifier=verifier_returning(claims(aud="https://elsewhere")))
 
@@ -515,17 +544,76 @@ class TestOneAudienceServesEveryBasin:
             )
 
     def test_a_path_audience_refuses_the_other_basin_and_says_why(self, monkeypatch: Any) -> None:
-        """The misconfiguration itself, reproduced. It is a PARTIAL failure, which is far
-        harder to notice than a dead watch, so the refusal names the likely cause."""
+        """The misconfiguration reproduced through a verifier that behaves like the real
+        one, which is the whole correction here.
+
+        **The first version of this test used a fake that RETURNED mismatched claims, and
+        the library RAISES.** So it exercised a branch production can never reach, and the
+        actionable message it asserted would never have been printed. A fake that does not
+        model the real contract is not a test of the real code path.
+        """
         shasta_path = "https://service/internal/poll/shasta"
         monkeypatch.setenv(AUDIENCE_ENV, shasta_path)
 
-        # Shasta's own token still works, which is exactly what makes this dangerous.
-        assert verify("Bearer t", verifier=verifier_returning(claims(aud=shasta_path)))
+        # Shasta's own token still verifies, which is exactly what makes this dangerous:
+        # the watch half works and nothing looks broken.
+        assert verify("Bearer t", verifier=like_google(aud=shasta_path))
 
         scott_path = "https://service/internal/poll/scott"
         with pytest.raises(SchedulerAuthError, match="must be the service root"):
-            verify("Bearer t", verifier=verifier_returning(claims(aud=scott_path)))
+            verify("Bearer t", verifier=like_google(aud=scott_path))
+
+    def test_the_library_raises_on_a_wrong_audience_rather_than_returning(self) -> None:
+        """The premise the fix rests on, pinned against the installed library with a real
+        signed token rather than assumed.
+
+        It has to be a real signature: `jwt.decode` returns early on `verify=False` and
+        never reaches the audience check at all, so an unsigned token would have "passed"
+        this test while proving nothing. The key is generated here, so it is offline and
+        deterministic.
+
+        If a future version ever RETURNS the mismatched claims instead of raising, this
+        fails and the hint belongs back after the call.
+        """
+        import datetime as stdlib_datetime
+
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from google.auth import crypt, jwt
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_pem = key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        public_pem = key.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        issued = int(stdlib_datetime.datetime.now(stdlib_datetime.UTC).timestamp())
+        # google.auth ships no type information for these, and the alternative to four
+        # ignores is not pinning the premise at all.
+        token = jwt.encode(  # type: ignore[no-untyped-call]
+            crypt.RSASigner.from_string(private_pem),  # type: ignore[no-untyped-call]
+            {
+                "aud": "https://minted-for-something-else",
+                "email": SCHEDULER,
+                "iat": issued,
+                "exp": issued + 600,
+            },
+        )
+
+        with pytest.raises(Exception, match="wrong audience"):
+            jwt.decode(  # type: ignore[no-untyped-call]
+                token, certs=public_pem, audience="https://expected"
+            )
+
+        # The control, so the test above cannot be passing because the token is simply
+        # unusable for some unrelated reason.
+        decoded = jwt.decode(  # type: ignore[no-untyped-call]
+            token, certs=public_pem, audience="https://minted-for-something-else"
+        )
+        assert decoded["email"] == SCHEDULER
 
     def test_the_template_does_not_teach_a_path_audience(self) -> None:
         """The guard on the artifact a stranger actually follows. The code was never
