@@ -2,7 +2,31 @@
 
 **A governed multi-agent fleet for prior-appropriation water curtailment administration.**
 
+[![CI](https://github.com/StephenSook/curtail/actions/workflows/ci.yml/badge.svg)](https://github.com/StephenSook/curtail/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
+[![Live console](https://img.shields.io/badge/live%20console-online-3fb950.svg)](https://curtail-console-api-672785135387.us-central1.run.app/)
+[![Android APK](https://img.shields.io/badge/Android-signed_apk-3ddc84.svg?logo=android&logoColor=white)](https://github.com/StephenSook/curtail/releases/tag/v0.1.0-field)
+[![iOS TestFlight](https://img.shields.io/badge/iOS-TestFlight_internal-000000.svg?logo=apple&logoColor=white)](docs/TESTFLIGHT.md)
+[![Tests](https://img.shields.io/badge/tests-golden_%C2%B7_property_%C2%B7_chaos_drill-3fb950.svg)](core/tests/)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-3776AB.svg?logo=python&logoColor=white)](./pyproject.toml)
+[![Google Cloud Run](https://img.shields.io/badge/Google_Cloud-Run_%C2%B7_Firestore_%C2%B7_Model_Armor-4285F4.svg?logo=googlecloud&logoColor=white)](https://curtail-console-api-672785135387.us-central1.run.app/)
+
 Built for the [Google x Devpost All Things Agentic Hackathon](https://allthingsagentichackathon.devpost.com/), track: The Fortified Enterprise Fleet.
+
+> **The published regulation is wrong by a factor of twenty, and the state issued an entire order to fix its own incomplete curtailment list.** Both are verifiable below, and both are why this exists.
+
+## Judge quick access
+
+Every row is checkable by a stranger with no account, no key, and nothing installed.
+
+| To verify... | Go here |
+|---|---|
+| **The loop runs, zero setup** | [48.7 cfs at Fort Jones, 20 July 2025](https://curtail-console-api-672785135387.us-central1.run.app/api/classify/scott?cfs=48.7&at=2025-07-20T21:30:00%2B00:00). The real reading behind Addendum 7, classified near-threshold against a 50 cfs minimum |
+| **It is deployed on Google Cloud** | [The console](https://curtail-console-api-672785135387.us-central1.run.app/), server-rendered on Cloud Run, with [interactive docs](https://curtail-console-api-672785135387.us-central1.run.app/docs) |
+| **Failure tolerance, demonstrated not described** | [`docs/CHAOS.md`](docs/CHAOS.md), generated from a live run of `make chaos`. Three injected failures, three guards, and it exits non-zero if a guard fails to fire |
+| **Claims are wired, not aspirational** | [`docs/FACTS.md`](docs/FACTS.md), generated from the shipped code. Grep any figure |
+| **A watermaster can use it in a river** | [The field app](https://curtail-console-api-672785135387.us-central1.run.app/field) on any phone, plus a [signed Android apk](#android-there-is-a-signed-apk) and a [TestFlight build](#ios-there-is-a-testflight-build) |
+| **It reproduces on your machine** | `make install && make verify`: lint, types, the full suite, tone, and the chaos drill |
 
 > **Status: in active development.** Submission closes Aug 31, 2026. Sections marked *(not built yet)* are honest placeholders, not claims, and a test in the suite fails if one of them names something that has since shipped. See [what is actually running](#what-is-actually-running).
 
@@ -306,12 +330,42 @@ silently and the only symptom is a URL bar nobody can explain.
 The keystore is a credential and is not in this repository. Rebuild steps:
 [docs/ANDROID.md](docs/ANDROID.md).
 
-### iOS: the PWA, deliberately
+### iOS: there is a TestFlight build
 
-There is no TestFlight build and that is a decision, not a gap. Add to Home Screen
-produces a standalone app with no review queue and no 90-day expiry, and a native
-wrapper around a website adds no capability while risking a guideline 4.2 rejection as a
-repackaged web page.
+**Curtail Field**, version 0.1.0 (1), signed and uploaded to App Store Connect. It is
+**live for internal testers now** (`internalBuildState: IN_BETA_TESTING`) and awaiting
+Apple's Beta App Review for the public link:
+
+[**testflight.apple.com/join/AqbsQ1J5**](https://testflight.apple.com/join/AqbsQ1J5)
+
+<img src="docs/testflight-qr.png" alt="QR code linking to the Curtail Field TestFlight beta" width="180">
+
+**Read that link's state before you trust it.** Until Beta App Review passes it answers
+`200` with "This beta isn't accepting any new testers right now", because a public link
+only opens to external testers once Apple has approved the first build of a version.
+Internal testing needs no review at all, which is why the build installs today for the
+internal group and not yet through the link. A build state is a fact with a clock on it,
+so the honest thing on a page a stranger reads is to name the state rather than imply the
+link works.
+
+The shell is [`ios/Sources/CurtailFieldApp.swift`](ios/Sources/CurtailFieldApp.swift),
+generated into an Xcode project by [XcodeGen](ios/project.yml) so the project file is
+declarative and reviewable rather than a binary nobody can diff. It is a WKWebView over
+the same field route, deliberately: the evidence path has exactly one implementation and
+cannot drift between platforms, navigation is confined to the one verified origin with
+anything else handed to Safari, and a failed load renders a page that says the service
+was unreachable rather than showing a blank screen to somebody standing in a river.
+
+It holds no signing key and no agent identity, which is
+[hard rule 14](#why-a-human-must-stay-in-the-loop-and-why-a-checkbox-is-not-enough) and
+is enforced by a test, not by a promise.
+
+**If you are reading this and the link is still closed, the PWA is the faster path**:
+open [the field route](https://curtail-console-api-672785135387.us-central1.run.app/field)
+in Safari and Add to Home Screen. It is the same surface, with no review queue and no
+90-day expiry.
+
+Build and upload steps: [docs/TESTFLIGHT.md](docs/TESTFLIGHT.md).
 
 ## Setup
 

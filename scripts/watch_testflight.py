@@ -177,10 +177,21 @@ def state() -> dict[str, Any]:
     if not isinstance(attrs, dict):
         raise WatchError("the build carried no attributes object")
 
-    included: dict[str, Any] = {}
+    # Keyed by (TYPE, ID), because in JSON:API a resource's identity is that PAIR and an
+    # id alone is half a key.
+    #
+    # **App Store Connect reuses the BUILD's uuid as the id of both included resources**,
+    # so `buildBetaDetails` and `betaAppReviewSubmissions` arrive with identical ids and
+    # an id-keyed map silently kept whichever came last. The bug was invisible until a
+    # review submission existed, because until then only one resource was included, which
+    # means it appeared at exactly the moment the review state became the thing to watch.
+    # It was also order-dependent: whichever resource lost the collision is the one that
+    # then failed to read, and array order is not guaranteed.
+    included: dict[tuple[str, str], Any] = {}
     for item in builds.get("included") or []:
         if isinstance(item, dict) and isinstance(item.get("id"), str):
-            included[item["id"]] = item
+            if isinstance(item.get("type"), str):
+                included[item["type"], item["id"]] = item
 
     def related(kind: str, *, may_be_absent: bool) -> dict[str, Any] | None:
         """The included resource for one relationship.
@@ -199,6 +210,10 @@ def state() -> dict[str, Any]:
           only where the caller says absence is meaningful.
         - `data` a reference: the resource EXISTS, so failing to read it is UNKNOWN
           regardless of whether the caller called this optional.
+
+        The reference is resolved by (TYPE, ID). App Store Connect gives both included
+        resources the build's own uuid, so an id-only lookup returns the wrong resource
+        and then reports its own missing field as UNKNOWN.
         """
         relationships = build.get("relationships")
         entry = (relationships or {}).get(kind)
@@ -215,9 +230,13 @@ def state() -> dict[str, Any]:
             # call site. The conflation this whole function removes, one level in.
             return None
 
-        if not isinstance(ref, dict) or not isinstance(ref.get("id"), str):
+        if (
+            not isinstance(ref, dict)
+            or not isinstance(ref.get("id"), str)
+            or not isinstance(ref.get("type"), str)
+        ):
             raise WatchError(f"the {kind} linkage carried an unreadable reference")
-        resource = included.get(ref["id"])
+        resource = included.get((ref["type"], ref["id"]))
         if not isinstance(resource, dict):
             raise WatchError(
                 f"{kind} {ref['id']} was referenced but not included, so whether it "

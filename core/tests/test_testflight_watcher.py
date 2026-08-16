@@ -289,7 +289,10 @@ def _with_reviewed(envelope: Any, attributes: Any) -> dict[str, Any]:
     referenced = _with_review(envelope, {"type": "betaAppReviewSubmissions", "id": "sub-1"})
     return {
         **referenced,
-        "included": [*referenced["included"], {"id": "sub-1", "attributes": attributes}],
+        "included": [
+            *referenced["included"],
+            {"type": "betaAppReviewSubmissions", "id": "sub-1", "attributes": attributes},
+        ],
     }
 
 
@@ -322,6 +325,7 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
             ],
             "included": [
                 {
+                    "type": "buildBetaDetails",
                     "id": "detail-1",
                     "attributes": {
                         "internalBuildState": "MISSING_EXPORT_COMPLIANCE",
@@ -360,9 +364,16 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
             ),
             (
                 "included record carries no internalBuildState",
-                lambda e: {**e, "included": [{"id": "detail-1", "attributes": {}}]},
+                lambda e: {
+                    **e,
+                    "included": [{"type": "buildBetaDetails", "id": "detail-1", "attributes": {}}],
+                },
             ),
             ("the build resource is not an object", lambda e: {"data": ["nope"]}),
+            (
+                "an included item has no type, so it cannot be identified",
+                lambda e: {**e, "included": [{"id": "detail-1", "attributes": {}}]},
+            ),
             (
                 "an included item has no id",
                 lambda e: {**e, "included": [{"attributes": {}}]},
@@ -396,6 +407,7 @@ class TestAMalformedAnswerIsNotAPendingAnswer:
                     **e,
                     "included": [
                         {
+                            "type": "buildBetaDetails",
                             "id": "detail-1",
                             "attributes": {"internalBuildState": "MISSING_EXPORT_COMPLIANCE"},
                         }
@@ -536,6 +548,89 @@ class TestTheKeyMustBeTheCurveES256Means:
             watcher.token("K", "I", tmp_path / "absent.p8")
 
 
+class TestAResourceIsIdentifiedByTypeAndId:
+    """App Store Connect gives BOTH included resources the build's own uuid.
+
+    An `included` map keyed on id alone silently kept whichever arrived last, so one
+    relationship resolved to the other's resource and then reported that resource's
+    missing field as UNKNOWN. It stayed invisible until a review submission existed,
+    because until then only one resource was included, which means it surfaced at
+    exactly the moment the review state became the thing to watch. It is also
+    order-dependent: whichever resource loses the collision is the one that fails, and
+    array order is not guaranteed.
+
+    In JSON:API identity is the (type, id) PAIR. An id alone is half a key.
+    """
+
+    #: The real envelope, ids taken verbatim from a live read. Both are the build uuid.
+    BUILD_UUID = "5ba39ebf-887a-42e7-8792-7d15dde6c76c"
+
+    def _envelope(self, *, submission_first: bool) -> dict[str, Any]:
+        detail = {
+            "type": "buildBetaDetails",
+            "id": self.BUILD_UUID,
+            "attributes": {
+                "internalBuildState": "IN_BETA_TESTING",
+                "externalBuildState": "WAITING_FOR_BETA_REVIEW",
+            },
+        }
+        submission = {
+            "type": "betaAppReviewSubmissions",
+            "id": self.BUILD_UUID,
+            "attributes": {"betaReviewState": "WAITING_FOR_REVIEW"},
+        }
+        order = [submission, detail] if submission_first else [detail, submission]
+        return {
+            "data": [
+                {
+                    "attributes": {
+                        "version": "1",
+                        "processingState": "VALID",
+                        "expired": False,
+                        "uploadedDate": "2026-08-15T16:00:45-07:00",
+                    },
+                    "relationships": {
+                        "buildBetaDetail": {
+                            "links": {},
+                            "data": {"type": "buildBetaDetails", "id": self.BUILD_UUID},
+                        },
+                        "betaAppReviewSubmission": {
+                            "links": {},
+                            "data": {
+                                "type": "betaAppReviewSubmissions",
+                                "id": self.BUILD_UUID,
+                            },
+                        },
+                    },
+                }
+            ],
+            "included": order,
+        }
+
+    @pytest.mark.parametrize("submission_first", [True, False])
+    def test_both_resources_resolve_despite_sharing_an_id(
+        self, submission_first: bool, monkeypatch: Any
+    ) -> None:
+        """Parametrised on ARRAY ORDER, because the id-keyed version broke one
+        relationship or the other depending on which arrived last, and nothing in the
+        API guarantees the order."""
+        read = TestAMalformedAnswerIsNotAPendingAnswer()._state(
+            self._envelope(submission_first=submission_first), monkeypatch
+        )
+        assert read["internal_state"] == "IN_BETA_TESTING"
+        assert read["external_state"] == "WAITING_FOR_BETA_REVIEW"
+        assert read["beta_review_state"] == "WAITING_FOR_REVIEW"
+        assert read["installable_internally"] is True
+
+    def test_a_reference_without_a_type_is_unreadable(self, monkeypatch: Any) -> None:
+        """Half a key is not a key. A reference carrying only an id cannot identify a
+        resource in an envelope where two resources share that id."""
+        envelope = self._envelope(submission_first=False)
+        envelope["data"][0]["relationships"]["buildBetaDetail"]["data"] = {"id": self.BUILD_UUID}
+        with pytest.raises(watcher.WatchError):
+            TestAMalformedAnswerIsNotAPendingAnswer()._state(envelope, monkeypatch)
+
+
 class TestInstallableIsNotOneState:
     """The defect that mattered most, because it fired at the moment of truth.
 
@@ -552,6 +647,7 @@ class TestInstallableIsNotOneState:
             **TestAMalformedAnswerIsNotAPendingAnswer.ENVELOPE,
             "included": [
                 {
+                    "type": "buildBetaDetails",
                     "id": "detail-1",
                     "attributes": {
                         "internalBuildState": internal,
