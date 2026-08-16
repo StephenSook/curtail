@@ -230,6 +230,32 @@ private individuals' names into an earlier build. The fix after it was too eager
 silently dropped twenty documents' worth of findings while the counts still reported all
 101. Both directions are invisible without a guard that measures the artifact.
 
+**The river is watched on a schedule**, which is what makes "weeks of asynchronous
+operations" a mechanism rather than an adjective. Cloud Scheduler drives
+`POST /internal/poll/{basin}`, the Sentinel classifies the reading, and the observation
+lands in Cloud Firestore. Until this existed the system only looked at the river when
+somebody clicked, so it could say the Shasta is below its minimum today and could not say
+it has been below for eleven consecutive days, which is the sentence a watermaster acts on.
+`GET /api/watch/{basin}` reads it back with that run computed.
+
+**An observation is not a ledger entry**, deliberately. The Season Ledger records adopted
+orders with their statutory clocks and is part of a legal record; thousands of rows of
+hydrology do not belong in the record a reconsideration petition is read against.
+
+**The poll is idempotent on the READING's timestamp, not the poll's.** Two firings that
+land between USGS publications see the same reading and record it once. Keying on the poll
+would manufacture a fresh data point every time, and a run of identical values would read
+as a river holding steady under observation rather than one nobody had a new reading for.
+
+**The endpoint verifies its caller in the handler.** This service answers the public
+internet so judges can reach it, which makes `/internal/` a naming convention rather than a
+boundary. Cloud Scheduler mints an OIDC token and the handler checks three things: that
+Google signed it, that its audience is this endpoint, and that its subject is an allowlisted
+service account. Anyone with a Google account can obtain a correctly signed token, so the
+signature alone proves nothing about who; a token minted for another service would otherwise
+be replayable here. Both settings fail closed when unset, because an unset allowlist that
+admitted everyone would turn a missing configuration into an open endpoint.
+
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
 flow-schedule refusal. A node timeout catches a model that loops rather than fails,
