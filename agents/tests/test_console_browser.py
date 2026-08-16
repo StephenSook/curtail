@@ -2247,24 +2247,57 @@ class TestAFailedRefreshLeavesNothingOfTheOldBasin:
     screen underneath it.
     """
 
-    def _fail_from_now_on(self, page: Page, path: str) -> None:
-        """Installed AFTER the first successful load, so the next refresh fails.
+    def _switchable(self, page: Page, path: str, good: dict[str, Any]) -> dict[str, bool]:
+        """Serve `good` until the returned flag is flipped, then fail.
 
-        An earlier version tried to let the first request through and fail the second,
-        but the route is registered after the initial load has already completed, so
-        the "first" request it saw was the refresh and the refresh succeeded. The test
-        then waited forever for a failure it had arranged not to happen.
+        **Both loads are stubbed, and that is the point.** An earlier version let the
+        FIRST load reach the real endpoint, which reaches USGS, and a run of this suite
+        exhausted the unauthenticated rate limit. USGS answered 429, the card went
+        straight to `unavailable`, and the test timed out waiting for a `drawn` state it
+        had arranged to be impossible.
+
+        Third time this file has had a test depend on a third party. A browser test that
+        somebody else's rate limiter can break is not testing this page.
         """
-        page.route(
-            path,
-            lambda route: route.fulfill(
-                status=503,
-                content_type="application/json",
-                body=json.dumps({"detail": "the record is unreadable"}),
-            ),
-        )
+        state = {"fail": False}
+
+        def handler(route: Route) -> None:
+            if state["fail"]:
+                route.fulfill(
+                    status=503,
+                    content_type="application/json",
+                    body=json.dumps({"detail": "the record is unreadable"}),
+                )
+            else:
+                route.fulfill(status=200, content_type="application/json", body=json.dumps(good))
+
+        page.route(path, handler)
+        return state
+
+    MAP_OK: ClassVar[dict[str, Any]] = {
+        "basin": "scott",
+        "gage": {"id": "USGS-11519500", "lon": -122.9, "lat": 41.6},
+        "rights_total": 10,
+        "located_rights": 1,
+        "points_total": 1,
+        "without_coordinate": 9,
+        "without_coordinate_groundwater": 9,
+        "without_coordinate_note": "wells excluded",
+        "watershed_discrepancies": [],
+        "watershed_discrepancy_note": "none",
+        "located": [
+            {
+                "application_number": "A000001",
+                "points": [{"lon": -122.9, "lat": 41.6, "huc8_name": "Scott"}],
+            }
+        ],
+        "attribution": "California State Water Resources Control Board",
+        "licence": "Public domain",
+        "disclaimer": "A recommendation.",
+    }
 
     def test_the_map_canvas_is_gone_not_just_captioned(self, page: Page, console_url: str) -> None:
+        state = self._switchable(page, "**/api/diversions/**", dict(self.MAP_OK))
         page.goto(console_url)
         page.locator("#mapcard").scroll_into_view_if_needed()
         page.wait_for_function(
@@ -2273,7 +2306,7 @@ class TestAFailedRefreshLeavesNothingOfTheOldBasin:
         )
         assert page.locator("#map canvas").count() >= 1
 
-        self._fail_from_now_on(page, "**/api/diversions/**")
+        state["fail"] = True
         page.select_option("#map-basin", "shasta")
         page.wait_for_function(
             "() => document.getElementById('mapcard')?.dataset.state === 'unavailable'",
@@ -2292,6 +2325,7 @@ class TestAFailedRefreshLeavesNothingOfTheOldBasin:
     def test_the_chart_is_disposed_not_just_emptied(self, page: Page, console_url: str) -> None:
         """A live ECharts instance bound to a detached node keeps its resize listener
         alive and its option readable, so the superseded configuration survives."""
+        state = self._switchable(page, "**/api/hydrograph/**", dict(TestTheHydrograph.PAYLOAD))
         page.goto(console_url)
         page.wait_for_function(
             "() => document.getElementById('graph')?.dataset.state === 'drawn'",
@@ -2299,7 +2333,7 @@ class TestAFailedRefreshLeavesNothingOfTheOldBasin:
         )
         assert page.evaluate("() => window.__chartOption") is not None
 
-        self._fail_from_now_on(page, "**/api/hydrograph/**")
+        state["fail"] = True
         page.select_option("#graph-basin", "shasta")
         page.wait_for_function(
             "() => document.getElementById('graph')?.dataset.state === 'unavailable'",
@@ -2420,3 +2454,68 @@ class TestTheSeasonTimeline:
         assert page.locator("#timeline-method").inner_text().strip() == ""
         assert page.locator("#timeline canvas").count() == 0
         assert page.evaluate("() => window.__timelineOption") is None
+
+
+class TestTheDraftVersusActualComparison:
+    """Six real Board decisions, each with the Board's own sentence beside the engine's
+    reasoning. The exclusions are rendered, not counted."""
+
+    def _loaded(self, page: Page, console_url: str) -> None:
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('backtestcard')?.dataset.state === 'loaded'",
+            timeout=60_000,
+        )
+
+    def test_every_case_shows_the_boards_own_words(self, page: Page, console_url: str) -> None:
+        """Without the quote the card is a scoreboard. With it, a reader can open the
+        PDF and check the row."""
+        self._loaded(page, console_url)
+        cases = page.locator("#backtest-cases .case")
+        assert cases.count() >= 6
+        for i in range(cases.count()):
+            quote = cases.nth(i).locator("blockquote").first.inner_text()
+            assert len(quote) > 20, f"case {i} shows no source quote"
+
+    def test_both_directions_appear_on_every_case(self, page: Page, console_url: str) -> None:
+        self._loaded(page, console_url)
+        for i in range(page.locator("#backtest-cases .case").count()):
+            text = page.locator("#backtest-cases .case").nth(i).inner_text()
+            assert text.count("direction:") == 2, "a case shows only one side"
+
+    def test_the_verdict_is_colour_and_glyph_and_word(self, page: Page, console_url: str) -> None:
+        """Rule 9. Never colour alone, on any surface."""
+        self._loaded(page, console_url)
+        first = page.locator("#backtest-cases .case").first
+        status = first.locator(".status")
+        assert status.locator(".glyph").inner_text().strip()
+        assert "DIRECTION" in status.inner_text().upper()
+
+    def test_the_exclusions_are_rendered_with_their_reasons(
+        self, page: Page, console_url: str
+    ) -> None:
+        """**The most important assertion on this card.** A metric that shows only its
+        matches is a metric about the cases that were easy."""
+        self._loaded(page, console_url)
+        excluded = page.locator("#backtest-excluded .excl")
+        assert excluded.count() >= 5
+        text = page.locator("#backtest-excluded").inner_text().lower()
+        assert "bound" in text, "the bound-versus-measurement reason is not on screen"
+
+    def test_the_note_keeps_the_claim_narrow(self, page: Page, console_url: str) -> None:
+        self._loaded(page, console_url)
+        note = page.locator("#backtest-note").inner_text()
+        assert "DIRECTION" in note.upper()
+        assert "cutoff date" in note, "the note no longer disclaims deriving a cutoff"
+        assert "verbatim" in note
+
+    def test_a_failed_load_clears_the_card(self, page: Page, console_url: str) -> None:
+        page.route("**/api/backtest", _fulfil({"detail": "unavailable"}, 503))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('backtestcard')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert page.locator("#backtest-cases .case").count() == 0
+        assert page.locator("#backtest-excluded").inner_text().strip() == ""
+        assert page.locator("#backtest-headline").inner_text().strip() == ""
