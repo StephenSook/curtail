@@ -218,6 +218,17 @@ class TestTheVendorExclusionCannotGrow:
     """
 
     def test_the_directory_holds_only_the_allowlisted_bundles(self) -> None:
+        """RECURSIVE, because the exclusion it bounds is recursive.
+
+        The first version walked `iterdir()` and filtered to files, so it saw only the
+        top level. Git pathspec globs match `/`, unlike shell globs, so
+        `:(exclude)…/vendor/*` excludes every depth. A file at `vendor/nested/notes.md`
+        therefore escaped the em-dash gate AND passed this test, which is worse than
+        having no test: the bound had the same blind spot as the thing it bounded, so
+        it read as protection while providing none.
+
+        Verified by creating exactly that file and watching both miss it.
+        """
         from pathlib import Path
 
         from curtail_agents.api import VENDOR
@@ -225,12 +236,27 @@ class TestTheVendorExclusionCannotGrow:
         directory = (
             Path(__file__).resolve().parents[1] / "src" / "curtail_agents" / "data" / "vendor"
         )
-        present = {p.name for p in directory.iterdir() if p.is_file()}
+        present = {
+            str(path.relative_to(directory)) for path in directory.rglob("*") if path.is_file()
+        }
         assert present == set(VENDOR.values()), (
             f"the vendor directory holds files the allowlist does not name: "
-            f"{present - set(VENDOR.values())}. That directory is excluded from the "
-            f"em-dash gate, so anything unlisted there is unguarded prose."
+            f"{sorted(present - set(VENDOR.values()))}. Everything under that directory "
+            f"at any depth is excluded from the em-dash gate, so anything unlisted "
+            f"there is unguarded prose."
         )
+
+    def test_no_allowlisted_bundle_is_nested_in_a_subdirectory(self) -> None:
+        """The allowlist maps a request name to a bare filename, and the route joins
+        it onto the vendor directory. A nested entry would need a path separator in
+        the allowlist, which is the shape that turns an allowlist back into a path
+        map. Flat by construction, asserted so it stays that way."""
+        from curtail_agents.api import VENDOR
+
+        for filename in VENDOR.values():
+            assert "/" not in filename and "\\" not in filename, (
+                f"{filename} is a path, not a filename"
+            )
 
     def test_every_allowlisted_bundle_is_third_party_and_carries_its_licence(self) -> None:
         """A file is only exempt from our prose rules because it is somebody else's
