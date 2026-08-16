@@ -625,6 +625,36 @@
   // Shape and text, with colour third. Every row carries its own glyph so the five
   // classifications stay separable in grayscale and under any colour vision
   // deficiency, which the status rule requires and colour alone cannot satisfy.
+  //: One place that turns a response into an object, or refuses.
+  //:
+  //: **A valid HTTP 200 carrying the JSON body `null` crashed three cards.** `null` is
+  //: legal JSON, `response.ok` is true, and the shape check that follows reads
+  //: `body.rows` or `body.series` or `body.located` on it. That throws a TypeError
+  //: OUTSIDE the try, so nothing catches it: no message, no state, the card sits on
+  //: its loading text forever. Measured: three uncaught errors and three cards left
+  //: with no state at all.
+  //:
+  //: A card that says nothing is the failure this console is built against, so the
+  //: guard lives here rather than being repeated at four call sites where the fourth
+  //: would eventually be forgotten. Arrays are refused too: `[].rows` is undefined
+  //: rather than a throw, which fails quietly one step later.
+  async function payloadOf(response, what) {
+    let body;
+    try {
+      body = await response.json();
+    } catch {
+      throw new Error(`${what} did not return JSON (HTTP ${response.status})`);
+    }
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      //: Named precisely, because "object rather than an object" is what `typeof []`
+      //: produces and it reads like a bug in the message rather than in the answer.
+      const kind = body === null ? "null" : Array.isArray(body) ? "an array" : typeof body;
+      throw new Error(`${what} returned ${kind} rather than an object (HTTP ${response.status})`);
+    }
+    if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    return body;
+  }
+
   const STATUS = {
     flow_below_minimum:            ["s-curtailed",  "\u2297", "Below minimum"],
     reading_near_threshold:        ["s-conditional","\u25D0", "Near threshold"],
@@ -1546,11 +1576,7 @@
     const cards = await Promise.all(
       ["scott", "shasta"].map(async (basin) => {
         try {
-          const response = await fetch(`/api/gage/${basin}`);
-          const body = await response.json();
-          if (!response.ok) {
-            return gageCard(basin, null, body.detail || `the service returned ${response.status}`);
-          }
+          const body = await payloadOf(await fetch(`/api/gage/${basin}`), "the gage");
           for (const field of LIVE_REQUIRED) {
             if (!(field in body)) return gageCard(basin, null, `the answer is missing ${field}`);
           }
@@ -1618,9 +1644,9 @@
     note.textContent = "";
     let body;
     try {
-      const response = await fetch(`/api/hydrograph/${basin}?days=${days}`);
-      body = await response.json();
-      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+      body = await payloadOf(
+        await fetch(`/api/hydrograph/${basin}?days=${days}`), "the hydrograph"
+      );
     } catch (error) {
       // The card says why and shows NOTHING. A chart drawn from a partial answer is
       // a shape a reader will believe.
@@ -1827,9 +1853,7 @@
 
     let body;
     try {
-      const response = await fetch(`/api/diversions/${basin}`);
-      body = await response.json();
-      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+      body = await payloadOf(await fetch(`/api/diversions/${basin}`), "the diversion layer");
     } catch (error) {
       if (mine !== generation.map) return;
       note.textContent = `Could not load diversion points: ${error.message}`;
@@ -2119,9 +2143,7 @@
 
     let body;
     try {
-      const response = await fetch(`/api/ledger/${basin}`);
-      body = await response.json();
-      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+      body = await payloadOf(await fetch(`/api/ledger/${basin}`), "the ledger");
     } catch (error) {
       if (mine !== generation.ledger) return;
       clearLedger(`Could not load the ledger: ${error.message}`);
