@@ -228,6 +228,25 @@
 
   /* The live strip. Two gages side by side, stacking under 720px so a phone gets
      one legible column rather than two cramped ones. */
+  /* The ledger table. 469 rows across two basins renders fine without
+     virtualisation; the spec's table library is React-only and this page has no React,
+     so the outcome is matched rather than the tooling. */
+  table.ledger { width: 100%; border-collapse: collapse; font-size: var(--t-cell); }
+  table.ledger th {
+    position: sticky; top: 0; background: var(--popover); text-align: left;
+    font-size: var(--t-micro); letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600; color: var(--muted); padding: 8px 10px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  table.ledger td {
+    padding: 6px 10px; border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  table.ledger td.id { font-family: var(--mono); }
+  /* Never colour alone: the unplaceable rows carry a word as well as a hue. */
+  table.ledger tr[data-placed="false"] td { color: var(--conditional); }
+  table.ledger td.absent { color: var(--muted); font-style: italic; }
+
   .live-strip { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 720px) { .live-strip { grid-template-columns: 1fr; } }
   .gage {
@@ -434,6 +453,48 @@
     <p class="note" id="map-attr"></p>
   </section>
 
+  <!--
+    The rights ledger.
+
+    The column that matters most is PLACED. 14 of the 85 Shasta rows state no priority
+    precise enough to establish decree membership, so the ladder cannot place them, and
+    each is named with its own reason rather than defaulted into a tier. Defaulting them
+    would be the worst wrong answer available here: the first grouping is curtailed
+    first, so a right dropped there by a missing field is curtailed ahead of rights that
+    are genuinely junior to it.
+  -->
+  <section class="card" id="ledgercard">
+    <h2>Every right the order names</h2>
+    <p class="muted" id="ledger-source"></p>
+    <div class="row" style="align-items:end; margin-bottom:12px">
+      <label for="ledger-basin">Basin
+        <select id="ledger-basin">
+          <option value="scott">Scott</option>
+          <option value="shasta">Shasta</option>
+        </select>
+      </label>
+      <label for="ledger-filter">Filter
+        <input id="ledger-filter" type="search" placeholder="application number"
+               autocomplete="off" spellcheck="false">
+      </label>
+      <label for="ledger-only" style="flex-direction:row; align-items:center; gap:8px">
+        <input id="ledger-only" type="checkbox">
+        Only rights the ladder cannot place
+      </label>
+    </div>
+    <div id="ledger-wrap" style="max-height:420px; overflow:auto">
+      <table class="ledger" id="ledger-table">
+        <thead><tr>
+          <th>Right</th><th>Group</th><th>Class</th><th>Priority date</th>
+          <th>Placed</th><th>On the map</th>
+        </tr></thead>
+        <tbody id="ledger-body"></tbody>
+      </table>
+    </div>
+    <p class="note" id="ledger-note"></p>
+    <div id="ledger-open"></div>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -602,7 +663,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -1956,12 +2017,166 @@
     if (mapLoaded) drawMap();
   });
 
+  // ── The rights ledger ──────────────────────────────────────────
+  //
+  //: Rendered from the endpoint's rows with no client-side inference at all. Where the
+  //: record states no priority date, the cell says "not stated" in words rather than
+  //: sitting blank, because a blank cell reads as an oversight and a stated absence
+  //: reads as a fact, and here it IS a fact: the Board's attachment does not carry one.
+  let ledgerRows = [];
+
+  function ledgerCell(text, cls) {
+    const td = document.createElement("td");
+    td.textContent = text;
+    if (cls) td.className = cls;
+    return td;
+  }
+
+  function renderLedger() {
+    const body = document.getElementById("ledger-body");
+    const filter = document.getElementById("ledger-filter").value.trim().toUpperCase();
+    const onlyUnplaced = document.getElementById("ledger-only").checked;
+
+    const shown = ledgerRows.filter(
+      (row) =>
+        (!filter || row.right_id.toUpperCase().includes(filter)) &&
+        (!onlyUnplaced || !row.placed)
+    );
+
+    const fragment = document.createDocumentFragment();
+    for (const row of shown) {
+      const tr = document.createElement("tr");
+      tr.dataset.placed = String(row.placed);
+      tr.dataset.right = row.right_id;
+      tr.appendChild(ledgerCell(row.right_id, "id"));
+      tr.appendChild(
+        row.stated_group === null
+          ? ledgerCell("not stated", "absent")
+          : ledgerCell(String(row.stated_group))
+      );
+      tr.appendChild(
+        row.right_class === null
+          ? ledgerCell("not stated", "absent")
+          : ledgerCell(row.right_class)
+      );
+      //: Three distinct states, and they are not the same fact. A date. A year only,
+      //: which cannot settle a boundary that falls mid-year. And nothing stated at
+      //: all, which is what puts a right in the unplaceable set.
+      if (row.priority_date) {
+        tr.appendChild(ledgerCell(row.priority_date));
+      } else if (row.priority_year_only) {
+        tr.appendChild(ledgerCell(`${row.priority_year_only}, year only`, "absent"));
+      } else {
+        tr.appendChild(ledgerCell("not stated", "absent"));
+      }
+      const placed = ledgerCell(row.placed ? "placed" : "cannot place");
+      //: The reason travels ON the row, as a title, so hovering the cell that says a
+      //: right cannot be placed says WHY without scrolling to a list underneath.
+      if (!row.placed && row.reason) placed.title = row.reason;
+      tr.appendChild(placed);
+      //: null is UNKNOWN here, not no. The diversion artifact may be absent, and
+      //: rendering that as "no" would assert a right has no mapped diversion when the
+      //: truth is that this page could not check.
+      tr.appendChild(
+        row.mapped === null
+          ? ledgerCell("unknown", "absent")
+          : ledgerCell(row.mapped ? "yes" : "no", row.mapped ? "" : "absent")
+      );
+      fragment.appendChild(tr);
+    }
+    body.replaceChildren(fragment);
+    document.getElementById("ledgercard").dataset.shown = String(shown.length);
+  }
+
+  async function loadLedger() {
+    const mine = ++generation.ledger;
+    const basin = document.getElementById("ledger-basin").value;
+    const note = document.getElementById("ledger-note");
+    const card = document.getElementById("ledgercard");
+
+    let body;
+    try {
+      const response = await fetch(`/api/ledger/${basin}`);
+      body = await response.json();
+      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    } catch (error) {
+      if (mine !== generation.ledger) return;
+      note.textContent = `Could not load the ledger: ${error.message}`;
+      document.getElementById("ledger-body").replaceChildren();
+      card.dataset.state = "unavailable";
+      return;
+    }
+    if (mine !== generation.ledger) return;
+    if (!Array.isArray(body.rows) || typeof body.count !== "number") {
+      note.textContent = "The service returned a ledger this page cannot render.";
+      card.dataset.state = "unavailable";
+      return;
+    }
+
+    ledgerRows = body.rows;
+    renderLedger();
+
+    document.getElementById("ledger-source").textContent =
+      `${body.document}, issued ${body.issued}. ` +
+      `${body.count} rights read from the Board's own attachment.`;
+
+    const mapped = body.mapped_count === null ? "unknown" : `${body.mapped_count}`;
+    note.textContent =
+      `${body.count} rights named in the order, ${mapped} with a diversion point on ` +
+      `the map. ` +
+      (body.not_placed_count
+        ? `${body.not_placed_count} cannot be placed on the priority ladder at all, ` +
+          `and each is named below rather than defaulted into a tier: the first ` +
+          `grouping is curtailed first, so a right dropped there by a missing field ` +
+          `would be curtailed ahead of rights genuinely junior to it.`
+        : `Every right carries a curtailment group stated by the Board, so none is ` +
+          `left to fail placement.`);
+
+    //: The open questions are RENDERED, not summarised into a count. A reader who sees
+    //: only "7 open questions" learns that something is unsettled; a reader who sees
+    //: them learns what.
+    const open = document.getElementById("ledger-open");
+    open.replaceChildren();
+    //: Grouped, so 14 rights sharing one reason print as one entry naming all 14
+    //: rather than as 14 copies of the same sentence. Every id is still on screen:
+    //: this collapses repetition, never disclosure.
+    const grouped = body.not_placed_grouped || [];
+    const items = [
+      ...grouped.map(
+        (g) =>
+          `${g.count} right${g.count === 1 ? "" : "s"} cannot be placed because ` +
+          `${g.reason} (${g.rights.join(", ")})`
+      ),
+      ...body.open_questions,
+    ];
+    if (items.length) {
+      const heading = document.createElement("p");
+      heading.className = "note";
+      heading.textContent = "What this record does not settle:";
+      open.appendChild(heading);
+      const list = document.createElement("ul");
+      list.className = "note";
+      for (const item of items) {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      }
+      open.appendChild(list);
+    }
+    card.dataset.state = "loaded";
+  }
+
+  document.getElementById("ledger-basin").addEventListener("change", loadLedger);
+  document.getElementById("ledger-filter").addEventListener("input", renderLedger);
+  document.getElementById("ledger-only").addEventListener("change", renderLedger);
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
   document.getElementById("fleet").addEventListener("click", runFleet);
   loadLive();
   drawGraph();
+  loadLedger();
   run();
   loadQueue();
 </script>

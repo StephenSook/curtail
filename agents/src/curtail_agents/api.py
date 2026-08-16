@@ -723,6 +723,136 @@ def diversions_payload() -> dict[str, Any]:
     return _DIVERSIONS
 
 
+@app.get("/api/ledger/{basin}")
+def ledger(basin: str) -> dict[str, Any]:
+    """Every right the operative order names, and what the record does NOT settle.
+
+    **The unplaceable rights are the point of this endpoint, not a footnote.** 14 of the
+    85 Shasta rows state no priority precise enough to establish decree membership, so
+    the ladder cannot place them. They are NAMED, each with its own reason, rather than
+    defaulted into a tier. Defaulting them would be the single most consequential wrong
+    answer this system could produce: the first grouping is the one curtailed first, so a
+    right dropped there by a missing field is curtailed ahead of rights that are actually
+    junior to it.
+
+    Scott has none, and that is not an accident of the data. The Board states a
+    curtailment group for every Scott right in its own column, so nothing is left to
+    fail placement, and this system reads the stated group rather than deriving one.
+    Deriving it matched the Board on 8 of 384.
+
+    Priority dates that the record does not state are returned as null WITH the flag
+    that says so, never as a blank that a client could render as a date it did not have.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    try:
+        record = rights_for(which)
+    except RightsRecordUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    located: set[str] = set()
+    try:
+        section = diversions_payload()["basins"].get(which.value) or {}
+        located = {entry["application_number"] for entry in section.get("located", [])}
+    except HTTPException:
+        # The ledger stands without the map. A missing diversion artifact costs the
+        # "mapped" column and nothing else, and the column says unknown rather than no.
+        located = set()
+
+    # **The unplaceable rights are not IN `record.rights`, and a first version of this
+    # endpoint quietly dropped them.** `rights_for` returns the 71 Shasta rights the
+    # ladder can place, and names the other 14 separately as sentences beginning with
+    # the right id. Rendering only the first list showed 71 rights for an order that
+    # names 85, so the console under-reported the order's scope by 14, which is the
+    # same failure the map's groundwater caveat exists to prevent.
+    #
+    # Worse, the `placed` flag was computed as `right_id not in record.not_placed`,
+    # comparing an id against a list of whole sentences. It was True for every row, so
+    # the table said every right was placed while the note beside it said 14 were not.
+    # Two surfaces contradicting each other on one screen.
+    #
+    # Both lists are rendered, and the id is parsed off the front of each reason.
+    unplaceable: dict[str, str] = {}
+    for entry in record.not_placed:
+        right_id, _, reason = entry.partition(":")
+        unplaceable[right_id.strip()] = reason.strip() or entry
+
+    rows = [
+        {
+            "right_id": right.right_id,
+            "stated_group": right.stated_group,
+            "right_class": right.right_class.value if right.right_class else None,
+            "priority_date": right.priority_date.isoformat() if right.priority_date else None,
+            "priority_date_missing": right.priority_date_missing,
+            "priority_year_only": right.priority_year_only,
+            "decree_membership_unknown": right.decree_membership_unknown,
+            "placed": True,
+            "reason": None,
+            "mapped": right.right_id in located if located else None,
+        }
+        for right in record.rights
+    ]
+    rows.extend(
+        {
+            "right_id": right_id,
+            "stated_group": None,
+            "right_class": None,
+            "priority_date": None,
+            "priority_date_missing": True,
+            "priority_year_only": None,
+            "decree_membership_unknown": True,
+            "placed": False,
+            "reason": reason,
+            "mapped": right_id in located if located else None,
+        }
+        for right_id, reason in sorted(unplaceable.items())
+    )
+    rows.sort(key=lambda row: str(row["right_id"]))
+
+    return {
+        "basin": which.value,
+        "document": record.document,
+        "issued": record.issued.isoformat(),
+        "source_sha256": record.source_sha256,
+        "provenance": record.provenance,
+        "count": len(rows),
+        "placeable_count": len(record.rights),
+        "rows": rows,
+        # Carried, never dropped. A reader who sees an empty list assumes there was
+        # nothing to say, which is a different claim from "we did not look".
+        #
+        # GROUPED BY REASON, because all 14 Shasta entries carry the identical sentence
+        # and printing it 14 times is a wall a reader skips. Every id is still named:
+        # collapsing the repetition is a readability change, not a reduction in what is
+        # disclosed, and the count travels beside it so nothing can be silently dropped.
+        "not_placed": list(record.not_placed),
+        "not_placed_grouped": [
+            {"reason": reason, "rights": sorted(ids), "count": len(ids)}
+            for reason, ids in sorted(
+                {
+                    entry.partition(":")[2].strip() or entry: [
+                        other.partition(":")[0].strip()
+                        for other in record.not_placed
+                        if (other.partition(":")[2].strip() or other)
+                        == (entry.partition(":")[2].strip() or entry)
+                    ]
+                    for entry in record.not_placed
+                }.items()
+            )
+        ],
+        "not_placed_count": len(record.not_placed),
+        "open_questions": list(record.open_questions),
+        "mapped_count": sum(1 for row in rows if row["mapped"]) if located else None,
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
 @app.get("/api/diversions/{basin}")
 def diversions(basin: str) -> dict[str, Any]:
     """Where the curtailed rights actually divert, from the Board's own layer.
