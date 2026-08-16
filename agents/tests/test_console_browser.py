@@ -1826,6 +1826,15 @@ class TestTheDiversionMap:
         )
 
 
+@pytest.fixture(scope="module")
+def console_source() -> str:
+    """The page as served, for invariants that are true of the code rather than of a
+    render."""
+    from curtail_agents.api import CONSOLE
+
+    return CONSOLE.read_text()
+
+
 class TestASlowerAnswerNeverRepaintsOverANewerOne:
     """The race a second-model review found on the map, and which was equally present
     on the chart.
@@ -1952,3 +1961,50 @@ class TestASlowerAnswerNeverRepaintsOverANewerOne:
         assert drawn == ["B000002"], (
             f"a superseded Scott response repainted over the newer Shasta selection: {drawn}"
         )
+
+    def test_no_map_callback_reaches_for_the_module_level_instance(
+        self, console_source: str
+    ) -> None:
+        """Asserted on the SOURCE, and the docstring says why rather than pretending.
+
+        A review pointed out that the `load` callback read the module-level `map`, so a
+        superseded callback firing after a newer `drawMap` had replaced it would add its
+        sources to the NEWER map, and the newer map's own load would then throw "There
+        is already a source with this ID".
+
+        **I could not construct that failure.** `drawMap` calls `map.remove()` before
+        creating the replacement, and MapLibre aborts a pending style load on removal,
+        so the superseded callback does not fire. A behavioural test I wrote for it
+        passed with the defect reintroduced, which means it discriminated nothing, and a
+        test that cannot fail is worse than no test because it reads as coverage.
+
+        The fix is still right: a callback that closes over its own instance cannot
+        touch another one, whatever a future edit does to the removal path. So the
+        invariant is asserted where it is actually true, in the code, and the honest
+        limit is written down instead of dressed up as a runtime proof.
+        """
+        import re
+
+        block = console_source[
+            console_source.index("const instance = new gl.Map(") : console_source.index(
+                "mapObserver"
+            )
+        ]
+        offenders = re.findall(r"^\s+map\.\w+\(", block, re.MULTILINE)
+        assert not offenders, (
+            f"a map callback reaches for the module-level instance: {offenders}. "
+            "It must use the local `instance` it belongs to."
+        )
+
+    def test_the_load_callback_checks_generation_before_mutating_anything(
+        self, console_source: str
+    ) -> None:
+        """Gating at the END of a callback cannot help: by then the sources are added
+        and the bounds are fitted. The check has to be the first statement."""
+        body = console_source[console_source.index('instance.on("load"') :]
+        body = body[: body.index('instance.on("click"')]
+        gate = body.index("generation.map")
+        for mutating in ("addSource", "addLayer", "fitBounds"):
+            assert body.index(mutating) > gate, (
+                f"{mutating} runs before the generation check in the load callback"
+            )
