@@ -239,3 +239,58 @@ class TestTheSearchEndpoint:
         monkeypatch.setattr(api, "embed_query", lambda _q: list(index.vectors[0]))
         body = self.client().get("/api/search", params={"q": "a question", "limit": 999}).json()
         assert len(body["results"]) <= 20
+
+
+class TestANonFiniteVectorNeverLeavesTheEmbeddingPath:
+    """NaN survives every arithmetic step after it arrives.
+
+    `norm == 0.0` is False for NaN, the division then yields an all-NaN vector, and the
+    caller hands that straight to the ranking, where one NaN score reorders passages that
+    have nothing to do with it. Refused where it enters.
+
+    **The body is hand-written rather than encoded, and that is the realistic path.**
+    Strict JSON has no NaN, so `json=` refuses to produce this shape at all, which reads
+    at first like the case being impossible. It is not: Python's `json.loads` accepts bare
+    `NaN`, `Infinity` and `-Infinity` literals by default, so a service emitting them is
+    parsed into floats silently and no decoder ever complains.
+    """
+
+    @staticmethod
+    def raw(literal: str) -> Any:
+        values = ", ".join([literal] + ["0.0"] * (DIMENSIONS - 1))
+        body = '{"predictions": [{"embeddings": {"values": [' + values + "]}}]}"
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, content=body.encode(), headers={"content-type": "application/json"}
+            )
+
+        return handler
+
+    @pytest.mark.parametrize("literal", ["NaN", "Infinity", "-Infinity"])
+    def test_it_is_refused(self, literal: str) -> None:
+        with pytest.raises(EmbeddingUnavailableError, match="not a finite number"):
+            embed_query(
+                "a question",
+                client=transport(self.raw(literal)),
+                credentials=FakeCredentials(),
+            )
+
+    def test_the_literals_really_do_decode_into_floats(self) -> None:
+        """The premise, asserted rather than assumed. If `json.loads` rejected these, the
+        tests above would pass for a reason that has nothing to do with the guard."""
+        import json as stdlib_json
+        import math
+
+        decoded = stdlib_json.loads("[NaN, Infinity, -Infinity]")
+        assert math.isnan(decoded[0])
+        assert math.isinf(decoded[1]) and math.isinf(decoded[2])
+
+    def test_a_sound_vector_still_passes(self) -> None:
+        """The other direction, so the new check cannot be rejecting everything."""
+        result = embed_query(
+            "a question",
+            client=transport(responder(vector(unnormalised()))),
+            credentials=FakeCredentials(),
+        )
+        assert len(result) == DIMENSIONS

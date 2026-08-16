@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import struct
 from dataclasses import dataclass
 from functools import lru_cache
@@ -77,6 +78,39 @@ class Index:
     documents_represented: int
     absent: tuple[dict[str, str], ...]
     distinct_texts: int
+
+
+def require_unit_length(values: Any, *, describe: str) -> None:
+    """Refuse a vector that is not finite, then one that is not unit length.
+
+    **The finiteness test is first because it is the one that hides.** Every comparison
+    with NaN is False, so `abs(norm - 1.0) > UNIT_TOLERANCE` PASSES a NaN vector, and a
+    tolerance check written the obvious way is not a guard against the worst input it can
+    receive. float16 stores NaN and infinity perfectly well, so a corrupted or crafted
+    index can carry them, and one non-finite component makes the whole norm non-finite.
+
+    A NaN score does not merely rank itself wrongly. It breaks the comparisons around it:
+    sorting `[0.9, nan, 0.5, 0.7]` descending yields `[0.7, 0.9, nan, 0.5]`, so 0.5
+    outranks 0.7 and two passages that have nothing to do with the corrupt one come back
+    in the wrong order. Nothing raises and the page looks entirely normal.
+
+    This project has met NaN once before, where it recommended lifting curtailment.
+    """
+    norm = 0.0
+    for value in values:
+        norm += value * value
+    norm = norm**0.5
+    if not math.isfinite(norm):
+        raise CorpusIndexUnavailableError(
+            f"{describe} has a length of {norm}, which is not a finite number. A single "
+            "NaN or infinite component passes an ordinary tolerance check and then "
+            "scrambles the order of unrelated results."
+        )
+    if abs(norm - 1.0) > UNIT_TOLERANCE:
+        raise CorpusIndexUnavailableError(
+            f"{describe} has length {norm:.3f} rather than 1, so ranking would order "
+            "results partly by magnitude rather than by similarity."
+        )
 
 
 @lru_cache(maxsize=1)
@@ -138,13 +172,7 @@ def load() -> Index:
             raise CorpusIndexUnavailableError(
                 f"{entry['file']} carries {len(values)} dimensions and the index says {dimensions}"
             )
-        norm = sum(value * value for value in values) ** 0.5
-        if abs(norm - 1.0) > UNIT_TOLERANCE:
-            raise CorpusIndexUnavailableError(
-                f"{entry['file']} chunk {entry.get('chunk')} has vector length {norm:.3f} "
-                "rather than 1, so the index claims normalised vectors and does not hold "
-                "them. Ranking would order results partly by magnitude."
-            )
+        require_unit_length(values, describe=f"{entry['file']} chunk {entry.get('chunk')}")
         vectors.append(values)
 
     return Index(
@@ -177,12 +205,7 @@ def search(query: list[float] | tuple[float, ...], *, limit: int = 5) -> list[Hi
             f"the question was embedded to {len(query)} dimensions and the index holds "
             f"{index.dimensions}"
         )
-    norm = sum(value * value for value in query) ** 0.5
-    if abs(norm - 1.0) > UNIT_TOLERANCE:
-        raise CorpusIndexUnavailableError(
-            f"the question vector has length {norm:.3f} rather than 1. Ranking it against "
-            "unit vectors would order results partly by magnitude."
-        )
+    require_unit_length(query, describe="the question vector")
 
     scored: list[tuple[float, int]] = []
     for position, vector in enumerate(index.vectors):
@@ -232,5 +255,6 @@ __all__ = [
     "Hit",
     "Index",
     "load",
+    "require_unit_length",
     "search",
 ]
