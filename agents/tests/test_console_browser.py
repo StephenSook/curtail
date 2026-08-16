@@ -2118,3 +2118,42 @@ class TestTheRightsLedger:
         assert 0 < shown < 384
         for row in page.locator("#ledger-body tr").all()[:5]:
             assert "A0273" in row.inner_text()
+
+    def test_a_failed_load_leaves_no_trace_of_the_previous_basin(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The failure path cleared the table body and left everything else standing.
+
+        The source line still named the PREVIOUS basin's order, the open questions
+        still listed its unplaceable rights, and the in-memory rows were still the
+        previous basin's, so ticking the filter repopulated the table from data the
+        page had just failed to refresh. A reader switching to Shasta, seeing an
+        error, then ticking a box would be shown Scott's rights under Shasta's
+        heading, with nothing on screen saying so.
+        """
+        self._loaded(page, console_url)
+        assert "Addendum 12" in page.locator("#ledger-source").inner_text()
+
+        page.route("**/api/ledger/**", _fulfil({"detail": "the record is unreadable"}, 503))
+        page.select_option("#ledger-basin", "shasta")
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.state === 'unavailable'",
+            timeout=30_000,
+        )
+
+        assert "unreadable" in page.locator("#ledger-note").inner_text()
+        assert page.locator("#ledger-source").inner_text().strip() == "", (
+            "the source line still names the basin that failed to load"
+        )
+        assert page.locator("#ledger-open").inner_text().strip() == "", (
+            "the previous basin's open questions are still on screen"
+        )
+        assert page.locator("#ledger-body tr").count() == 0
+
+        # The one that actually misleads: re-rendering from stale memory.
+        page.check("#ledger-only")
+        page.wait_for_timeout(400)
+        assert page.locator("#ledger-body tr").count() == 0, (
+            "the filter repopulated the table from the previous basin's rows"
+        )
+        assert page.locator("#ledgercard").get_attribute("data-shown") == "0"
