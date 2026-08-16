@@ -33,10 +33,21 @@ FIELD_URL = "https://curtail-console-api-672785135387.us-central1.run.app/field"
 #: deploy and every check stay green.
 APK_URL = "https://github.com/StephenSook/curtail/releases/download/v0.1.0-field/curtail-field.apk"
 
+#: The TestFlight public link for Curtail Field.
+#:
+#: The URL is PERMANENT and is issued the moment the external group is created, so the
+#: code below encodes the final address even while Beta App Review is still pending. What
+#: changes on approval is what the page SAYS, not where it points: until then it answers
+#: 200 with "This beta isn't accepting any new testers right now". The README states that
+#: rather than implying the link installs anything today, because a dead-looking link a
+#: judge scans is worse than no link, and a link whose state is named is neither.
+TESTFLIGHT_URL = "https://testflight.apple.com/join/AqbsQ1J5"
+
 #: (target filename, url)
 CODES: tuple[tuple[str, str], ...] = (
     ("field-qr.png", FIELD_URL),
     ("apk-qr.png", APK_URL),
+    ("testflight-qr.png", TESTFLIGHT_URL),
 )
 
 

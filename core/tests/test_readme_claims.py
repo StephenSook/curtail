@@ -1513,8 +1513,15 @@ def test_the_apk_the_readme_offers_is_actually_downloadable() -> None:
     )
 
 
-def test_both_qr_codes_encode_their_urls() -> None:
-    """Neither code is readable by a human, so both are checked by machine."""
+def test_every_qr_code_encodes_its_url() -> None:
+    """No QR code is readable by a human, so every one is checked by machine.
+
+    Asserted over whatever `CODES` contains, plus the names that must be present.
+    The first version asserted `len(CODES) == 2`, which broke the moment a third code
+    was added and taught nothing when it did: a magic count is a claim about the
+    inventory that has to be edited by hand every time the inventory changes, which is
+    the same rot as restating a test count in the README.
+    """
     import importlib.util
 
     path = REPO / "scripts" / "render_qr.py"
@@ -1523,7 +1530,7 @@ def test_both_qr_codes_encode_their_urls() -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert len(module.CODES) == 2, "expected a field code and an apk code"
+    assert module.CODES, "no QR codes are declared at all"
     for name, url in module.CODES:
         target = REPO / "docs" / name
         assert target.is_file(), f"docs/{name} is missing. Run `make qr`."
@@ -1533,3 +1540,6 @@ def test_both_qr_codes_encode_their_urls() -> None:
     urls = dict(module.CODES)
     assert urls["field-qr.png"].endswith("/field")
     assert urls["apk-qr.png"].endswith(".apk")
+    # The TestFlight link is permanent from the moment the external group exists, so it
+    # is pinned by host and shape rather than by whether the beta is open today.
+    assert urls["testflight-qr.png"].startswith("https://testflight.apple.com/join/")
