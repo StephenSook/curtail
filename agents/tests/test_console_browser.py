@@ -2863,3 +2863,118 @@ class TestFieldDictation:
             "an observer must be told the measurement itself is unaffected, or they will "
             "believe the whole capture failed"
         )
+
+
+def _search_payload(**overrides: Any) -> dict[str, Any]:
+    body = {
+        "question": "when was curtailment lifted after a gage revision",
+        "model": "gemini-embedding-001",
+        "dimensions": 768,
+        "searched": {
+            "documents": 96,
+            "documents_in_corpus": 101,
+            "passages": 609,
+            "distinct_texts": 400,
+        },
+        "not_searched": [
+            {"file": "addendum8-scottriver-7-22-2025.pdf", "why": "no text layer"},
+        ],
+        "results": [
+            {
+                "score": 0.734,
+                "snippet": "Flows at the Fort Jones gage rose above 75 cubic feet per second.",
+                "documents": ["shasta_2021__addenda__8.pdf", "shasta_2021__addenda__9.pdf"],
+                "appears_in": 2,
+                "passage_characters": 1200,
+            },
+        ],
+        "excluded": "Attachment A rows are not indexed.",
+        "not_legal_advice": "Ranking is not interpretation.",
+    }
+    return body | overrides
+
+
+class TestCorpusSearch:
+    """The search card, and the two things it refuses to let a reader assume.
+
+    A results list that is empty because the index broke, and a corpus that was only
+    partly searched, both look exactly like "there is no answer" unless the page says
+    otherwise. Every test here stubs the endpoint; nothing reaches the embedding model.
+    """
+
+    def ask(self, page: Page, url: str, payload: dict[str, Any], status: int = 200) -> None:
+        page.route("**/api/search**", _fulfil(payload, status))
+        page.goto(url)
+        page.fill("#q", "when was curtailment lifted after a gage revision")
+        page.click("#ask")
+        _settle_after(page, "#searchout", "")
+
+    def test_a_repeated_passage_is_shown_once_and_says_how_often(
+        self, page: Page, console_url: str
+    ) -> None:
+        """These addenda restate the same standard paragraphs constantly. Showing the
+        text five times spends the reader's attention on one answer."""
+        self.ask(page, console_url, _search_payload())
+        assert page.locator("#searchout .legal").count() == 1
+        text = page.locator("#searchout .note").first.inner_text()
+        assert "96 of 101" in text
+        detail = page.locator("#searchout").inner_text()
+        assert "appears in 2 documents" in detail
+
+    def test_the_documents_that_could_not_be_searched_are_named(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Five are scanned images with no text layer. A question they would answer
+        cannot be found here at all, and a search reporting nothing about the part it
+        never read invites the reader to conclude the corpus is silent."""
+        self.ask(page, console_url, _search_payload())
+        text = page.locator("#searchout").inner_text()
+        assert "addendum8-scottriver-7-22-2025.pdf" in text
+        assert "no text layer" in text
+
+    def test_no_results_says_so_without_claiming_the_corpus_is_silent_when_it_broke(
+        self, page: Page, console_url: str
+    ) -> None:
+        self.ask(page, console_url, _search_payload(results=[]))
+        assert "Nothing in the searched passages" in page.locator("#searchout").inner_text()
+
+    def test_a_response_without_a_result_list_shows_nothing_rather_than_an_empty_one(
+        self, page: Page, console_url: str
+    ) -> None:
+        """An empty table is a claim that the corpus has no answer. A malformed response
+        must not be able to make that claim on the corpus's behalf."""
+        payload = _search_payload()
+        del payload["results"]
+        self.ask(page, console_url, payload)
+        assert "REFUSED" in page.locator("#searchout .status").inner_text().upper()
+        assert page.locator("#searchout .legal").count() == 0
+
+    def test_a_503_reports_the_reason_and_shows_no_results(
+        self, page: Page, console_url: str
+    ) -> None:
+        self.ask(page, console_url, {"detail": "the corpus index is missing"}, status=503)
+        assert page.locator("#searchout .legal").count() == 0
+        assert "corpus index is missing" in page.locator("#searchout .refusal").inner_text()
+
+    def test_an_empty_question_is_refused_before_asking(self, page: Page, console_url: str) -> None:
+        asked = False
+
+        def watch(route: Route) -> None:
+            nonlocal asked
+            asked = True
+            route.fulfill(status=200, content_type="application/json", body="{}")
+
+        page.route("**/api/search**", watch)
+        page.goto(console_url)
+        page.click("#ask")
+        _settle_after(page, "#searchout", "")
+        assert not asked
+        assert "REFUSED" in page.locator("#searchout .status").inner_text().upper()
+
+    def test_the_snippet_is_inserted_as_text(self, page: Page, console_url: str) -> None:
+        """The Board's own prose, and not this page's to parse."""
+        payload = _search_payload()
+        payload["results"][0]["snippet"] = 'Flow <img src=x onerror="window.__ran=1"> rose.'
+        self.ask(page, console_url, payload)
+        assert page.locator("#searchout .legal img").count() == 0
+        assert page.evaluate("() => window.__ran") is None

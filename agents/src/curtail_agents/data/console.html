@@ -604,6 +604,25 @@
   </section>
 
   <section class="card">
+    <h2>Ask the corpus a question</h2>
+    <p class="note">
+      101 curtailment documents issued over five years, searched by meaning rather than by
+      keyword with <code>gemini-embedding-001</code>. "When was curtailment lifted because
+      the measurement itself turned out to be wrong" shares no words with the addendum that
+      answers it. The rights tables inside these documents are parsed exactly elsewhere in
+      this system and are deliberately not indexed here, along with every owner name.
+    </p>
+    <div class="row" style="margin-bottom:14px">
+      <input id="q" type="text" style="flex:1;min-width:280px"
+             placeholder="when was curtailment lifted after a gage revision">
+      <button id="ask">Search</button>
+    </div>
+    <div id="searchout">
+      <div class="status s-pending"><span class="glyph">&#9675;</span><span>Nothing asked yet</span></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>One traversal of the agent fleet</h2>
     <p class="note">
       Every other control on this page calls a domain function directly. This one runs
@@ -767,7 +786,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0, bt: 0, brief: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0, bt: 0, brief: 0, search: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -2731,6 +2750,120 @@
 
     briefOut.appendChild(wrap);
     stamp(briefOut, mine);
+  });
+
+
+  //: Corpus search.
+  //:
+  //: Two things are on screen that a search box usually hides. A passage that appears in
+  //: several documents is shown ONCE with the count, because these addenda restate the
+  //: same standard paragraphs constantly and a naive ranking hands the reader the same
+  //: text five times. And the documents that could NOT be searched are named: five are
+  //: scanned images with no text layer, so a question they would answer cannot be found
+  //: here at all, and a search that quietly covers most of a corpus reports nothing
+  //: about the part it never read.
+  const searchOut = document.getElementById("searchout");
+
+  function searchSystemState(glyph, label, detail) {
+    searchOut.innerHTML =
+      '<div class="status s-system"><span class="glyph"></span><span></span></div>' +
+      '<p class="refusal"></p>';
+    searchOut.querySelector(".glyph").textContent = glyph;
+    searchOut.querySelector(".status span:last-child").textContent = label;
+    searchOut.querySelector(".refusal").textContent = detail;
+  }
+
+  async function runSearch() {
+    const mine = ++generation.search;
+    const question = document.getElementById("q").value.trim();
+    if (!question) {
+      searchSystemState("\u2298", "Refused", "Ask a question.");
+      stamp(searchOut, mine);
+      return;
+    }
+    searchOut.innerHTML =
+      '<div class="status s-pending"><span class="glyph">&#9675;</span><span>Searching</span></div>';
+
+    let body;
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(question)}&limit=5`);
+      body = await payloadOf(response, "The search");
+    } catch (error) {
+      if (mine !== generation.search) return;
+      searchSystemState("\u26A0", "Unavailable",
+        `The corpus could not be searched, so nothing here is an answer: ${error}`);
+      stamp(searchOut, mine);
+      return;
+    }
+    if (mine !== generation.search) return;
+
+    if (!Array.isArray(body.results)) {
+      searchSystemState("\u2298", "Refused",
+        "The service answered without a result list, so nothing is shown rather than an " +
+        "empty one: an empty list would claim the corpus is silent on the question.");
+      stamp(searchOut, mine);
+      return;
+    }
+
+    searchOut.textContent = "";
+    const wrap = document.createElement("div");
+
+    const scope = document.createElement("p");
+    scope.className = "note";
+    const notSearched = Array.isArray(body.not_searched) ? body.not_searched : [];
+    scope.textContent =
+      `Searched ${body.searched.passages} passages across ` +
+      `${body.searched.documents} of ${body.searched.documents_in_corpus} documents, ` +
+      `using ${body.model}.` +
+      (notSearched.length
+        ? ` ${notSearched.length} document(s) could not be searched: ` +
+          notSearched.map((gap) => `${gap.file} (${gap.why})`).join("; ")
+        : "");
+    wrap.appendChild(scope);
+
+    if (!body.results.length) {
+      const none = document.createElement("p");
+      none.className = "refusal";
+      none.textContent = "Nothing in the searched passages is close to that question.";
+      wrap.appendChild(none);
+    }
+
+    for (const hit of body.results) {
+      const row = document.createElement("div");
+      row.className = "card";
+      row.style.marginBottom = "10px";
+
+      const where = document.createElement("p");
+      where.className = "note";
+      where.style.marginTop = "0";
+      where.textContent =
+        `${hit.documents[0]}  ${hit.score}` +
+        (hit.appears_in > 1
+          ? `  the same passage appears in ${hit.appears_in} documents: ` +
+            hit.documents.join(", ")
+          : "");
+      row.appendChild(where);
+
+      const text = document.createElement("p");
+      text.className = "legal";
+      //: textContent. This is the Board's own prose and it is not this page's to parse.
+      text.textContent = hit.snippet;
+      row.appendChild(text);
+      wrap.appendChild(row);
+    }
+
+    const caveat = document.createElement("p");
+    caveat.className = "note";
+    caveat.textContent = body.not_legal_advice;
+    wrap.appendChild(caveat);
+
+    searchOut.appendChild(wrap);
+    stamp(searchOut, mine);
+  }
+
+  document.getElementById("ask").addEventListener("click", runSearch);
+  document.getElementById("q").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") runSearch();
   });
 
 </script>

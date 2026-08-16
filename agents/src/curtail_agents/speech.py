@@ -112,7 +112,7 @@ class Spoken:
         return base64.b64encode(self.audio_mp3).decode()
 
 
-def _authorise(credentials: Any) -> tuple[Any, str | None]:
+def resolve_credentials(credentials: Any) -> tuple[Any, str | None]:
     """Refresh credentials, or turn any failure into the module's own error.
 
     An unhandled `DefaultCredentialsError` out of an endpoint is a 500 that tells the
@@ -129,6 +129,23 @@ def _authorise(credentials: Any) -> tuple[Any, str | None]:
     except Exception as exc:
         raise SpeechUnavailableError(f"could not obtain credentials: {exc}") from exc
     return creds, project
+
+
+def resolve_project(credentials: Any, discovered: str | None) -> str | None:
+    """Which project a request is billed and addressed to.
+
+    One chain, shared by all three Google calls in this package, because they drifted the
+    moment there were two of them: the embedding path checked only the project that
+    `google.auth.default()` discovers, which is `None` whenever credentials are supplied
+    directly, so it refused with "no project is set" while holding credentials that named
+    one. Three call sites resolving the same thing three ways is three chances to be
+    wrong in a way that reads as a configuration problem.
+    """
+    return (
+        getattr(credentials, "quota_project_id", None)
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or discovered
+    )
 
 
 def brief(recommendation: Recommendation, *, observed_cfs: float, minimum_cfs: float) -> str:
@@ -190,7 +207,7 @@ def synthesise(
         head = script[:MAX_CHARACTERS].rsplit(". ", 1)[0]
         script = f"{head}. The rest of this briefing was too long to speak and is on screen."
 
-    creds, project = _authorise(credentials)
+    creds, project = resolve_credentials(credentials)
 
     # **A quota project is required and its absence is a 403, not a 401.** Under local
     # Application Default Credentials this API refuses without an `x-goog-user-project`
@@ -198,11 +215,7 @@ def synthesise(
     # header. Resolved here and REFUSED explicitly when unknown, because sending a
     # request that is certain to fail produces a confusing error somebody else has to
     # diagnose.
-    quota_project = (
-        getattr(creds, "quota_project_id", None)
-        or os.environ.get("GOOGLE_CLOUD_PROJECT")
-        or project
-    )
+    quota_project = resolve_project(creds, project)
     if not quota_project:
         raise SpeechUnavailableError(
             "no quota project is set. Text-to-Speech refuses local Application Default "
@@ -309,12 +322,8 @@ def transcribe(
             f"the recording is {len(audio):,} bytes and the limit is {MAX_AUDIO_BYTES:,}"
         )
 
-    creds, project = _authorise(credentials)
-    quota_project = (
-        getattr(creds, "quota_project_id", None)
-        or os.environ.get("GOOGLE_CLOUD_PROJECT")
-        or project
-    )
+    creds, project = resolve_credentials(credentials)
+    quota_project = resolve_project(creds, project)
     if not quota_project:
         raise SpeechUnavailableError(
             "no quota project is set, and the recognizer path is addressed by project. "
@@ -389,6 +398,8 @@ __all__ = [
     "SpeechUnavailableError",
     "Spoken",
     "brief",
+    "resolve_credentials",
+    "resolve_project",
     "synthesise",
     "transcribe",
 ]
