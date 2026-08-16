@@ -2715,3 +2715,151 @@ class TestTheSpokenBriefing:
         )
         for route in held:
             route.abort()
+
+
+class TestFieldDictation:
+    """Speech-to-text on the field surface, and the one rule that governs it.
+
+    The microphone is stubbed rather than requested: Chromium can be launched with a
+    fake device, but a test that depends on an audio pipeline is a test that fails for
+    reasons unrelated to what it asserts. `MediaRecorder` and `getUserMedia` are
+    replaced in the page so the recording path runs deterministically and the assertions
+    land on what the transcript is allowed to touch.
+    """
+
+    STUB = """
+      () => {
+        window.__stopped = 0;
+        navigator.mediaDevices.getUserMedia = async () => ({
+          getTracks: () => [{ stop: () => { window.__stopped += 1; } }],
+        });
+        window.MediaRecorder = class {
+          constructor() { this.state = "inactive"; this.mimeType = "audio/webm"; }
+          start() {
+            this.state = "recording";
+            setTimeout(() => this.ondataavailable(
+              { data: new Blob([new Uint8Array(400)], { type: "audio/webm" }) }), 0);
+          }
+          stop() { this.state = "inactive"; setTimeout(() => this.onstop(), 0); }
+        };
+      }
+    """
+
+    def dictate(self, page: Page, url: str, response: dict[str, Any], status: int = 200) -> None:
+        page.route("**/api/field/transcribe", _fulfil(response, status))
+        page.goto(url + "/field")
+        page.evaluate(self.STUB)
+        page.click("#dictate")
+        page.click("#dictate")
+
+    def test_the_transcript_reaches_the_note_and_never_the_discharge(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The governance rule of this feature, asserted rather than documented.
+
+        Measured against this system's own spoken briefing, chirp_3 kept `45.3` and
+        turned the word "gage" into "gauge" with nothing in the response marking the
+        substitution, and it returns no confidence score at all. So a transcript may
+        fill free text and must never fill a value an order rests on. The fixture below
+        speaks a number on purpose: if dictation ever writes `#cfs`, this fails.
+        """
+        self.dictate(
+            page,
+            console_url,
+            {
+                "transcript": "Forty five point three at the gauge, clear water.",
+                "model": "chirp_3",
+                "confidence": None,
+                "fills_only": "instrument_note",
+                "advisory": 'this recogniser has been observed transcribing "gage" as "gauge"',
+                "audio_retained": False,
+            },
+        )
+        page.wait_for_function(
+            "() => document.getElementById('instrument').value.includes('gauge')"
+        )
+        assert "Forty five point three" in page.input_value("#instrument")
+        assert page.input_value("#cfs") == "", (
+            "dictation wrote the discharge field. A recogniser that silently swaps a "
+            "term of art must never fill a value an order rests on."
+        )
+
+    def test_it_appends_rather_than_replacing_what_was_typed(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Losing a note somebody typed by hand, to a machine that mishears, is the
+        worst version of this feature."""
+        page.route(
+            "**/api/field/transcribe",
+            _fulfil({"transcript": "Clear water.", "model": "chirp_3", "advisory": "x"}),
+        )
+        page.goto(console_url + "/field")
+        page.evaluate(self.STUB)
+        page.fill("#instrument", "AA meter")
+        page.click("#dictate")
+        page.click("#dictate")
+        page.wait_for_function(
+            "() => document.getElementById('instrument').value.includes('Clear water')"
+        )
+        assert page.input_value("#instrument") == "AA meter Clear water."
+
+    def test_a_refusal_tells_the_observer_to_type_it(self, page: Page, console_url: str) -> None:
+        """An empty transcript accepted as success would be typed over without the
+        observer ever learning the recording failed."""
+        self.dictate(
+            page, console_url, {"detail": "nothing was recognised in the recording"}, status=503
+        )
+        page.wait_for_function(
+            "() => document.getElementById('dictation').textContent.includes('Type the note')"
+        )
+        assert page.input_value("#instrument") == ""
+        assert "nothing was recognised" in page.locator("#dictation").inner_text()
+
+    def test_a_200_carrying_an_empty_transcript_is_not_written_in(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The endpoint answers 503 for an unrecognised recording, so the real service
+        cannot produce this shape. The client guards it anyway, and mutation is what
+        forced this test to exist: deleting the guard changed no result until something
+        actually sent the shape it defends against.
+
+        It is reachable in practice through a caching proxy, a rewritten response, or a
+        later change to the endpoint. A client that trusts the shape of what it is
+        handed is the same defect as a fetcher that trusts a status code, which this
+        project has already met in a WAF challenge page served as HTTP 200.
+        """
+        self.dictate(page, console_url, {"transcript": "", "model": "chirp_3", "advisory": "x"})
+        page.wait_for_function(
+            "() => document.getElementById('dictation').textContent"
+            ".includes('Nothing was recognised')"
+        )
+        assert page.input_value("#instrument") == ""
+
+    def test_the_microphone_is_released_when_recording_stops(
+        self, page: Page, console_url: str
+    ) -> None:
+        """A live input indicator left on after the user believes they stopped is its
+        own kind of dishonesty, and on a phone it is the visible kind."""
+        self.dictate(
+            page,
+            console_url,
+            {"transcript": "Note.", "model": "chirp_3", "advisory": "x"},
+        )
+        page.wait_for_function("() => window.__stopped >= 1")
+        assert page.evaluate("() => window.__stopped") >= 1
+
+    def test_offline_says_so_instead_of_failing_quietly(self, page: Page, console_url: str) -> None:
+        """The field surface is used where there is often no signal. Dictation needs
+        the network and the measurement does not, and the two must not be confused."""
+        page.goto(console_url + "/field")
+        page.evaluate(self.STUB)
+        page.evaluate("() => Object.defineProperty(navigator, 'onLine', { get: () => false })")
+        page.click("#dictate")
+        page.wait_for_function(
+            "() => document.getElementById('dictation').textContent.includes('offline')"
+        )
+        text = page.locator("#dictation").inner_text()
+        assert "still saves" in text, (
+            "an observer must be told the measurement itself is unaffected, or they will "
+            "believe the whole capture failed"
+        )

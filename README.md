@@ -189,6 +189,25 @@ workload. Hearing a figure is a different act from seeing it. Every failure path
 refuses rather than returning quiet, because a player with nothing behind it is
 indistinguishable from a briefing with nothing to say.
 
+**Dictation in the field**, and the rule it runs under. Chirp 3 speech-to-text fills the
+note on the field surface (`POST /api/field/transcribe`), because a watermaster at a
+diversion point is gloved, holding an instrument, standing in moving water, and typing is
+the hard case out there.
+
+**It may never fill a value an order rests on, and that came out of a measurement rather
+than caution.** Run against this system's own spoken briefing, the recogniser kept the
+figure `45.3` and transcribed the word "gage" as "gauge". Both are real words, one is the
+USGS and Water Board spelling, and nothing in the response marks the substitution. It also
+returns no confidence score, so an interface cannot show how sure it was. So the transcript
+is appended to free text, never replacing what a person typed, the discharge stays typed by
+hand, and the audio is discarded rather than stored, because a recording made at a river
+can capture bystander voices.
+
+The model runs in the `us` multi-region and in none of the six other locations tried
+(`global`, `us-central1`, `us-east1`, `us-west1`, `europe-west4`, `asia-southeast1`), which
+is recorded at the constant so the next reader does not rediscover it through an error
+message that reads like a broken model name.
+
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
 flow-schedule refusal. A node timeout catches a model that loops rather than fails,

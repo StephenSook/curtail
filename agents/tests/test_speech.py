@@ -21,6 +21,7 @@ the audio so a reader can check what was said without listening to it.
 from __future__ import annotations
 
 import base64
+import json
 from datetime import date
 from typing import Any
 
@@ -404,3 +405,191 @@ class TestTheCredentialPathsRefuseRatherThanCrash:
 
         with pytest.raises(SpeechUnavailableError, match="could not obtain credentials"):
             synthesise("Speak.", client=transport(ok), credentials=Broken())
+
+
+class TestTranscription:
+    """Chirp 3 speech-to-text, stubbed. The interesting rules are about what it refuses
+    and about the one field a transcript is allowed to reach."""
+
+    @staticmethod
+    def heard(text: str, confidence: Any = None) -> Any:
+        alternative: dict[str, Any] = {"transcript": text}
+        if confidence is not None:
+            alternative["confidence"] = confidence
+        return {"results": [{"alternatives": [alternative]}]}
+
+    def responder(self, body: dict[str, Any], status: int = 200) -> Any:
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(status, json=body)
+
+        return handler
+
+    def test_it_returns_the_transcript_and_the_model(self) -> None:
+        from curtail_agents.speech import TRANSCRIBE_MODEL, transcribe
+
+        result = transcribe(
+            b"\x1aE\xdf\xa3" + b"\x00" * 200,
+            client=transport(self.responder(self.heard("Meter reading taken midstream."))),
+            credentials=FakeCredentials(),
+        )
+        assert result.transcript == "Meter reading taken midstream."
+        assert result.model == TRANSCRIBE_MODEL == "chirp_3"
+
+    def test_a_missing_confidence_stays_none_and_is_not_defaulted(self) -> None:
+        """chirp_3 returns no score. Substituting 1.0 would be a confident claim about
+        something that was never measured, which is the failure this repo keeps
+        finding in other shapes."""
+        from curtail_agents.speech import transcribe
+
+        result = transcribe(
+            b"audio" * 100,
+            client=transport(self.responder(self.heard("A note."))),
+            credentials=FakeCredentials(),
+        )
+        assert result.confidence is None
+
+    def test_a_supplied_confidence_is_kept(self) -> None:
+        """Guards the guard: if the field were dropped unconditionally, the test above
+        would pass against a function that can never report a score at all."""
+        from curtail_agents.speech import transcribe
+
+        result = transcribe(
+            b"audio" * 100,
+            client=transport(self.responder(self.heard("A note.", confidence=0.82))),
+            credentials=FakeCredentials(),
+        )
+        assert result.confidence == pytest.approx(0.82)
+
+    def test_an_empty_transcript_refuses(self) -> None:
+        """Silence recognised as "" and a recogniser that never answered are different
+        events. Returning "" for both would erase the difference, and an observer would
+        never learn the recording failed."""
+        from curtail_agents.speech import transcribe
+
+        with pytest.raises(SpeechUnavailableError, match="nothing was recognised"):
+            transcribe(
+                b"audio" * 100,
+                client=transport(self.responder({"results": []})),
+                credentials=FakeCredentials(),
+            )
+
+    def test_empty_audio_refuses(self) -> None:
+        from curtail_agents.speech import transcribe
+
+        with pytest.raises(SpeechUnavailableError, match="no audio"):
+            transcribe(b"", client=transport(self.responder({})), credentials=FakeCredentials())
+
+    def test_oversized_audio_refuses_before_sending(self) -> None:
+        from curtail_agents.speech import MAX_AUDIO_BYTES, transcribe
+
+        sent = False
+
+        def watch(_request: httpx.Request) -> httpx.Response:
+            nonlocal sent
+            sent = True
+            return httpx.Response(200, json={})
+
+        with pytest.raises(SpeechUnavailableError, match="limit is"):
+            transcribe(
+                b"\x00" * (MAX_AUDIO_BYTES + 1),
+                client=transport(watch),
+                credentials=FakeCredentials(),
+            )
+        assert not sent
+
+    def test_it_asks_the_us_multiregion_for_chirp_3(self) -> None:
+        """The model exists in `us` and in none of the six other locations tried, and
+        there is no `global-speech` host at all. A wrong region answers INVALID_ARGUMENT
+        in a way that reads like a broken model name."""
+        from curtail_agents.speech import transcribe
+
+        seen: dict[str, Any] = {}
+
+        def capture(request: httpx.Request) -> httpx.Response:
+            seen["url"] = str(request.url)
+            seen["body"] = json.loads(request.content)
+            return httpx.Response(200, json=self.heard("A note."))
+
+        transcribe(
+            b"audio" * 100,
+            client=transport(capture),
+            credentials=FakeCredentials(quota_project_id="curtail-505118"),
+        )
+        assert seen["url"].startswith("https://us-speech.googleapis.com/v2/")
+        assert "/locations/us/recognizers/_:recognize" in seen["url"]
+        assert "curtail-505118" in seen["url"]
+        assert seen["body"]["config"]["model"] == "chirp_3"
+        # Auto-decoding, not a declared encoding: the same browser code emits webm/opus
+        # on Android and mp4/aac on iOS, so any hard-coded container is wrong on one.
+        assert seen["body"]["config"]["autoDecodingConfig"] == {}
+
+
+class TestTheTranscriptionEndpoint:
+    @staticmethod
+    def client() -> Any:
+        from fastapi.testclient import TestClient
+
+        from curtail_agents.api import app
+
+        return TestClient(app)
+
+    def test_it_names_the_only_field_a_transcript_may_fill(self, monkeypatch: Any) -> None:
+        """The whole governance point of this endpoint. A recogniser that turns "gage"
+        into "gauge" without flagging it is not one to hand a discharge figure to, and
+        the response says so rather than leaving it to a client's good manners."""
+        from curtail_agents import api
+        from curtail_agents.speech import Heard
+
+        monkeypatch.setattr(
+            api,
+            "transcribe",
+            lambda _audio: Heard(transcript="Midstream, clear.", model="chirp_3", confidence=None),
+        )
+        response = self.client().post(
+            "/api/field/transcribe",
+            json={"audio_base64": base64.b64encode(b"audio" * 100).decode()},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["transcript"] == "Midstream, clear."
+        assert body["fills_only"] == "instrument_note"
+        assert body["confidence"] is None
+        assert body["audio_retained"] is False
+        assert "gauge" in body["advisory"]
+
+    def test_audio_that_is_not_base64_is_refused(self, monkeypatch: Any) -> None:
+        from curtail_agents import api
+
+        called = False
+
+        def watch(_audio: bytes) -> None:
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr(api, "transcribe", watch)
+        response = self.client().post(
+            "/api/field/transcribe", json={"audio_base64": "!!! not base64 !!!"}
+        )
+        assert response.status_code == 422
+        assert not called
+
+    def test_no_audio_is_refused(self) -> None:
+        response = self.client().post("/api/field/transcribe", json={})
+        assert response.status_code == 422
+        assert "no audio" in response.json()["detail"]
+
+    def test_a_recogniser_failure_is_a_503_not_an_empty_success(self, monkeypatch: Any) -> None:
+        """An empty transcript returned as success would be typed over by the observer
+        without them ever learning the recogniser failed."""
+        from curtail_agents import api
+
+        def refuse(_audio: bytes) -> None:
+            raise SpeechUnavailableError("nothing was recognised in the recording")
+
+        monkeypatch.setattr(api, "transcribe", refuse)
+        response = self.client().post(
+            "/api/field/transcribe",
+            json={"audio_base64": base64.b64encode(b"audio" * 100).decode()},
+        )
+        assert response.status_code == 503
+        assert "nothing was recognised" in response.json()["detail"]

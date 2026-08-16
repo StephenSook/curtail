@@ -22,6 +22,8 @@ nothing about any water right, any order, or any officer.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import os
 from datetime import UTC, datetime, timedelta
@@ -86,7 +88,12 @@ from curtail_agents.season_store import (
     store_for,
 )
 from curtail_agents.sentinel import Observation, SentinelError, evaluate
-from curtail_agents.speech import SpeechUnavailableError, brief, synthesise
+from curtail_agents.speech import (
+    SpeechUnavailableError,
+    brief,
+    synthesise,
+    transcribe,
+)
 from curtail_agents.telemetry import (
     CORRELATION_ATTRIBUTE,
     configure_tracing,
@@ -462,6 +469,63 @@ def submit_measurement(basin: str, payload: dict[str, Any]) -> dict[str, Any]:
             "Appended as evidence. It does not curtail, restore, sign or serve anything. "
             "23 CCR 875(b) vests the determination in a named human official."
         ),
+    }
+
+
+@app.post("/api/field/transcribe")
+def transcribe_note(payload: dict[str, Any]) -> dict[str, Any]:
+    """Dictate a field note. It fills free text and nothing else.
+
+    A watermaster at a diversion point is outdoors, often gloved, holding an instrument
+    in one hand and standing in moving water. Typing is the hard case, which is why
+    speech is load-bearing on this surface rather than a flourish.
+
+    **The transcript may never populate the discharge, the basin, the observer or any
+    other value an order rests on, and that is a measured decision rather than caution.**
+    Run against this system's own spoken briefing, Chirp 3 kept the figure `45.3` and
+    transcribed the word "gage" as "gauge". Both are real words, one is the USGS and
+    Water Board spelling, and the response marks the substitution in no way at all. The
+    model also returns no confidence score, so an interface cannot show how sure it was.
+    A recogniser that silently swaps a term of art is not one to hand a number to.
+
+    So the response carries `fills_only` naming the single field it may reach, and the
+    device is expected to place the text where a human will read and edit it before
+    anything is saved. The audio is transcribed and discarded: a recording taken at a
+    river can capture bystander voices, and nothing here writes it anywhere.
+    """
+    encoded = payload.get("audio_base64")
+    if not isinstance(encoded, str) or not encoded:
+        raise HTTPException(status_code=422, detail="no audio was submitted")
+    try:
+        audio = base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(status_code=422, detail=f"the audio was not base64: {exc}") from exc
+
+    try:
+        heard = transcribe(audio)
+    except SpeechUnavailableError as exc:
+        # 503 with the reason. An empty transcript returned as success would be typed
+        # over by the observer without them ever knowing the recogniser failed.
+        log.warning("transcription unavailable", bytes=len(audio), reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    log.info("field note transcribed", bytes=len(audio), characters=len(heard.transcript))
+    return {
+        "transcript": heard.transcript,
+        "model": heard.model,
+        # Carried as null rather than as a number. chirp_3 returns no score, and
+        # inventing a 1.0 would be a confident claim about something unmeasured.
+        "confidence": heard.confidence,
+        "confidence_note": (
+            "This model returns no confidence score, so none is shown. Read the text."
+        ),
+        "fills_only": "instrument_note",
+        "advisory": (
+            "Dictation fills the note. Type the discharge yourself: this recogniser has "
+            'been observed transcribing "gage" as "gauge", and a figure an order '
+            "rests on is not something to read back from a microphone."
+        ),
+        "audio_retained": False,
     }
 
 

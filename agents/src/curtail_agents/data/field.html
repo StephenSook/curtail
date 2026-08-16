@@ -153,14 +153,20 @@
         <input id="observer" type="text" autocomplete="name" placeholder="Your name">
       </div>
       <div>
-        <label for="instrument">Instrument</label>
+        <label for="instrument">Instrument and note</label>
         <input id="instrument" type="text" placeholder="e.g. AA meter">
       </div>
     </div>
     <div class="grid2" style="margin-top:14px">
+      <button id="dictate" type="button">Dictate the note</button>
       <button id="locate" type="button">Add location</button>
+    </div>
+    <div class="grid2" style="margin-top:14px">
       <button id="photo-btn" type="button">Add photo</button>
     </div>
+    <div id="dictation" class="hint">Dictation fills the note only. Type the discharge
+      yourself: this recogniser has been observed hearing "gage" as "gauge", and a figure
+      an order rests on is not read back from a microphone.</div>
     <input id="photo" type="file" accept="image/*" capture="environment" hidden>
     <div id="attach" class="hint">Location and photo are optional. The photo is hashed on
       this device and the image never leaves it.</div>
@@ -370,4 +376,89 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) flus
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 online(); prune().then(paintQueue); paintThreshold(); paintLedger();
+
+/* ------------------------------------------------------------------------- *
+ * Dictation, Chirp 3 speech-to-text.
+ *
+ * Gloved, one hand on an instrument, standing in moving water: typing is the
+ * hard case out here, which is why speech is load-bearing on this surface.
+ *
+ * It fills the NOTE and nothing else. Measured against this system's own
+ * spoken briefing, the recogniser kept the figure 45.3 and turned the word
+ * "gage" into "gauge". Both are real words, one is the USGS and Water Board
+ * spelling, and nothing in the response flags the swap. It also returns no
+ * confidence score. A recogniser that quietly substitutes a term of art is not
+ * one to hand a legally operative number to, so #cfs is never written here.
+ *
+ * The result is APPENDED to whatever the observer already typed, never
+ * replacing it. Losing a note somebody typed by hand, to a machine that
+ * mishears, would be the worst version of this feature.
+ * ------------------------------------------------------------------------- */
+let recorder = null, chunks = [];
+
+function dictationState(text) { $("dictation").textContent = text; }
+
+$("dictate").addEventListener("click", async () => {
+  if (recorder && recorder.state === "recording") { recorder.stop(); return; }
+
+  if (!navigator.onLine) {
+    dictationState("Dictation needs a connection and this device is offline. Type the note. " +
+      "The measurement itself still saves and syncs later.");
+    return;
+  }
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    dictationState("This browser will not record audio. Type the note.");
+    return;
+  }
+
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (error) {
+    dictationState(`The microphone is not available (${error.name}). Type the note.`);
+    return;
+  }
+
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    // Release the microphone as soon as recording ends. A live input indicator
+    // left on after the user thinks they stopped is its own kind of dishonesty.
+    stream.getTracks().forEach((track) => track.stop());
+    $("dictate").textContent = "Dictate the note";
+
+    const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+    chunks = [];
+    if (!blob.size) { dictationState("Nothing was recorded. Type the note."); return; }
+
+    dictationState("Transcribing.");
+    let body;
+    try {
+      const buffer = new Uint8Array(await blob.arrayBuffer());
+      let binary = "";
+      for (let i = 0; i < buffer.length; i += 1) binary += String.fromCharCode(buffer[i]);
+      const response = await fetch("/api/field/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio_base64: btoa(binary) }),
+      });
+      body = await response.json();
+      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    } catch (error) {
+      dictationState(`Not transcribed: ${error.message}. Type the note.`);
+      return;
+    }
+    if (!body.transcript) { dictationState("Nothing was recognised. Type the note."); return; }
+
+    const field = $("instrument");
+    field.value = field.value ? `${field.value} ${body.transcript}` : body.transcript;
+    dictationState(`Heard by ${body.model}, and written into the note. Read it before you ` +
+      `save: ${body.advisory}`);
+  };
+
+  recorder.start();
+  $("dictate").textContent = "Stop and transcribe";
+  dictationState("Recording. Press again to stop. Nothing is sent until you stop.");
+});
 </script>

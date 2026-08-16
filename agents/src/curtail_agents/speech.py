@@ -62,6 +62,32 @@ CHIRP_MEASURED_LUFS = -23.6
 #: silently cut mid-sentence somewhere a listener cannot tell.
 MAX_CHARACTERS = 4500
 
+#: **Chirp 3 for speech-to-text exists in the `us` multi-region and NOWHERE ELSE that
+#: this project can reach.** Established by sending the same real audio to seven
+#: locations, not by reading a docs page:
+#:
+#:     us               transcribed it
+#:     global           INVALID_ARGUMENT, the model does not exist there
+#:     us-central1      INVALID_ARGUMENT, the model does not exist there
+#:     us-east1         INVALID_ARGUMENT
+#:     us-west1         INVALID_ARGUMENT
+#:     europe-west4     INVALID_ARGUMENT
+#:     asia-southeast1  PERMISSION_DENIED
+#:
+#: Note the hostname rule that goes with it: every region is `{location}-speech...` and
+#: there is no `global-speech` host at all. Text-to-Speech, in the same product family,
+#: is a single unprefixed host. Assuming one from the other produces a 404 that reads
+#: like a broken URL rather than a wrong region.
+TRANSCRIBE_LOCATION = "us"
+TRANSCRIBE_MODEL = "chirp_3"
+TRANSCRIBE_ENDPOINT = (
+    "https://us-speech.googleapis.com/v2/projects/{project}/locations/us/recognizers/_:recognize"
+)
+
+#: Inline audio only, and small. A field note is seconds of speech, and the recogniser's
+#: inline path is not the way to send a long recording.
+MAX_AUDIO_BYTES = 8 * 1024 * 1024
+
 
 class SpeechUnavailableError(RuntimeError):
     """Nothing could be synthesised, and silence must not be returned as audio.
@@ -84,6 +110,25 @@ class Spoken:
     @property
     def audio_base64(self) -> str:
         return base64.b64encode(self.audio_mp3).decode()
+
+
+def _authorise(credentials: Any) -> tuple[Any, str | None]:
+    """Refresh credentials, or turn any failure into the module's own error.
+
+    An unhandled `DefaultCredentialsError` out of an endpoint is a 500 that tells the
+    caller nothing about what to fix. Shared by both calls so the two cannot drift.
+    """
+    try:
+        creds = credentials
+        project: str | None = None
+        if creds is None:
+            creds, project = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+        creds.refresh(google.auth.transport.requests.Request())
+    except Exception as exc:
+        raise SpeechUnavailableError(f"could not obtain credentials: {exc}") from exc
+    return creds, project
 
 
 def brief(recommendation: Recommendation, *, observed_cfs: float, minimum_cfs: float) -> str:
@@ -145,16 +190,7 @@ def synthesise(
         head = script[:MAX_CHARACTERS].rsplit(". ", 1)[0]
         script = f"{head}. The rest of this briefing was too long to speak and is on screen."
 
-    try:
-        creds = credentials
-        project: str | None = None
-        if creds is None:
-            creds, project = google.auth.default(
-                scopes=["https://www.googleapis.com/auth/cloud-platform"]
-            )
-        creds.refresh(google.auth.transport.requests.Request())
-    except Exception as exc:
-        raise SpeechUnavailableError(f"could not obtain credentials: {exc}") from exc
+    creds, project = _authorise(credentials)
 
     # **A quota project is required and its absence is a 403, not a 401.** Under local
     # Application Default Credentials this API refuses without an `x-goog-user-project`
@@ -224,11 +260,135 @@ def synthesise(
     return Spoken(script=script, audio_mp3=audio, voice=voice, truncated=truncated)
 
 
+@dataclass(frozen=True, slots=True)
+class Heard:
+    """What the recogniser produced, and what it could not tell you.
+
+    `confidence` is `None` for every chirp_3 result observed, because the model does not
+    return one. That absence is carried explicitly rather than defaulted to a number, for
+    the same reason a missing priority date is carried as missing: a confident
+    placeholder is worse than an acknowledged gap.
+    """
+
+    transcript: str
+    model: str
+    confidence: float | None
+
+
+def transcribe(
+    audio: bytes,
+    *,
+    client: httpx.Client | None = None,
+    credentials: Any = None,
+) -> Heard:
+    """Turn recorded speech into text, or refuse.
+
+    **What a caller may do with the result, and why it is not a preference.**
+
+    A transcript may fill a free-text note. It must never populate a legally operative
+    value. Measured on this project's own audio, chirp_3 preserved `45.3` correctly and
+    transcribed the word "gage" as "gauge". Both are real words, only one is the USGS and
+    Water Board spelling, and nothing in the response marks the substitution. The model
+    also returns no confidence score, so an interface cannot even show how sure it was. A
+    recogniser that quietly swaps a domain term is a recogniser that must not be trusted
+    with a number an order is built on.
+
+    The audio is not stored. A recording made at a diversion point can pick up bystander
+    voices, and this repository already refuses to carry third-party personal data from
+    sources far less sensitive than a live microphone.
+
+    Raises:
+        SpeechUnavailableError: on any failure, including an empty transcript. Silence
+            recognised as "" and a recogniser that never answered are different events,
+            and returning "" for both would erase the difference.
+    """
+    if not audio:
+        raise SpeechUnavailableError("there is no audio to transcribe")
+    if len(audio) > MAX_AUDIO_BYTES:
+        raise SpeechUnavailableError(
+            f"the recording is {len(audio):,} bytes and the limit is {MAX_AUDIO_BYTES:,}"
+        )
+
+    creds, project = _authorise(credentials)
+    quota_project = (
+        getattr(creds, "quota_project_id", None)
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or project
+    )
+    if not quota_project:
+        raise SpeechUnavailableError(
+            "no quota project is set, and the recognizer path is addressed by project. "
+            "Set GOOGLE_CLOUD_PROJECT."
+        )
+
+    payload = {
+        "config": {
+            # Let the service read the container rather than declaring one. A browser
+            # MediaRecorder emits webm/opus on Android and mp4/aac on iOS from the same
+            # code, so a hard-coded encoding is wrong on one platform out of two.
+            "autoDecodingConfig": {},
+            "languageCodes": ["en-US"],
+            "model": TRANSCRIBE_MODEL,
+        },
+        "content": base64.b64encode(audio).decode(),
+    }
+    owns = client is None
+    http = client or httpx.Client(timeout=60.0)
+    try:
+        response = http.post(
+            TRANSCRIBE_ENDPOINT.format(project=quota_project),
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {creds.token}",
+                "x-goog-user-project": quota_project,
+            },
+        )
+    except httpx.HTTPError as exc:
+        raise SpeechUnavailableError(f"speech-to-text was unreachable: {exc}") from exc
+    finally:
+        if owns:
+            http.close()
+
+    if response.status_code != 200:
+        raise SpeechUnavailableError(
+            f"speech-to-text returned HTTP {response.status_code}: {response.text[:200]}"
+        )
+    try:
+        body = response.json()
+    except ValueError as exc:
+        raise SpeechUnavailableError("speech-to-text returned a non-JSON body") from exc
+
+    pieces: list[str] = []
+    confidence: float | None = None
+    for result in body.get("results", []):
+        for alternative in result.get("alternatives", []):
+            text = str(alternative.get("transcript", "")).strip()
+            if text:
+                pieces.append(text)
+            # Kept only if the model actually supplies one. chirp_3 does not.
+            scored = alternative.get("confidence")
+            if confidence is None and isinstance(scored, int | float):
+                confidence = float(scored)
+
+    transcript = " ".join(pieces).strip()
+    if not transcript:
+        raise SpeechUnavailableError(
+            "nothing was recognised in the recording. Speak closer to the microphone, or "
+            "type the note instead."
+        )
+    return Heard(transcript=transcript, model=TRANSCRIBE_MODEL, confidence=confidence)
+
+
 __all__ = [
     "DEFAULT_VOICE",
+    "MAX_AUDIO_BYTES",
     "MAX_CHARACTERS",
+    "TRANSCRIBE_LOCATION",
+    "TRANSCRIBE_MODEL",
+    "Heard",
     "SpeechUnavailableError",
     "Spoken",
     "brief",
     "synthesise",
+    "transcribe",
 ]
