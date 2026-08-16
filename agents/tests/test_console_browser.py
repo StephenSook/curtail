@@ -2157,3 +2157,79 @@ class TestTheRightsLedger:
             "the filter repopulated the table from the previous basin's rows"
         )
         assert page.locator("#ledgercard").get_attribute("data-shown") == "0"
+
+
+class TestAValidTwoHundredCarryingNothingUseful:
+    """`null` is legal JSON, and it crashed three cards.
+
+    `response.ok` is true, so the shape check that follows read `body.rows` or
+    `body.series` or `body.located` on null. That throws a TypeError OUTSIDE the try,
+    so nothing caught it: no message, no state, the card sitting on its loading text
+    forever. Measured before the fix: three uncaught errors and three cards with
+    `data-state` unset.
+
+    A card that says nothing is the exact failure this console is built against, and
+    it is worse than a card showing a wrong number, because a wrong number at least
+    invites a second look.
+    """
+
+    CASES: ClassVar[list[tuple[str, str, str]]] = [
+        ("null", "null", "application/json"),
+        ("an array", "[1,2,3]", "application/json"),
+        ("a bare string", '"nope"', "application/json"),
+        ("a number", "42", "application/json"),
+        # A gateway or WAF interstitial served with HTTP 200 is a documented hazard on
+        # this project's own sources, so it belongs in this list rather than beside it.
+        ("html at 200", "<html>gateway</html>", "text/html"),
+    ]
+
+    @pytest.mark.parametrize(("label", "payload", "ctype"), CASES)
+    def test_every_card_refuses_and_says_why(
+        self, page: Page, console_url: str, label: str, payload: str, ctype: str
+    ) -> None:
+        errors: list[str] = []
+        page.on("pageerror", lambda e: errors.append(str(e)))
+
+        def handler(route: Route) -> None:
+            route.fulfill(status=200, content_type=ctype, body=payload)
+
+        for path in ("ledger", "hydrograph", "diversions", "gage"):
+            page.route(f"**/api/{path}/**", handler)
+
+        page.goto(console_url)
+        page.locator("#mapcard").scroll_into_view_if_needed()
+        for card in ("ledgercard", "graph", "mapcard"):
+            page.wait_for_function(
+                f"() => document.getElementById('{card}')?.dataset.state === 'unavailable'",
+                timeout=45_000,
+            )
+
+        assert not errors, f"{label} produced uncaught errors: {errors[:2]}"
+        note = page.locator("#ledger-note").inner_text()
+        assert "Could not load the ledger" in note
+        assert note.strip() != "Could not load the ledger:", "the reason is empty"
+
+    def test_the_message_names_what_arrived(self, page: Page, console_url: str) -> None:
+        """ "object rather than an object" is what `typeof []` produces, and it reads
+        like a bug in the message rather than in the answer."""
+
+        def handler(route: Route) -> None:
+            route.fulfill(status=200, content_type="application/json", body="[1,2,3]")
+
+        page.route("**/api/ledger/**", handler)
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert "an array rather than an object" in page.locator("#ledger-note").inner_text()
+
+    def test_a_good_answer_still_renders(self, page: Page, console_url: str) -> None:
+        """Guards the guard. A payload check that refused everything would satisfy
+        every assertion above while breaking the console completely."""
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('ledgercard')?.dataset.state === 'loaded'",
+            timeout=60_000,
+        )
+        assert int(page.locator("#ledgercard").get_attribute("data-shown") or "0") > 0
