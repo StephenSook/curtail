@@ -208,6 +208,28 @@ The model runs in the `us` multi-region and in none of the six other locations t
 is recorded at the constant so the next reader does not rediscover it through an error
 message that reads like a broken model name.
 
+**Ask the corpus a question.** 101 curtailment documents issued over five years, indexed
+by meaning with `gemini-embedding-001` and searched from the console (`GET /api/search`).
+"When was curtailment lifted because the measurement itself turned out to be wrong" shares
+no words with the addendum that answers it: these documents say rating curve, shift,
+revised, field measurements and suspension of curtailment in different combinations, and
+no two phrase it the same way.
+
+**Three things this index reports that a search box normally hides.** A passage appearing
+in several documents is shown once with the count, because these addenda restate the same
+standard paragraphs constantly and a naive ranking hands a reader the same text five times.
+The five documents that could not be searched are named on every response, with the reason:
+they are scanned images with no text layer, so a question they would answer is not findable
+here at all. And nothing is indexed from Attachment A: the rights tables are parsed exactly
+elsewhere in this system, and no owner name, business name or contact address enters the
+index, which a test asserts against the committed artifact on every run.
+
+That last guard exists because the leak happened. A right-identifier pattern that missed
+`SG`, the most common prefix in these documents, put 49 Attachment A fragments carrying
+private individuals' names into an earlier build. The fix after it was too eager and
+silently dropped twenty documents' worth of findings while the counts still reported all
+101. Both directions are invisible without a guard that measures the artifact.
+
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
 flow-schedule refusal. A node timeout catches a model that loops rather than fails,

@@ -54,6 +54,8 @@ from curtail_agents.approval_queue import (
     demo_token,
 )
 from curtail_agents.credentials import CredentialError
+from curtail_agents.embeddings import MODEL as EMBEDDING_MODEL
+from curtail_agents.embeddings import EmbeddingUnavailableError, embed_query
 from curtail_agents.events import Provenance
 from curtail_agents.field_store import (
     FieldEvidenceError,
@@ -106,6 +108,9 @@ from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.basins import COMPLIANCE_GAGE, Basin
 from curtail_core.clocks import SignatoryRole
+from curtail_core.corpus_search import CorpusIndexUnavailableError
+from curtail_core.corpus_search import load as corpus_index
+from curtail_core.corpus_search import search as corpus_search
 from curtail_core.flow_minimums import (
     NEAR_THRESHOLD_BAND_CFS,
     ScheduleGapError,
@@ -983,6 +988,85 @@ def spoken_brief(basin: str, cfs: float, at: str | None = None) -> dict[str, Any
         "disclaimer": (
             "A recommendation. 23 CCR 875(b) vests the determination in a named "
             "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
+@app.get("/api/search")
+def search_corpus(q: str, limit: int = 5) -> dict[str, Any]:
+    """Ask the corpus a question in ordinary words.
+
+    101 curtailment documents issued over five years across four order series, and the
+    question a watermaster actually has is not a keyword. "When was curtailment lifted
+    because the measurement itself turned out to be wrong" shares no words with the
+    addendum that answers it: the documents say rating curve, shift, revised, field
+    measurements and suspension of curtailment in different combinations, and no two
+    phrase it the same way.
+
+    The rights tables inside these documents are parsed exactly elsewhere in this
+    system. This indexes the PROSE, which is where the findings live and which nothing
+    else here can reach.
+
+    A repeated passage collapses to one result naming every document that carries it.
+    That is not tidying: 2,072 chunks hold 864 distinct texts, so a naive ranking hands
+    a reader the same standard paragraph five times and buries the second-best answer.
+    """
+    question = q.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="ask a question")
+
+    try:
+        vector = embed_query(question)
+    except EmbeddingUnavailableError as exc:
+        # 503, never an empty list. "No results" is a claim that the corpus is silent on
+        # the question, which is a completely different answer from "the question could
+        # not be embedded", and a reader cannot tell them apart from an empty table.
+        log.warning("query not embedded", reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
+        hits = corpus_search(vector, limit=max(1, min(limit, 20)))
+        index = corpus_index()
+    except CorpusIndexUnavailableError as exc:
+        log.warning("corpus index unavailable", reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    log.info("corpus searched", characters=len(question), hits=len(hits))
+    return {
+        "question": question,
+        "model": EMBEDDING_MODEL,
+        "dimensions": len(vector),
+        "searched": {
+            "documents": index.documents_represented,
+            "documents_in_corpus": index.documents_read,
+            "passages": len(index.entries),
+            "distinct_texts": index.distinct_texts,
+        },
+        # Named on every response, not buried in a build log. Five documents are scanned
+        # images with no text layer, so a question they would answer cannot be found here
+        # at all, and a search that quietly covers most of a corpus reports nothing about
+        # the part it never read.
+        "not_searched": [dict(gap) for gap in index.absent],
+        "results": [
+            {
+                # Cosine, because both sides are unit vectors. The index refuses to load
+                # if it does not claim normalisation, and the query is normalised here.
+                "score": round(hit.score, 4),
+                "snippet": hit.snippet,
+                "documents": list(hit.files),
+                "appears_in": hit.appears_in,
+                "passage_characters": hit.characters,
+            }
+            for hit in hits
+        ],
+        "excluded": (
+            "Attachment A rows are not indexed. They are parsed exactly into the rights "
+            "records rather than approximated here."
+        ),
+        "not_legal_advice": (
+            "Passages from the Board's own published orders, ranked by similarity. "
+            "Ranking is not interpretation, and 23 CCR 875(b) vests every determination "
+            "in a named human official."
         ),
     }
 
