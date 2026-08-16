@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from google.adk.sessions import InMemorySessionService
 
@@ -82,6 +82,8 @@ from curtail_agents.gage_client import GageClient, GageError
 from curtail_agents.herald import DeliveryReport, TransportUnavailableError
 from curtail_agents.ledger import LedgerIntegrityError, record_order
 from curtail_agents.live_gage import READER, LiveGageUnavailableError
+from curtail_agents.scheduler_auth import SchedulerAuthError
+from curtail_agents.scheduler_auth import verify as verify_scheduler
 from curtail_agents.scribe import ScribeUnavailableError, draft_order
 from curtail_agents.season_store import (
     SeasonStore,
@@ -104,6 +106,10 @@ from curtail_agents.telemetry import (
     tracer,
     why_not_exporting,
 )
+from curtail_agents.watch_store import DEFAULT_LIMIT as WATCH_LIMIT
+from curtail_agents.watch_store import Observation as WatchObservation
+from curtail_agents.watch_store import WatchStore, WatchStoreUnavailableError, build_watch_store
+from curtail_agents.watch_store import now as watch_now
 from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
 from curtail_core.basins import COMPLIANCE_GAGE, Basin
@@ -300,6 +306,19 @@ FLEET_PERSISTENCE_NOTE = (
 #: season endpoint answers 503, the signing path reports the gap, and the next request
 #: tries again.
 _SEASON_STORE: SeasonStore | None = None
+
+
+#: Built once and reused, for the same reason the season store is: constructing a
+#: Firestore client per request is slow and would make the watch look broken for a reason
+#: that has nothing to do with the watch.
+_WATCH_STORE: WatchStore | None = None
+
+
+def watch_store() -> WatchStore:
+    global _WATCH_STORE
+    if _WATCH_STORE is None:
+        _WATCH_STORE = build_watch_store()
+    return _WATCH_STORE
 
 
 def season_store() -> SeasonStore:
@@ -1067,6 +1086,158 @@ def search_corpus(q: str, limit: int = 5) -> dict[str, Any]:
             "Passages from the Board's own published orders, ranked by similarity. "
             "Ranking is not interpretation, and 23 CCR 875(b) vests every determination "
             "in a named human official."
+        ),
+    }
+
+
+@app.post("/internal/poll/{basin}")
+async def poll_river(
+    basin: str, authorization: str | None = Header(default=None)
+) -> dict[str, Any]:
+    """Read the river once and record what was there. Driven by Cloud Scheduler.
+
+    **This is what makes "weeks of asynchronous operations" a mechanism rather than an
+    adjective.** Until this existed the system only looked at the river when somebody
+    clicked, so it could say the Shasta is below its minimum today and could not say it has
+    been below for eleven consecutive days, which is the sentence a watermaster acts on.
+
+    **It writes an observation, never a ledger entry.** `LedgerEntry` records an adopted
+    order with its statutory clocks and is part of a legal record. Thousands of rows of
+    hydrology do not belong in the record a reconsideration petition is read against.
+
+    **Idempotent on the READING's timestamp, not the poll's.** Two polls landing between
+    USGS publications see the same reading and record it once. Keying on the poll would
+    manufacture a fresh data point every firing, and a run of identical values would read
+    as a river holding steady under observation rather than one nobody had a new reading
+    for.
+
+    Authorisation is verified in the handler, not assumed from the path. `/internal/` is a
+    naming convention and this service answers the public internet.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    try:
+        caller = verify_scheduler(authorization)
+    except SchedulerAuthError as exc:
+        # 403 with the reason, and the reason is safe to state: it tells a legitimate
+        # operator what to fix and tells an unauthorised caller only that the door is shut.
+        log.warning("poll refused", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    try:
+        live = await READER.read(which)
+    except LiveGageUnavailableError as exc:
+        log.warning("poll could not read the gage", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    reading = live.reading
+    try:
+        event = evaluate(
+            Observation(which, reading.cfs, reading.observed_at, live.provenance),
+            correlation_id=f"poll-{reading.observed_at.isoformat()}",
+        )
+        # The event's OWN minimum, not a second lookup. Storing a separately resolved
+        # figure would let the recorded threshold drift from the one the classification
+        # was actually made against, and a history is only useful if its comparison is
+        # the comparison that happened.
+        minimum = float(event.minimum_cfs)
+    except (SentinelError, ScheduleGapError) as exc:
+        # Refusing beats recording. Storing a reading classified against a neighbouring
+        # period's minimum would put a wrong judgement into a history nobody re-derives.
+        log.info("poll refused to classify", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    observation = WatchObservation(
+        basin=which.value,
+        observed_at=reading.observed_at,
+        recorded_at=watch_now(),
+        cfs=reading.cfs,
+        minimum_cfs=minimum,
+        classification=event.event_type.value,
+        # The reading's identity. Basin plus the moment USGS stamped it, which is exactly
+        # what makes a second poll of the same publication a no-op.
+        reading_key=f"{which.value}-{reading.observed_at.isoformat()}",
+    )
+
+    try:
+        watch, appended = watch_store().append(which, observation)
+    except WatchStoreUnavailableError as exc:
+        log.warning("poll could not store", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    log.info(
+        "river polled",
+        basin=which.value,
+        caller=caller,
+        cfs=reading.cfs,
+        appended=appended,
+        consecutive_below=watch.consecutive_below,
+    )
+    return {
+        "basin": which.value,
+        "polled_by": caller,
+        "cfs": reading.cfs,
+        "minimum_cfs": minimum,
+        "classification": event.event_type.value,
+        "observed_at": reading.observed_at.isoformat(),
+        "provenance": live.provenance.value,
+        "appended": appended,
+        "already_recorded": not appended,
+        "observations": len(watch.observations),
+        "consecutive_below_minimum": watch.consecutive_below,
+        "below_since": watch.below_since.isoformat() if watch.below_since else None,
+        "durable": watch.durable,
+        "storage": watch.storage,
+    }
+
+
+@app.get("/api/watch/{basin}")
+def read_watch(basin: str, limit: int = WATCH_LIMIT) -> dict[str, Any]:
+    """What the scheduled watch has seen, and whether it is a record or a guess.
+
+    `durable` and `storage` are on every response for the reason the season ledger
+    records: a deploy that replaced the environment once dropped a durable store to
+    in-process memory while every route kept answering, so a short history can mean the
+    record was lost rather than that the river was not watched.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    try:
+        watch = watch_store().load(which, limit=max(1, min(limit, WATCH_LIMIT)))
+    except WatchStoreUnavailableError as exc:
+        # Never an empty list. That is a claim the river was never observed, which is a
+        # different statement from "the store did not answer".
+        log.warning("watch unavailable", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return {
+        "basin": which.value,
+        "observations": [
+            {
+                "observed_at": observation.observed_at.isoformat(),
+                "recorded_at": observation.recorded_at.isoformat(),
+                "cfs": observation.cfs,
+                "minimum_cfs": observation.minimum_cfs,
+                "classification": observation.classification,
+                "below_minimum": observation.below_minimum,
+            }
+            for observation in watch.observations
+        ],
+        "count": len(watch.observations),
+        "consecutive_below_minimum": watch.consecutive_below,
+        "below_since": watch.below_since.isoformat() if watch.below_since else None,
+        "durable": watch.durable,
+        "storage": watch.storage,
+        "recommendation_only": True,
+        "note": (
+            "A record of readings and how the Sentinel classified each one. It curtails "
+            "nothing: 23 CCR 875(b) vests every determination in a named human official."
         ),
     }
 
