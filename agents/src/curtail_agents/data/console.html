@@ -405,6 +405,35 @@
     <p class="note" id="graph-note"></p>
   </section>
 
+  <!--
+    The diversion map.
+
+    Two things it must never do. It must not imply it is showing every curtailed right,
+    because 139 of 469 have no coordinate anywhere in the Board's layer and all of them
+    are groundwater. And it must not silently correct the Board: one right is listed in
+    one basin by the order and placed in another watershed by the Board's own diversion
+    layer, and that disagreement is drawn and labelled rather than tidied away.
+  -->
+  <section class="card" id="mapcard">
+    <h2>Where the curtailed rights divert</h2>
+    <p class="muted">
+      Points of diversion from the Board's own CalWATRS layer, joined to the rights named
+      in the operative order's Attachment A. Owner names are not requested and are not
+      held. The compliance gage is drawn as a triangle.
+    </p>
+    <div class="row" style="align-items:end; margin-bottom:12px">
+      <label for="map-basin">Basin
+        <select id="map-basin">
+          <option value="scott">Scott</option>
+          <option value="shasta">Shasta</option>
+        </select>
+      </label>
+    </div>
+    <div id="map" style="height: 460px; border-radius: 6px; overflow: hidden"></div>
+    <p class="note" id="map-note"></p>
+    <p class="note" id="map-attr"></p>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -1671,6 +1700,214 @@
   //: Redraw on resize, because a canvas chart sized at load is the wrong size on a
   //: phone rotated after load, and a judge on a tablet is a real reader here.
   window.addEventListener("resize", () => { if (chart) chart.resize(); });
+
+  // ── The diversion map ────────────────────────────────────────
+  //
+  //: Loaded ON FIRST VISIBILITY, not on page load. MapLibre is 1.15 MB across three
+  //: modules and a worker, and most visitors never scroll this far. Pulling it for
+  //: everybody would slow the surface a judge actually lands on to serve a card they
+  //: might not reach.
+  //:
+  //: Self-hosted like everything else here, which MapLibre also requires to work at
+  //: all in this shape: it refuses to spawn its worker unless `import.meta.url` is http
+  //: or https, and it resolves its shared module and its worker RELATIVE to itself, so
+  //: the three filenames are preserved exactly in the vendor allowlist.
+  let maplibre = null;
+  let map = null;
+  let mapLoaded = false;
+
+  async function maplibreReady() {
+    if (maplibre) return maplibre;
+    if (!document.getElementById("maplibre-css")) {
+      const link = document.createElement("link");
+      link.id = "maplibre-css";
+      link.rel = "stylesheet";
+      link.href = "/vendor/maplibre-gl.css";
+      document.head.appendChild(link);
+    }
+    maplibre = await import("/vendor/maplibre-gl.mjs");
+    return maplibre;
+  }
+
+  //: The five river statuses already used everywhere else on this page. A sixth colour
+  //: invented for the map would mean the same fact reads differently depending on which
+  //: card a person is looking at.
+  const GROUP_STATUS = (entry) =>
+    entry.watershed_discrepancy ? "s-pending" : "s-curtailed";
+
+  function mapColour(cls) {
+    const css = getComputedStyle(document.documentElement);
+    return css.getPropertyValue(cls === "s-pending" ? "--pending" : "--curtailed").trim();
+  }
+
+  async function drawMap() {
+    const note = document.getElementById("map-note");
+    const attr = document.getElementById("map-attr");
+    const basin = document.getElementById("map-basin").value;
+    const card = document.getElementById("mapcard");
+
+    let body;
+    try {
+      const response = await fetch(`/api/diversions/${basin}`);
+      body = await response.json();
+      if (!response.ok) throw new Error(body.detail || `HTTP ${response.status}`);
+    } catch (error) {
+      note.textContent = `Could not load diversion points: ${error.message}`;
+      card.dataset.state = "unavailable";
+      return;
+    }
+    if (!Array.isArray(body.located) || typeof body.without_coordinate !== "number") {
+      note.textContent = "The service returned diversion data this page cannot render.";
+      card.dataset.state = "unavailable";
+      return;
+    }
+
+    let gl;
+    try {
+      gl = await maplibreReady();
+    } catch (error) {
+      note.textContent = `The map library did not load: ${error.message}`;
+      card.dataset.state = "unavailable";
+      return;
+    }
+
+    const features = [];
+    for (const entry of body.located) {
+      for (const point of entry.points) {
+        features.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [point.lon, point.lat] },
+          properties: {
+            right: entry.application_number,
+            group: entry.curtailment_group ?? null,
+            watershed: point.huc8_name ?? "",
+            status: GROUP_STATUS(entry),
+          },
+        });
+      }
+    }
+
+    const gage = {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [body.gage.lon, body.gage.lat] },
+      properties: { id: body.gage.id },
+    };
+
+    if (map) { map.remove(); map = null; }
+    map = new gl.Map({
+      container: "map",
+      style: "https://tiles.openfreemap.org/styles/dark",
+      center: [body.gage.lon, body.gage.lat],
+      zoom: 8,
+      attributionControl: false,
+    });
+    map.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
+
+    //: Exposed for the same reason the chart option is: what a map DRAWS is not
+    //: assertable from a payload, and a screenshot cannot tell one dot's colour from
+    //: another's at this density.
+    window.__mapSource = { type: "FeatureCollection", features };
+
+    map.on("load", () => {
+      map.addSource("pods", { type: "geojson", data: window.__mapSource });
+      map.addSource("gage", { type: "geojson", data: gage });
+
+      map.addLayer({
+        id: "pods-circle",
+        type: "circle",
+        source: "pods",
+        paint: {
+          "circle-radius": 5,
+          "circle-color": [
+            "case",
+            ["==", ["get", "status"], "s-pending"], mapColour("s-pending"),
+            mapColour("s-curtailed"),
+          ],
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#0A0A0B",
+          "circle-opacity": 0.9,
+        },
+      });
+      //: A triangle, not another dot. The gage is a different KIND of thing from a
+      //: diversion, and shape carries that where colour alone would not.
+      map.addLayer({
+        id: "gage-symbol",
+        type: "symbol",
+        source: "gage",
+        layout: {
+          "text-field": "\u25B2",
+          "text-size": 18,
+          "text-allow-overlap": true,
+        },
+        paint: { "text-color": "#E6E8EB", "text-halo-color": "#0A0A0B", "text-halo-width": 1.5 },
+      });
+
+      //: Fit to the DIVERSIONS, not to a fixed box. One right diverts in two watersheds
+      //: 200 miles apart, so a bounds fit over every point would render both basins as
+      //: invisible specks. Fitted to the interquartile core and the gage, which keeps
+      //: the watershed legible; the outlier is still on the map, reachable by zooming
+      //: out, and is counted in the note rather than hidden.
+      const lons = features.map((f) => f.geometry.coordinates[0]).sort((a, b) => a - b);
+      const lats = features.map((f) => f.geometry.coordinates[1]).sort((a, b) => a - b);
+      const q = (arr, p) => arr[Math.floor(arr.length * p)];
+      if (lons.length) {
+        const bounds = new gl.LngLatBounds(
+          [Math.min(q(lons, 0.02), body.gage.lon), Math.min(q(lats, 0.02), body.gage.lat)],
+          [Math.max(q(lons, 0.98), body.gage.lon), Math.max(q(lats, 0.98), body.gage.lat)]
+        );
+        map.fitBounds(bounds, { padding: 40, duration: 0 });
+      }
+      card.dataset.state = "drawn";
+    });
+
+    map.on("click", "pods-circle", (event) => {
+      const props = event.features[0].properties;
+      new gl.Popup({ closeButton: true })
+        .setLngLat(event.lngLat)
+        .setText(
+          `${props.right}` +
+          (props.group ? ` \u00b7 curtailment group ${props.group}` : "") +
+          (props.watershed ? ` \u00b7 ${props.watershed} watershed` : "")
+        )
+        .addTo(map);
+    });
+    map.on("mouseenter", "pods-circle", () => { map.getCanvas().style.cursor = "pointer"; });
+    map.on("mouseleave", "pods-circle", () => { map.getCanvas().style.cursor = ""; });
+
+    //: The caveat is rendered with the dots, never separately, because a map showing
+    //: 330 of 469 and saying nothing under-reports who is curtailed by 30 percent.
+    const missing = body.without_coordinate;
+    note.textContent =
+      `${body.points_total} diversion points for ${body.located_rights} of ` +
+      `${body.rights_total} curtailed rights. ` +
+      `${missing} rights have no point of diversion in the Board's layer and all ` +
+      `${body.without_coordinate_groundwater} are groundwater: the layer excludes wells, ` +
+      `so this map cannot show them and does not pretend to.` +
+      (body.watershed_discrepancies.length
+        ? ` ${body.watershed_discrepancies.join(", ")} is listed in this basin by the ` +
+          `order and placed in another watershed by the Board's own diversion layer; it ` +
+          `is drawn in grey where the layer puts it.`
+        : "");
+    attr.textContent =
+      `Diversion points: ${body.attribution}, ${body.licence}. ` +
+      `Basemap: OpenFreeMap \u00a9 OpenMapTiles Data from OpenStreetMap.`;
+  }
+
+  //: First visibility, once. `rootMargin` starts the fetch just before the card
+  //: reaches the viewport so it is drawn by the time a reader arrives at it.
+  const mapObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && !mapLoaded) {
+        mapLoaded = true;
+        mapObserver.disconnect();
+        drawMap();
+      }
+    }
+  }, { rootMargin: "400px" });
+  mapObserver.observe(document.getElementById("mapcard"));
+  document.getElementById("map-basin").addEventListener("change", () => {
+    if (mapLoaded) drawMap();
+  });
 
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);

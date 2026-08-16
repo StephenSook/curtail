@@ -258,9 +258,33 @@ class TestTheVendorExclusionCannotGrow:
                 f"{filename} is a path, not a filename"
             )
 
-    def test_every_allowlisted_bundle_is_third_party_and_carries_its_licence(self) -> None:
-        """A file is only exempt from our prose rules because it is somebody else's
-        work. This asserts that is still true of each one."""
+    def test_every_vendored_file_has_its_licence_recorded(self) -> None:
+        """The constitution requires it in those words: every asset must be free to
+        use in a public repo and a public demo, WITH ITS LICENCE RECORDED.
+
+        The first version hunted for a substring in the first 4 KB of each file. That
+        failed on minified CSS, which carries no comments at all, and it would have
+        passed on any file that happened to contain the word "License". A record is
+        the thing the rule actually asks for, and unlike a substring it says which
+        project, which version, and where it came from.
+        """
+        from curtail_agents.api import VENDOR, VENDOR_LICENCES
+
+        permitted = {"Apache-2.0", "BSD-3-Clause", "MIT", "ISC", "OFL-1.1"}
+        for filename in VENDOR.values():
+            record = VENDOR_LICENCES.get(filename)
+            assert record is not None, f"{filename} is served with no licence recorded"
+            for field in ("project", "version", "licence", "source"):
+                assert record.get(field), f"{filename} records no {field}"
+            assert record["licence"] in permitted, (
+                f"{filename} is {record['licence']}, which is not on the list of "
+                "licences this repository can redistribute"
+            )
+
+    def test_the_upstream_notice_survives_in_every_file_that_can_carry_one(self) -> None:
+        """A recorded licence and a stripped notice would be a claim without its
+        evidence. Minified CSS cannot carry a comment, so it is exempted by FORMAT
+        rather than by name, which means a future stripped .js still fails."""
         from pathlib import Path
 
         from curtail_agents.api import VENDOR
@@ -269,10 +293,11 @@ class TestTheVendorExclusionCannotGrow:
             Path(__file__).resolve().parents[1] / "src" / "curtail_agents" / "data" / "vendor"
         )
         for filename in VENDOR.values():
-            head = (directory / filename).read_bytes()[:4000]
-            assert b"Licensed to the Apache Software Foundation" in head or b"License" in head, (
-                f"{filename} carries no upstream licence notice, so it does not look "
-                "like a vendored third-party bundle"
+            if filename.endswith(".css"):
+                continue
+            head = (directory / filename).read_bytes()[:4000].lower()
+            assert b"license" in head or b"licence" in head or b"copyright" in head, (
+                f"{filename} lost its upstream licence notice"
             )
 
     def test_the_exclusion_path_in_ci_matches_the_real_directory(self) -> None:

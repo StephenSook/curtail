@@ -34,6 +34,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from google.adk.sessions import InMemorySessionService
 
+import curtail_core
 from curtail_agents.app import (
     APP_NAME,
     FleetRun,
@@ -182,6 +183,70 @@ TWA_PACKAGE_DEFAULT = "app.run.us_central1.curtail_console_api_672785135387.twa"
 #: this repository, and ships with its own licence notice intact at the top of the file.
 VENDOR: dict[str, str] = {
     "echarts.js": "echarts.esm.min.js",
+    # MapLibre 6.4.0 is ESM-only and splits across three modules plus a stylesheet, and
+    # THE NAMES MUST BE PRESERVED. `maplibre-gl.mjs` imports `./maplibre-gl-shared.mjs`
+    # relatively, and it builds its worker URL as
+    # `new URL("./maplibre-gl-worker.mjs", import.meta.url)`. Serving the entry module
+    # under a different name still works, but renaming either of the other two breaks
+    # resolution at runtime with no build-time signal at all.
+    #
+    # It also refuses to spawn the worker unless `import.meta.url` is http or https,
+    # which self-hosting satisfies and a data: or blob: URL would not.
+    "maplibre-gl.mjs": "maplibre-gl.mjs",
+    "maplibre-gl-shared.mjs": "maplibre-gl-shared.mjs",
+    "maplibre-gl-worker.mjs": "maplibre-gl-worker.mjs",
+    "maplibre-gl.css": "maplibre-gl.css",
+}
+
+#: Every vendored asset, with its upstream project, version and licence RECORDED.
+#:
+#: The constitution requires it in those words: every asset must be free to use in a
+#: public repo and a public demo, with its licence recorded. A substring hunt through the
+#: bundle is not that. It fails on minified CSS, which carries no comments at all, and it
+#: would pass on any file that happened to contain the word.
+#:
+#: Both licences permit redistribution in this Apache-2.0 repository. The upstream notices
+#: are preserved verbatim at the top of every file that can carry one.
+VENDOR_LICENCES: dict[str, dict[str, str]] = {
+    "echarts.esm.min.js": {
+        "project": "Apache ECharts",
+        "version": "6.1.0",
+        "licence": "Apache-2.0",
+        "source": "https://github.com/apache/echarts",
+    },
+    "maplibre-gl.mjs": {
+        "project": "MapLibre GL JS",
+        "version": "6.4.0",
+        "licence": "BSD-3-Clause",
+        "source": "https://github.com/maplibre/maplibre-gl-js",
+    },
+    "maplibre-gl-shared.mjs": {
+        "project": "MapLibre GL JS",
+        "version": "6.4.0",
+        "licence": "BSD-3-Clause",
+        "source": "https://github.com/maplibre/maplibre-gl-js",
+    },
+    "maplibre-gl-worker.mjs": {
+        "project": "MapLibre GL JS",
+        "version": "6.4.0",
+        "licence": "BSD-3-Clause",
+        "source": "https://github.com/maplibre/maplibre-gl-js",
+    },
+    "maplibre-gl.css": {
+        "project": "MapLibre GL JS",
+        "version": "6.4.0",
+        "licence": "BSD-3-Clause",
+        "source": "https://github.com/maplibre/maplibre-gl-js",
+    },
+}
+
+#: Content types by suffix. A stylesheet served as text/javascript is ignored by the
+#: browser silently: the request succeeds, nothing is styled, and the console says
+#: nothing useful.
+VENDOR_TYPES: dict[str, str] = {
+    ".css": "text/css",
+    ".mjs": "text/javascript",
+    ".js": "text/javascript",
 }
 
 FONTS: dict[str, str] = {
@@ -458,7 +523,7 @@ def vendor(name: str) -> Response:
         raise HTTPException(status_code=503, detail=f"{filename} is not packaged")
     return Response(
         content=path.read_bytes(),
-        media_type="text/javascript",
+        media_type=VENDOR_TYPES.get(path.suffix, "application/octet-stream"),
         headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
 
@@ -631,6 +696,86 @@ async def gage(basin: str) -> dict[str, Any]:
 #: readings is roughly 35,000 points that have to be downsampled into a shape nobody
 #: asked for. It is also a bound on what one request can cost USGS.
 HYDROGRAPH_MAX_DAYS = 180
+
+#: Compliance gage coordinates, read from the USGS monitoring-locations collection and
+#: verified digit by digit. The Shasta identifier had only ever been confirmed by NAME in
+#: Board documents until this call was made.
+GAGE_LOCATION: dict[Basin, tuple[float, float]] = {
+    Basin.SCOTT: (-123.015009, 41.640656),
+    Basin.SHASTA: (-122.595557, 41.822880),
+}
+
+
+#: The joined diversion coordinates, loaded once. Packaged data, no network.
+_DIVERSIONS: dict[str, Any] | None = None
+
+
+def diversions_payload() -> dict[str, Any]:
+    global _DIVERSIONS
+    if _DIVERSIONS is None:
+        path = Path(curtail_core.__file__).resolve().parent / "data" / "diversions.json"
+        if not path.is_file():
+            raise HTTPException(
+                status_code=503,
+                detail="diversions.json is not packaged. Run scripts/build_diversions.py.",
+            )
+        _DIVERSIONS = json.loads(path.read_text())
+    return _DIVERSIONS
+
+
+@app.get("/api/diversions/{basin}")
+def diversions(basin: str) -> dict[str, Any]:
+    """Where the curtailed rights actually divert, from the Board's own layer.
+
+    **It reports what it cannot show, in the same payload.** 139 of the 469 curtailed
+    rights have no coordinate anywhere in the Board's point-of-diversion layer, and every
+    one of them is a groundwater right, because the Board's own dataset description says
+    it excludes wells. A map drawing 330 dots and saying nothing else would under-report
+    who is curtailed by 30 percent, which is a calm wrong answer of exactly the kind this
+    console is built against. The count travels with the data so the client cannot render
+    the dots without the caveat.
+
+    A right carries MANY points. Californian water rights routinely divert in more than
+    one place, and an earlier version of the generator kept one point per right and
+    silently discarded 41 real ones.
+
+    Owner names are absent by construction and were never requested from the source.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    payload = diversions_payload()
+    section = payload["basins"].get(which.value)
+    if section is None:
+        raise HTTPException(status_code=503, detail=f"no diversion data packaged for {basin}")
+
+    return {
+        "basin": which.value,
+        "gage": {
+            "id": COMPLIANCE_GAGE[which],
+            # From the USGS monitoring-locations collection, verified digit by digit
+            # rather than taken from a Board document by name.
+            "lon": GAGE_LOCATION[which][0],
+            "lat": GAGE_LOCATION[which][1],
+        },
+        "rights_total": section["rights_total"],
+        "located_rights": len(section["located"]),
+        "points_total": sum(len(entry["points"]) for entry in section["located"]),
+        "without_coordinate": section["without_coordinate"],
+        "without_coordinate_groundwater": section["without_coordinate_groundwater"],
+        "without_coordinate_note": section["without_coordinate_note"],
+        "watershed_discrepancies": section["watershed_discrepancies"],
+        "watershed_discrepancy_note": section["watershed_discrepancy_note"],
+        "located": section["located"],
+        "attribution": payload["source"]["attribution"],
+        "licence": payload["source"]["licence"],
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
 
 
 @app.get("/api/hydrograph/{basin}")
