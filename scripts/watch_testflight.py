@@ -50,6 +50,32 @@ API = "https://api.appstoreconnect.apple.com/v1"
 STATE_FILE = Path.home() / ".curtail-testflight-state.json"
 
 
+#: Internal build states in which the build INSTALLS from TestFlight right now.
+#:
+#: **Two values, not one, and getting this wrong cost the watcher its whole job.** The
+#: first version compared for equality against `READY_FOR_BETA_TESTING` alone. The real
+#: build went straight to `IN_BETA_TESTING`, because export compliance was answered on a
+#: build already attached to an internal group, so the watcher reported
+#: `installable_internally: false` and would have exited 1 meaning "asked, and not yet"
+#: at the exact moment the answer became yes.
+INSTALLABLE_INTERNAL_STATES = frozenset({"READY_FOR_BETA_TESTING", "IN_BETA_TESTING"})
+
+#: Every internal state Apple documents. A value outside this set is UNKNOWN and says so.
+#:
+#: The defect above was an equality test against a multi-valued enum, where the omitted
+#: value was the GOOD one, so the failure was silent and pointed the wrong way. Listing
+#: the domain is what makes a new value loud instead: `main()` exits 2 rather than
+#: quietly folding it into "not installable", which is the same rule this file already
+#: applies to an unreadable payload and an unreachable API.
+KNOWN_INTERNAL_STATES = INSTALLABLE_INTERNAL_STATES | {
+    "PROCESSING",
+    "PROCESSING_EXCEPTION",
+    "MISSING_EXPORT_COMPLIANCE",
+    "IN_EXPORT_COMPLIANCE_REVIEW",
+    "EXPIRED",
+}
+
+
 class WatchError(RuntimeError):
     """The question could not be asked. Distinct from an answer of 'not yet'."""
 
@@ -242,7 +268,7 @@ def state() -> dict[str, Any]:
         "external_state": external,
         "beta_review_state": review_state,
         # The one line a human actually wants.
-        "installable_internally": internal == "READY_FOR_BETA_TESTING",
+        "installable_internally": internal in INSTALLABLE_INTERNAL_STATES,
         "uploaded_at": attrs.get("uploadedDate"),
     }
 
@@ -277,6 +303,13 @@ def changes(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, tupl
 def summarise(current: dict[str, Any]) -> str:
     if current["installable_internally"]:
         return f"READY TO TEST. Build {current['version']} installs from TestFlight now."
+    if current["internal_state"] not in KNOWN_INTERNAL_STATES:
+        # Loud, not folded into "not installable". An unmodelled value is the shape that
+        # produced this whole fix, and next time it should say so rather than guess.
+        return (
+            f"UNKNOWN internal state {current['internal_state']!r} for build "
+            f"{current['version']}. Whether it installs is not something this can say."
+        )
     if current["processing"] == "PROCESSING":
         return f"Build {current['version']} is still processing."
     if current["internal_state"] == "MISSING_EXPORT_COMPLIANCE":
@@ -412,7 +445,12 @@ def main(argv: list[str] | None = None) -> int:
             write_baseline(current)
             print("(no change since last run, so no notification)")
 
-    return 0 if current["installable_internally"] else 1
+    if current["installable_internally"]:
+        return 0
+    # An internal state Apple has added since this was written is UNKNOWN, not "no".
+    # Folding it into exit 1 is precisely how `IN_BETA_TESTING` came to be reported as
+    # not-installable, and exit 1 is the one code a reader treats as a real answer.
+    return 1 if current["internal_state"] in KNOWN_INTERNAL_STATES else 2
 
 
 if __name__ == "__main__":

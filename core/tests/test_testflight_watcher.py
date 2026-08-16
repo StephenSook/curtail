@@ -536,6 +536,72 @@ class TestTheKeyMustBeTheCurveES256Means:
             watcher.token("K", "I", tmp_path / "absent.p8")
 
 
+class TestInstallableIsNotOneState:
+    """The defect that mattered most, because it fired at the moment of truth.
+
+    `installable_internally` compared for EQUALITY against `READY_FOR_BETA_TESTING`.
+    The real build went straight to `IN_BETA_TESTING`, because export compliance was
+    answered on a build already attached to an internal group, so the watcher said
+    false and would have exited 1 meaning "asked, and not yet" at the instant the
+    answer became yes. An equality test against a multi-valued enum, where the omitted
+    value was the GOOD one.
+    """
+
+    def _state(self, internal: str, monkeypatch: Any) -> dict[str, Any]:
+        envelope = {
+            **TestAMalformedAnswerIsNotAPendingAnswer.ENVELOPE,
+            "included": [
+                {
+                    "id": "detail-1",
+                    "attributes": {
+                        "internalBuildState": internal,
+                        "externalBuildState": "READY_FOR_BETA_SUBMISSION",
+                    },
+                }
+            ],
+        }
+        return TestAMalformedAnswerIsNotAPendingAnswer()._state(envelope, monkeypatch)
+
+    @pytest.mark.parametrize("internal", ["READY_FOR_BETA_TESTING", "IN_BETA_TESTING"])
+    def test_both_installable_states_read_as_installable(
+        self, internal: str, monkeypatch: Any
+    ) -> None:
+        read = self._state(internal, monkeypatch)
+        assert read["installable_internally"] is True
+        assert "READY TO TEST" in watcher.summarise(read)
+        monkeypatch.setattr(watcher, "state", lambda: read)
+        assert watcher.main([]) == 0
+
+    @pytest.mark.parametrize(
+        "internal",
+        ["PROCESSING", "MISSING_EXPORT_COMPLIANCE", "IN_EXPORT_COMPLIANCE_REVIEW", "EXPIRED"],
+    )
+    def test_a_known_pending_state_is_a_real_answer_of_not_yet(
+        self, internal: str, monkeypatch: Any
+    ) -> None:
+        """Guards the guard. If everything read as installable or unknown, the test
+        above would pass while the watcher had stopped distinguishing anything."""
+        read = self._state(internal, monkeypatch)
+        assert read["installable_internally"] is False
+        monkeypatch.setattr(watcher, "state", lambda: read)
+        assert watcher.main([]) == 1
+
+    def test_a_state_apple_adds_later_is_unknown_and_not_a_no(self, monkeypatch: Any) -> None:
+        """The general form of the bug. An unmodelled enum value must be loud, because
+        folding it into the negative branch is exactly how IN_BETA_TESTING became
+        'not installable' with nothing anywhere reporting a problem."""
+        read = self._state("SOME_STATE_APPLE_ADDED_IN_2027", monkeypatch)
+        assert read["installable_internally"] is False
+        assert "UNKNOWN" in watcher.summarise(read)
+        monkeypatch.setattr(watcher, "state", lambda: read)
+        assert watcher.main([]) == 2, "an unmodelled state exited 1, which reads as an answer"
+
+    def test_every_installable_state_is_also_a_known_state(self) -> None:
+        """Structural. A value in one set and not the other would make a build report
+        installable and exit 2 at the same time."""
+        assert watcher.INSTALLABLE_INTERNAL_STATES <= watcher.KNOWN_INTERNAL_STATES
+
+
 class TestTheSummaryNamesTheThingInTheWay:
     def test_export_compliance_is_named_as_a_human_step(self) -> None:
         line = watcher.summarise(TestEveryFieldIsWatched.BASE)
