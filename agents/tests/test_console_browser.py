@@ -25,7 +25,7 @@ import time
 import traceback
 from collections.abc import Callable, Iterator
 from types import MappingProxyType
-from typing import Any
+from typing import Any, ClassVar
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -1563,3 +1563,158 @@ class TestTheLiveGageStrip:
             page.locator('#live-strip .gage[data-basin="shasta"]').get_attribute("data-state")
             == "unavailable"
         )
+
+
+class TestTheHydrograph:
+    """The chart, and the one defect in it that no unit test could have seen.
+
+    The near-threshold band was filled with `origin: "start"`, which paints from the
+    axis zero up to minimum + 10 and therefore shades the entire BELOW-MINIMUM region
+    as though it were the caution band. Every value in the payload was correct, the
+    endpoint's tests all passed, and the meaning of the most important region on the
+    chart was inverted. It was obvious within a second of opening the render.
+
+    So this asserts on the ECharts option the page actually builds, which is the
+    closest a machine can get to what a reader sees.
+    """
+
+    #: A window carrying a real schedule boundary: Scott's July minimum of 50 cfs
+    #: stepping down to the August minimum of 30. The step assertion is meaningless
+    #: against a window with only one minimum in it.
+    PAYLOAD: ClassVar[dict[str, Any]] = {
+        "basin": "scott",
+        "gage_id": "USGS-11519500",
+        "since": "2026-07-17T00:00:00+00:00",
+        "until": "2026-08-16T00:00:00+00:00",
+        "count": 3,
+        "series": [
+            {"t": "2026-07-17T00:00:00+00:00", "cfs": 17.9, "provisional": True},
+            {"t": "2026-08-01T00:00:00+00:00", "cfs": 8.2, "provisional": True},
+            {"t": "2026-08-16T00:00:00+00:00", "cfs": 4.91, "provisional": True},
+        ],
+        "minimum_steps": [
+            {"from": "2026-07-17", "minimum_cfs": 50.0},
+            {"from": "2026-08-01", "minimum_cfs": 30.0},
+        ],
+        "near_threshold_band_cfs": 10.0,
+        "unit": "ft^3/s",
+        "provenance": "usgs_live",
+        "disclaimer": "A recommendation.",
+    }
+
+    def _drawn(self, page: Page, console_url: str) -> None:
+        """Draw from a STUBBED payload, never from the live endpoint.
+
+        The first version let these tests fetch through to USGS. Six browser tests
+        in a row then made six real calls to a federal agency, and the class became
+        a flake with a deadline attached: passing alone, failing together. That is
+        the exact dependency this file's own docstring warns against, committed one
+        class below the warning.
+
+        Stubbing also makes the step assertion possible at all, because whether a
+        live 30 day window happens to contain a schedule boundary depends on what
+        day the suite runs.
+        """
+        page.route("**/api/hydrograph/**", _fulfil(dict(self.PAYLOAD)))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'drawn'",
+            timeout=45_000,
+        )
+
+    def test_the_chart_draws_from_real_readings(self, page: Page, console_url: str) -> None:
+        self._drawn(page, console_url)
+        note = page.locator("#graph-note").inner_text()
+        assert "readings from USGS-11519500" in note
+        assert "17.9 cfs to 4.91 cfs" in note
+        assert "changed 1 time" in note, "the step boundary was not reported to the reader"
+        assert page.locator("#chart canvas").count() >= 1, "no canvas was rendered"
+
+    def test_the_caution_band_is_a_band_and_not_a_fill_from_zero(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The defect this class exists for.
+
+        A stacked pair draws the fill between the minimum and minimum + 10. A single
+        series with an area fill draws it from the axis origin, which paints the
+        below-minimum region in the caution colour and inverts what the chart means.
+        """
+        self._drawn(page, console_url)
+        option = page.evaluate(
+            "() => { const c = window.__chartOption; return c ? JSON.parse(c) : null; }"
+        )
+        assert option is not None, "the page did not expose the option it built"
+        band = [s for s in option["series"] if s.get("stack") == "band"]
+        assert len(band) == 2, (
+            "the caution band is not a stacked pair, so it fills from the axis zero "
+            "and shades the below-minimum region as near-threshold"
+        )
+        filled = [s for s in band if s.get("areaStyle")]
+        assert len(filled) == 1, "exactly one half of the band carries the fill"
+        # The filled half must carry the CONSTANT band width, not the minimum itself.
+        values = {round(point[1], 3) for point in filled[0]["data"]}
+        assert values == {10.0}, f"the band's height is not a constant 10 cfs: {values}"
+
+    def test_the_rule_is_drawn_as_a_step_not_a_ramp(self, page: Page, console_url: str) -> None:
+        """A ramp between two minimums implies the rule slid gradually from 50 to 30
+        cfs across late July. It changed on one day, and every reading before that
+        day is judged against 50."""
+        self._drawn(page, console_url)
+        option = page.evaluate(
+            "() => { const c = window.__chartOption; return c ? JSON.parse(c) : null; }"
+        )
+        rule = next(s for s in option["series"] if s["name"] == "Minimum in force")
+        assert rule.get("step") == "end", "the minimum is drawn as a diagonal ramp"
+
+    def test_animation_is_off_because_the_values_are_compliance_critical(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Rule 10. Animating a number implies uncertainty about it, and these are
+        the numbers an order rests on."""
+        self._drawn(page, console_url)
+        option = page.evaluate(
+            "() => { const c = window.__chartOption; return c ? JSON.parse(c) : null; }"
+        )
+        assert option["animation"] is False
+
+    def test_a_failed_fetch_says_why_and_draws_nothing(self, page: Page, console_url: str) -> None:
+        page.route("**/api/hydrograph/**", _fulfil({"detail": "USGS could not be read"}, 503))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'unavailable'",
+            timeout=30_000,
+        )
+        assert "USGS could not be read" in page.locator("#graph-note").inner_text()
+        assert page.locator("#chart canvas").count() == 0
+
+    def test_an_empty_window_says_so_rather_than_drawing_a_flat_zero(
+        self, page: Page, console_url: str
+    ) -> None:
+        """A chart of nothing looks like a river at zero, which is the single most
+        dangerous thing this surface can imply."""
+        page.route(
+            "**/api/hydrograph/**",
+            _fulfil(
+                {
+                    "basin": "scott",
+                    "gage_id": "USGS-11519500",
+                    "since": "2026-08-01T00:00:00+00:00",
+                    "until": "2026-08-16T00:00:00+00:00",
+                    "count": 0,
+                    "series": [],
+                    "minimum_steps": [{"from": "2026-08-01", "minimum_cfs": 30.0}],
+                    "near_threshold_band_cfs": 10.0,
+                    "unit": "ft^3/s",
+                    "provenance": "usgs_live",
+                    "disclaimer": "A recommendation.",
+                }
+            ),
+        )
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'empty'",
+            timeout=30_000,
+        )
+        note = page.locator("#graph-note").inner_text()
+        assert "not a river at zero" in note
+        assert page.locator("#chart canvas").count() == 0

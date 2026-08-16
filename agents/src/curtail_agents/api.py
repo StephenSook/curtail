@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from math import isfinite
 from pathlib import Path
 from typing import Any
@@ -73,6 +73,7 @@ from curtail_agents.fleet import (
     InvocationDeadlineError,
     UndeliverableRecommendationError,
 )
+from curtail_agents.gage_client import GageClient, GageError
 from curtail_agents.herald import DeliveryReport, TransportUnavailableError
 from curtail_agents.ledger import LedgerIntegrityError, record_order
 from curtail_agents.live_gage import READER, LiveGageUnavailableError
@@ -94,9 +95,13 @@ from curtail_agents.telemetry import (
 )
 from curtail_core.allocation import Recommendation, recommend
 from curtail_core.backtest import direction_for
-from curtail_core.basins import Basin
+from curtail_core.basins import COMPLIANCE_GAGE, Basin
 from curtail_core.clocks import SignatoryRole
-from curtail_core.flow_minimums import ScheduleGapError, minimum_flow
+from curtail_core.flow_minimums import (
+    NEAR_THRESHOLD_BAND_CFS,
+    ScheduleGapError,
+    minimum_flow,
+)
 from curtail_core.rights import rights_for
 from curtail_core.rights_record import RightsRecordUnavailableError
 
@@ -170,6 +175,14 @@ TWA_FINGERPRINT_ENV = "TWA_SHA256_FINGERPRINT"
 #: Only used when the environment says nothing, and it is the id bubblewrap actually
 #: generated for this host rather than a name somebody preferred.
 TWA_PACKAGE_DEFAULT = "app.run.us_central1.curtail_console_api_672785135387.twa"
+
+#: Vendored third-party bundles. Same allowlist discipline as FONTS and ICONS.
+#:
+#: ECharts is pinned at the version the locked design spec names, is Apache-2.0 like
+#: this repository, and ships with its own licence notice intact at the top of the file.
+VENDOR: dict[str, str] = {
+    "echarts.js": "echarts.esm.min.js",
+}
 
 FONTS: dict[str, str] = {
     "public-sans.woff2": "public-sans-latin-wght-normal.woff2",
@@ -417,6 +430,39 @@ def font(name: str) -> Response:
     )
 
 
+@app.get("/vendor/{name}")
+def vendor(name: str) -> Response:
+    """Serve a vendored third-party bundle from inside the package.
+
+    **Self-hosted for the same three reasons the fonts are.** No request from this
+    console reaches a third party, so nothing about a judge's visit is observable to a
+    CDN; the page cannot break because someone else's host has a bad afternoon during a
+    month-long judging window; and the licence stays contained in an Apache-2.0
+    repository rather than being fetched at runtime from somewhere with different terms.
+
+    ECharts 6.1.0 is itself Apache-2.0, so it can live here without a licence conflict,
+    and its notice is preserved at the top of the file it ships in.
+
+    An ALLOWLIST, not a directory served, exactly like the fonts and icons. Mapping a
+    request path onto the filesystem is how an asset route becomes an arbitrary file
+    read, and `../` normalisation is a thing to avoid needing rather than to get right.
+    """
+    filename = VENDOR.get(name)
+    if filename is None:
+        raise HTTPException(status_code=404, detail=f"no such vendored asset: {name}")
+    path = Path(__file__).resolve().parent / "data" / "vendor" / filename
+    if not path.is_file():
+        # 503 naming the file, not 404. A missing packaged asset is a DEPLOYMENT
+        # failure, and reporting it as "not found" would read as a bad URL and send
+        # somebody looking in the wrong place.
+        raise HTTPException(status_code=503, detail=f"{filename} is not packaged")
+    return Response(
+        content=path.read_bytes(),
+        media_type="text/javascript",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def console() -> str:
     """The console, server-rendered from the package.
@@ -571,6 +617,94 @@ async def gage(basin: str) -> dict[str, Any]:
             "Fetched from the USGS OGC API by this service. A cached value is labelled "
             "usgs_cached and carries its age; it is never presented as a live read."
         ),
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
+#: The widest window the hydrograph will fetch.
+#:
+#: A season, not a year. The regulation is a drought emergency measure and the story a
+#: watermaster reads off a hydrograph is a recession over weeks; a year of 15 minute
+#: readings is roughly 35,000 points that have to be downsampled into a shape nobody
+#: asked for. It is also a bound on what one request can cost USGS.
+HYDROGRAPH_MAX_DAYS = 180
+
+
+@app.get("/api/hydrograph/{basin}")
+async def hydrograph(basin: str, days: int = 30) -> dict[str, Any]:
+    """The river's shape over a window, with the rule drawn as it actually behaves.
+
+    **The threshold is a STEP SERIES, not a line.** This is the whole reason the endpoint
+    computes it rather than letting a chart draw one flat rule: the flow schedule changes
+    on specific DAYS, not months. Scott drops from 125 to 90 cfs on June 24, Shasta from
+    125 to 105 on March 25 and rises from 50 to 75 on September 16. A month-keyed table
+    cannot express any of those, and a single averaged line drawn across such a window
+    would show the river crossing a threshold that was never in force on the day it
+    crossed. Every boundary inside the window is emitted, so the rule visibly steps.
+
+    The near-threshold band is emitted alongside it for the same reason: it is 10 cfs
+    above the minimum in force on each day, so it steps too.
+
+    An empty window is an ANSWER, not an error. A gage genuinely may not have reported,
+    and `count: 0` with the window echoed back says so, where a 500 would imply the
+    service was broken.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    if days < 1 or days > HYDROGRAPH_MAX_DAYS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"days must be between 1 and {HYDROGRAPH_MAX_DAYS}, got {days}",
+        )
+
+    until = datetime.now(UTC)
+    since = until - timedelta(days=days)
+    try:
+        async with GageClient(api_key=os.environ.get("USGS_API_KEY")) as client:
+            readings = await client.discharge_series(
+                COMPLIANCE_GAGE[which], since=since, until=until
+            )
+    except GageError as exc:
+        log.warning("hydrograph unavailable", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=f"USGS could not be read: {exc}") from exc
+
+    # One step per day the rule CHANGES, plus the endpoints, so the line is exact rather
+    # than sampled. A gap in the schedule ends the series honestly instead of guessing.
+    steps: list[dict[str, Any]] = []
+    previous: float | None = None
+    day = since.date()
+    while day <= until.date():
+        try:
+            value = float(minimum_flow(which, day))
+        except ScheduleGapError:
+            break
+        if value != previous:
+            steps.append({"from": day.isoformat(), "minimum_cfs": value})
+            previous = value
+        day += timedelta(days=1)
+
+    series = [
+        {"t": r.observed_at.isoformat(), "cfs": r.cfs, "provisional": r.is_provisional}
+        for r in readings
+    ]
+    log.info("hydrograph", basin=basin, days=days, points=len(series), steps=len(steps))
+    return {
+        "basin": which.value,
+        "gage_id": COMPLIANCE_GAGE[which],
+        "since": since.isoformat(),
+        "until": until.isoformat(),
+        "count": len(series),
+        "series": series,
+        "minimum_steps": steps,
+        "near_threshold_band_cfs": NEAR_THRESHOLD_BAND_CFS,
+        "unit": "ft^3/s",
+        "provenance": Provenance.USGS_LIVE.value,
         "disclaimer": (
             "A recommendation. 23 CCR 875(b) vests the determination in a named "
             "human official, and nothing this system produces self-executes."
