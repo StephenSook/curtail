@@ -75,6 +75,7 @@ from curtail_agents.fleet import (
 )
 from curtail_agents.herald import DeliveryReport, TransportUnavailableError
 from curtail_agents.ledger import LedgerIntegrityError, record_order
+from curtail_agents.live_gage import READER, LiveGageUnavailableError
 from curtail_agents.scribe import ScribeUnavailableError, draft_order
 from curtail_agents.season_store import (
     SeasonStore,
@@ -497,6 +498,84 @@ def version() -> dict[str, Any]:
 def basins() -> dict[str, list[str]]:
     """The basins this system administers. Two, and both are real."""
     return {"basins": [b.value for b in Basin]}
+
+
+@app.get("/api/gage/{basin}")
+async def gage(basin: str) -> dict[str, Any]:
+    """The river, right now, read from USGS and classified against the rule in force.
+
+    **This is the endpoint the project's opening sentence was always describing.** Until
+    it existed, `api.py` never imported the gage client and the only caller in the
+    repository was a hand-run script, so the deployed service could classify a number a
+    human typed and nothing else. "Watches a river in real time" was true of the code and
+    false of the running system, which is exactly the drift a wired-or-cut audit exists to
+    catch, and it survived every audit because the client was real, tested, and unreached.
+
+    It differs from `/api/classify` in one way that matters and is stated in the payload:
+    that endpoint labels its reading `unsourced` because the caller supplied it, and this
+    one carries `usgs_live` or `usgs_cached` because the system fetched it. The
+    classification path is deliberately identical, so the two endpoints cannot disagree
+    about what a given number against a given date means.
+
+    Failure is honest. A gage that cannot be read returns 503 naming the gage and the
+    reason. It does not return zero, and it does not quietly serve an old value as a
+    current one: a cached reading is labelled `usgs_cached` and carries its age in
+    seconds, so a stale number can never pass for the river.
+    """
+    try:
+        which = Basin(basin)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"unknown basin: {basin}") from None
+
+    try:
+        live = await READER.read(which)
+    except LiveGageUnavailableError as exc:
+        log.warning("gage unavailable", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    reading = live.reading
+    observation = Observation(which, reading.cfs, reading.observed_at, live.provenance)
+    try:
+        event = evaluate(observation, correlation_id=f"gage-{reading.observed_at.isoformat()}")
+        minimum = minimum_flow(which, reading.observed_at.date())
+    except (SentinelError, ScheduleGapError) as exc:
+        # The reading is real and the rule cannot be resolved for its date. Refusing is
+        # the only honest answer: classifying it against a neighbouring period's minimum
+        # would mark the river against a rule that was not in force when it was measured.
+        log.info("live classification refused", basin=basin, reason=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    log.info(
+        "live gage read",
+        basin=basin,
+        cfs=reading.cfs,
+        provenance=live.provenance.value,
+        classification=event.event_type.value,
+    )
+    return {
+        "basin": which.value,
+        "gage_id": reading.monitoring_location_id,
+        "observed_cfs": reading.cfs,
+        "unit": reading.unit,
+        "observed_at": reading.observed_at.isoformat(),
+        "qualifier": reading.qualifier,
+        "provisional": reading.is_provisional,
+        "minimum_cfs": float(minimum),
+        "classification": event.event_type.value,
+        "direction": direction_for(reading.cfs, float(minimum)).value,
+        "provenance": live.provenance.value,
+        "fetched_at": live.fetched_at.isoformat(),
+        "age_seconds": round(live.age_seconds, 1),
+        "recommendation_only": True,
+        "provenance_note": (
+            "Fetched from the USGS OGC API by this service. A cached value is labelled "
+            "usgs_cached and carries its age; it is never presented as a live read."
+        ),
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
 
 
 @app.get("/api/classify/{basin}")

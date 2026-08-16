@@ -24,6 +24,7 @@ import threading
 import time
 import traceback
 from collections.abc import Callable, Iterator
+from types import MappingProxyType
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -379,12 +380,19 @@ class TestAnUntrustworthyAnswerIsNeverShownAsAResult:
         page.add_init_script(
             """
             (() => {
+              // Holds the first CLASSIFY open, matched by url rather than by call
+              // order. Keying on "call number one" made this a hostage to whatever
+              // else the page fetches on load: adding the live gage strip made call
+              // one a gage read, so the classify was never held, the superseded
+              // scenario never occurred, and the assertion failed against a page that
+              // was behaving correctly.
               const real = window.fetch;
-              let calls = 0;
+              let held = false;
               window.__releaseFirst = null;
               window.fetch = (...args) => {
-                calls += 1;
-                if (calls === 1) {
+                const url = String(args[0] || "");
+                if (!held && url.includes("/api/classify/")) {
+                  held = true;
                   return new Promise((resolve, reject) => {
                     window.__releaseFirst = () => real(...args).then(resolve, reject);
                   });
@@ -1016,12 +1024,19 @@ class TestTheLedgerCard:
         page.add_init_script(
             """
             (() => {
+              // Holds the first CLASSIFY open, matched by url rather than by call
+              // order. Keying on "call number one" made this a hostage to whatever
+              // else the page fetches on load: adding the live gage strip made call
+              // one a gage read, so the classify was never held, the superseded
+              // scenario never occurred, and the assertion failed against a page that
+              // was behaving correctly.
               const real = window.fetch;
-              let calls = 0;
+              let held = false;
               window.__releaseFirst = null;
               window.fetch = (...args) => {
-                calls += 1;
-                if (calls === 1) {
+                const url = String(args[0] || "");
+                if (!held && url.includes("/api/classify/")) {
+                  held = true;
                   return new Promise((resolve, reject) => {
                     window.__releaseFirst = () => real(...args).then(resolve, reject);
                   });
@@ -1418,3 +1433,133 @@ class TestTheFleetCardNeverDrawsATraversalItCannotTrust:
         self._run(page, console_url)
         assert "UNAVAILABLE" in page.locator("#fleetout .status").inner_text().upper()
         assert "synthetic" in page.locator("#fleetout .refusal").inner_text()
+
+
+class TestTheLiveGageStrip:
+    """The strip that makes the project's opening sentence true on screen.
+
+    Every case stubs `/api/gage/*` rather than reaching USGS. The point under test is
+    what the PAGE does with an answer, and a browser test that depends on a federal
+    agency's uptime is a flake with a deadline attached.
+    """
+
+    LIVE: MappingProxyType[str, Any] = MappingProxyType(
+        {
+            "basin": "scott",
+            "gage_id": "USGS-11519500",
+            "observed_cfs": 4.91,
+            "unit": "ft^3/s",
+            "observed_at": "2026-08-16T02:30:00+00:00",
+            "qualifier": "P",
+            "provisional": True,
+            "minimum_cfs": 30.0,
+            "classification": "flow_below_minimum",
+            "direction": "toward_restriction",
+            "provenance": "usgs_live",
+            "fetched_at": "2026-08-16T02:46:00+00:00",
+            "age_seconds": 0.0,
+            "recommendation_only": True,
+            "disclaimer": "A recommendation.",
+        }
+    )
+
+    def _strip(self, page: Page, console_url: str, body: Any, status: int = 200) -> None:
+        # dict(), because the fixture is a mappingproxy so it cannot be mutated by one
+        # test and silently change another, and json.dumps refuses to serialise one.
+        page.route("**/api/gage/**", _fulfil(dict(body), status))
+        page.goto(console_url)
+        page.wait_for_selector('#live-strip[data-loaded="1"]', timeout=20_000)
+
+    def test_a_live_reading_renders_value_rule_and_verdict(
+        self, page: Page, console_url: str
+    ) -> None:
+        self._strip(page, console_url, self.LIVE)
+        card = page.locator('#live-strip .gage[data-basin="scott"]')
+        assert card.get_attribute("data-state") == "flow_below_minimum"
+        text = card.inner_text()
+        assert "4.91 cfs" in text
+        assert "30 cfs minimum" in text
+        assert "BELOW MINIMUM" in text.upper()
+
+    def test_the_timestamp_is_pacific_whatever_timezone_the_judge_is_in(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The same instant is Aug 16 in UTC and Aug 15 in Pacific, and the flow
+        schedule changes on specific calendar dates, so a bare local timestamp can
+        print the wrong DATE beside a reading. The page pins the zone and names it.
+        """
+        self._strip(page, console_url, self.LIVE)
+        prov = page.locator('#live-strip .gage[data-basin="scott"] .prov').inner_text()
+        assert "PDT" in prov, f"the zone is not named: {prov}"
+        assert "Aug 15, 2026" in prov, f"rendered in the viewer's zone, not Pacific: {prov}"
+
+    def test_a_cached_reading_says_cached_and_shows_its_age(
+        self, page: Page, console_url: str
+    ) -> None:
+        """A five-minute-old value and a five-hour-old value are indistinguishable
+        without this, and the difference is whether what is on screen is the river."""
+        self._strip(
+            page, console_url, {**self.LIVE, "provenance": "usgs_cached", "age_seconds": 900}
+        )
+        prov = page.locator('#live-strip .gage[data-basin="scott"] .prov').inner_text()
+        assert "cached" in prov.lower()
+        assert "15 min ago" in prov
+
+    def test_an_unavailable_gage_shows_the_reason_and_no_number(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The worst output this surface can produce is a zero standing in for a
+        sensor that did not answer, and the second worst is a blank with no reason."""
+        self._strip(page, console_url, {"detail": "USGS-11519500 could not be read"}, status=503)
+        card = page.locator('#live-strip .gage[data-basin="scott"]')
+        assert card.get_attribute("data-state") == "unavailable"
+        text = card.inner_text()
+        assert "could not be read" in text
+        assert "cfs" not in text, f"a number was rendered for an unreadable gage: {text}"
+
+    def test_an_incomplete_answer_is_refused_rather_than_part_rendered(
+        self, page: Page, console_url: str
+    ) -> None:
+        """Same rule the classifier card already follows: a reading below the minimum
+        drawn in a calm neutral is the worst thing this page can show."""
+        partial = {k: v for k, v in self.LIVE.items() if k != "minimum_cfs"}
+        self._strip(page, console_url, partial)
+        card = page.locator('#live-strip .gage[data-basin="scott"]')
+        assert card.get_attribute("data-state") == "unavailable"
+        assert "missing minimum_cfs" in card.inner_text()
+
+    def test_an_unknown_classification_is_not_drawn_as_a_verdict(
+        self, page: Page, console_url: str
+    ) -> None:
+        self._strip(page, console_url, {**self.LIVE, "classification": "invented_state"})
+        card = page.locator('#live-strip .gage[data-basin="scott"]')
+        assert card.get_attribute("data-state") == "unavailable"
+        assert "cannot render" in card.inner_text()
+
+    def test_both_gages_render_independently(self, page: Page, console_url: str) -> None:
+        """One failing gage must not blank the other. A watermaster losing Scott
+        still needs Shasta."""
+
+        def handler(route: Route) -> None:
+            if "shasta" in route.request.url:
+                route.fulfill(
+                    status=503,
+                    content_type="application/json",
+                    body=json.dumps({"detail": "gage down"}),
+                )
+            else:
+                route.fulfill(
+                    status=200, content_type="application/json", body=json.dumps(dict(self.LIVE))
+                )
+
+        page.route("**/api/gage/**", handler)
+        page.goto(console_url)
+        page.wait_for_selector('#live-strip[data-loaded="1"]', timeout=20_000)
+        assert (
+            page.locator('#live-strip .gage[data-basin="scott"]').get_attribute("data-state")
+            == "flow_below_minimum"
+        )
+        assert (
+            page.locator('#live-strip .gage[data-basin="shasta"]').get_attribute("data-state")
+            == "unavailable"
+        )

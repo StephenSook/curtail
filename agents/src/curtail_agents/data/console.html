@@ -226,6 +226,36 @@
      statements about the system, not about the river. */
   .s-system { color: var(--fg); }
 
+  /* The live strip. Two gages side by side, stacking under 720px so a phone gets
+     one legible column rather than two cramped ones. */
+  .live-strip { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 720px) { .live-strip { grid-template-columns: 1fr; } }
+  .gage {
+    border: 1px solid var(--border); border-top: 1px solid var(--border-strong);
+    border-radius: 6px; padding: 16px; background: var(--card);
+  }
+  .gage h3 {
+    font-size: var(--t-micro); letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600; color: var(--muted); margin: 0 0 8px;
+  }
+  /* Compliance-critical, so it appears instantly at its final value and never
+     animates or counts up. Animating a number implies uncertainty about it. */
+  .gage .cfs {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: var(--t-view); line-height: 1.1; display: block;
+  }
+  /* Block, so the status pill below it gets its own line. Inline, the pill butted
+     straight against the end of this sentence with no gap, which only showed up on
+     a screenshot. */
+  .gage .against { color: var(--muted); font-size: var(--t-micro); display: block; }
+  /* Provenance and age as TEXT. A five-minute-old value and a five-hour-old value
+     are indistinguishable otherwise, and that difference is whether what is on
+     screen is the river. */
+  .prov {
+    margin-top: 10px; font-family: var(--mono); font-size: var(--t-micro);
+    color: var(--muted); display: block;
+  }
+
   .note {
     color: var(--muted); font-size: var(--t-micro); line-height: var(--lh-micro);
     margin-top: 12px; max-width: 72ch;
@@ -312,6 +342,31 @@
 </header>
 
 <main>
+  <!--
+    The live gage strip.
+
+    It is FIRST on purpose. Everything below it classifies a number a human typed, and
+    until this existed that was the only thing the deployed service could do, while the
+    README's opening sentence said the system watches a river in real time. This is the
+    part that makes that sentence true, so it goes where a judge lands.
+
+    It renders provenance and age as TEXT, never as a colour or an icon alone: a value
+    that is five minutes old and a value that is five hours old look identical otherwise,
+    and the difference is whether the number on screen is the river.
+  -->
+  <section class="card" id="live">
+    <h2>The river, right now</h2>
+    <p class="muted">
+      Read from the USGS OGC API by this service and classified against the minimum in
+      force for today's date. Not a number anybody typed. If a gage cannot be read this
+      says so and shows nothing, because a river reporting no data is not a river running
+      at zero.
+    </p>
+    <div id="live-strip" class="live-strip" aria-live="polite">
+      <p class="muted">Reading both compliance gages...</p>
+    </div>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -1267,10 +1322,124 @@
     stamp(fleetBox, mine);
   }
 
+  // ── The live gage strip ────────────────────────────────────────────────────
+  //
+  //: Reuses STATUS, so the strip and the classifier below it cannot disagree about
+  //: what a classification means. A second lookup table would be a second thing to
+  //: keep in step, and it would drift.
+  //:
+  //: An unreadable gage renders the SYSTEM neutral and the reason, never a status
+  //: hue and never a number. The worst output this surface can produce is a calm
+  //: grey reading that is actually below the minimum, and the second worst is a
+  //: zero standing in for "the sensor did not answer".
+  const LIVE_REQUIRED = ["observed_cfs", "minimum_cfs", "classification", "provenance"];
+
+  //: Gage times render in AMERICA/LOS_ANGELES with the zone named, never in the
+  //: viewer's locale. The Board's orders, the flow schedule's date-period boundaries
+  //: and the instrument itself are all on California time, so a judge in another
+  //: timezone reading a bare local timestamp would see a different date beside the
+  //: same reading and could not reconcile it with the record. The locked design spec
+  //: requires this for exactly that reason.
+  const PACIFIC = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
+
+  function ageText(seconds) {
+    if (typeof seconds !== "number" || !Number.isFinite(seconds)) return "age unknown";
+    if (seconds < 60) return `${Math.round(seconds)}s ago`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)} min ago`;
+    return `${(seconds / 3600).toFixed(1)} h ago`;
+  }
+
+  function gageCard(basin, body, failure) {
+    const card = document.createElement("div");
+    card.className = "gage";
+    card.dataset.basin = basin;
+
+    const title = document.createElement("h3");
+    title.textContent = basin === "scott" ? "Scott River, Fort Jones" : "Shasta River, near Yreka";
+    card.appendChild(title);
+
+    if (failure) {
+      const state = document.createElement("div");
+      state.className = "status s-system";
+      state.innerHTML = '<span class="glyph">—</span><span></span>';
+      state.querySelector("span:last-child").textContent = "Gage unavailable";
+      card.appendChild(state);
+      const why = document.createElement("p");
+      why.className = "refusal";
+      why.textContent = failure;
+      card.appendChild(why);
+      card.dataset.state = "unavailable";
+      return card;
+    }
+
+    const [cls, glyph, label] = STATUS[body.classification];
+    const value = document.createElement("span");
+    value.className = "cfs";
+    value.textContent = `${body.observed_cfs} cfs`;
+    card.appendChild(value);
+
+    const against = document.createElement("span");
+    against.className = "against";
+    against.textContent = `against a ${body.minimum_cfs} cfs minimum today`;
+    card.appendChild(against);
+
+    const state = document.createElement("div");
+    state.className = `status ${cls}`;
+    state.style.marginTop = "10px";
+    state.innerHTML = '<span class="glyph"></span><span></span>';
+    state.querySelector(".glyph").textContent = glyph;
+    state.querySelector("span:last-child").textContent = label;
+    card.appendChild(state);
+
+    const prov = document.createElement("span");
+    prov.className = "prov";
+    //: The whole point of the strip. `usgs_live` means this service fetched it;
+    //: `usgs_cached` means it is a real reading being replayed, and the age says how
+    //: real. Neither is ever rendered as the other.
+    prov.textContent =
+      body.provenance === "usgs_live"
+        ? `USGS live · observed ${PACIFIC.format(new Date(body.observed_at))}`
+        : `USGS cached · fetched ${ageText(body.age_seconds)}`;
+    card.appendChild(prov);
+    card.dataset.state = body.classification;
+    return card;
+  }
+
+  async function loadLive() {
+    const strip = document.getElementById("live-strip");
+    const cards = await Promise.all(
+      ["scott", "shasta"].map(async (basin) => {
+        try {
+          const response = await fetch(`/api/gage/${basin}`);
+          const body = await response.json();
+          if (!response.ok) {
+            return gageCard(basin, null, body.detail || `the service returned ${response.status}`);
+          }
+          for (const field of LIVE_REQUIRED) {
+            if (!(field in body)) return gageCard(basin, null, `the answer is missing ${field}`);
+          }
+          if (!STATUS[body.classification]) {
+            return gageCard(basin, null, `this page cannot render ${body.classification}`);
+          }
+          return gageCard(basin, body, null);
+        } catch (error) {
+          return gageCard(basin, null, `could not reach this service: ${error.message}`);
+        }
+      })
+    );
+    strip.replaceChildren(...cards);
+    strip.dataset.loaded = "1";
+  }
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
   document.getElementById("fleet").addEventListener("click", runFleet);
+  loadLive();
   run();
   loadQueue();
 </script>
