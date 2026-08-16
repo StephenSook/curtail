@@ -856,6 +856,61 @@ def ledger(basin: str) -> dict[str, Any]:
 _TIMELINE: dict[str, Any] | None = None
 
 
+@app.get("/api/backtest")
+def backtest() -> dict[str, Any]:
+    """What the Board decided, beside what this engine computes, on the same readings.
+
+    **This is the headline claim with its evidence attached.** Each case carries the
+    Board's own sentence from its own document, the reading and the minimum in force that
+    day, the direction the Board took, and the direction this engine reaches from the same
+    inputs. A reader can check every row against a public PDF.
+
+    The EXCLUSIONS are published beside the matches and are the more honest half. A case
+    is excluded when the document states a bound rather than a measurement, and scoring
+    "flows have been at or above 60 cfs" as though it were a reading would invent
+    precision the Board never claimed. A metric that quietly drops the awkward cases is a
+    metric about the cases that were easy.
+
+    The wording of the claim is fixed and narrow: this reproduces the DIRECTION of a
+    decision, restrict or relieve. It does not derive a cutoff date, and it never says so.
+    """
+    from curtail_core.backtest import run as run_backtest
+
+    report = run_backtest()
+    return {
+        "headline": report.headline,
+        "era_id": report.era_id,
+        "scored": len(report.results),
+        "excluded": len(report.excluded),
+        "cases": [
+            {
+                "case_id": r.case_id,
+                "basin": r.basin,
+                "decision_date": r.decision_date.isoformat(),
+                # Kept nullable. A case can carry no minimum, and `float(None)` would
+                # either raise or, worse, be "fixed" into a zero, which on this surface
+                # reads as a river with no protection rather than a rule not stated.
+                "reading_cfs": None if r.reading_cfs is None else float(r.reading_cfs),
+                "minimum_cfs": None if r.minimum_cfs is None else float(r.minimum_cfs),
+                "board_direction": str(r.board_direction),
+                "engine_direction": str(r.engine_direction),
+                "outcome": str(r.outcome),
+                "near_threshold": bool(r.near_threshold),
+                "reasoning": r.reasoning,
+                # Verbatim from the Board's document. The whole row is checkable
+                # because of this field.
+                "source_quote": r.source_quote,
+            }
+            for r in report.results
+        ],
+        "exclusions": [{"id": e["id"], "reason": e["reason"]} for e in report.excluded],
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
 @app.get("/api/timeline")
 def timeline() -> dict[str, Any]:
     """Five years of curtailment administration, ordered by a date this can prove.

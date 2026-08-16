@@ -247,6 +247,23 @@
   table.ledger tr[data-placed="false"] td { color: var(--conditional); }
   table.ledger td.absent { color: var(--muted); font-style: italic; }
 
+  /* The draft-versus-actual comparison. Two panes per case, stacking under 860px so
+     a phone gets one readable column rather than two cramped ones. */
+  .case { border: 1px solid var(--border); border-top: 1px solid var(--border-strong);
+          border-radius: 6px; padding: 14px; margin-bottom: 12px; background: var(--card); }
+  .case h3 { font-size: var(--t-micro); letter-spacing: 0.06em; text-transform: uppercase;
+             font-weight: 600; color: var(--muted); margin: 0 0 10px; }
+  .panes { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 860px) { .panes { grid-template-columns: 1fr; } }
+  .pane h4 { font-size: var(--t-micro); letter-spacing: 0.06em; text-transform: uppercase;
+             font-weight: 600; color: var(--muted); margin: 0 0 6px; }
+  /* The Board's own words, set in the serif reserved for quoted legal text. */
+  .pane blockquote { font-family: var(--serif); font-size: var(--t-legal); line-height: 1.6;
+                     margin: 0 0 8px; padding-left: 12px;
+                     border-left: 2px solid var(--border-strong); color: var(--fg); }
+  .pane .verdict { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .excl { border-left: 2px solid var(--conditional); padding-left: 12px; margin: 8px 0; }
+
   .live-strip { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 720px) { .live-strip { grid-template-columns: 1fr; } }
   .gage {
@@ -512,6 +529,25 @@
     <p class="note" id="timeline-note"></p>
   </section>
 
+  <!--
+    The draft-versus-actual comparison.
+
+    Six real Board decisions, each carrying the Board's own sentence from its own
+    document beside the direction this engine reaches from the same reading. Every row
+    is checkable against a public PDF.
+
+    The EXCLUSIONS are rendered beside the matches and are the more honest half: a case
+    is excluded when the document states a bound rather than a measurement, and a metric
+    that quietly drops its awkward cases is a metric about the easy ones.
+  -->
+  <section class="card" id="backtestcard">
+    <h2>What the Board decided, beside what this engine computes</h2>
+    <p class="muted" id="backtest-headline"></p>
+    <div id="backtest-cases"></div>
+    <p class="note" id="backtest-note"></p>
+    <div id="backtest-excluded"></div>
+  </section>
+
   <section class="card">
     <h2>Classify a gage reading</h2>
     <div class="split">
@@ -710,7 +746,7 @@
   //: counter meant loading the queue invalidated an in-flight classification, whose
   //: render then returned without stamping and left anything waiting on that stamp
   //: waiting forever. A generation is "is this still the newest answer to MY question".
-  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0 };
+  const generation = { out: 0, rec: 0, queue: 0, fleet: 0, graph: 0, map: 0, ledger: 0, tl: 0, bt: 0 };
 
   // Stamped on each card at every TERMINAL render, never on the waiting state. A test
   // or a human can then tell whether what is on screen belongs to the request just
@@ -2438,6 +2474,138 @@
 
   window.addEventListener("resize", () => { if (tlChart) tlChart.resize(); });
 
+  // ── What the Board decided, beside what this engine computes ────
+  //
+  //: Every row carries the Board's OWN SENTENCE from its own document. That is what
+  //: makes the claim checkable rather than asserted: a reader can open the PDF and
+  //: find the quote. A comparison without the source text is a scoreboard.
+  function caseNode(c) {
+    const wrap = document.createElement("div");
+    wrap.className = "case";
+    wrap.dataset.case = c.case_id;
+    wrap.dataset.outcome = c.outcome;
+
+    const title = document.createElement("h3");
+    title.textContent = `${c.case_id} \u00b7 ${c.decision_date}`;
+    wrap.appendChild(title);
+
+    const panes = document.createElement("div");
+    panes.className = "panes";
+
+    const left = document.createElement("div");
+    left.className = "pane";
+    const lh = document.createElement("h4");
+    lh.textContent = "The Board's document";
+    left.appendChild(lh);
+    const quote = document.createElement("blockquote");
+    quote.textContent = c.source_quote;
+    left.appendChild(quote);
+    const ld = document.createElement("div");
+    ld.className = "verdict";
+    ld.textContent = `direction: ${c.board_direction}`;
+    left.appendChild(ld);
+
+    const right = document.createElement("div");
+    right.className = "pane";
+    const rh = document.createElement("h4");
+    rh.textContent = "Curtail, from the same reading";
+    right.appendChild(rh);
+    const reason = document.createElement("blockquote");
+    reason.textContent = c.reasoning;
+    right.appendChild(reason);
+    const rd = document.createElement("div");
+    rd.className = "verdict";
+    rd.textContent = `direction: ${c.engine_direction}`;
+    right.appendChild(rd);
+
+    panes.appendChild(left);
+    panes.appendChild(right);
+    wrap.appendChild(panes);
+
+    //: Colour AND glyph AND word, like every other status on this page.
+    const [cls, glyph, label] =
+      c.outcome === "match"
+        ? ["s-exempt", "\u2713", "Same direction"]
+        : ["s-curtailed", "\u2297", "Different direction"];
+    const status = document.createElement("div");
+    status.className = `status ${cls}`;
+    status.style.marginTop = "10px";
+    status.innerHTML = '<span class="glyph"></span><span></span>';
+    status.querySelector(".glyph").textContent = glyph;
+    status.querySelector("span:last-child").textContent = label;
+    wrap.appendChild(status);
+
+    const detail = document.createElement("p");
+    detail.className = "note";
+    const reading = c.reading_cfs === null ? "not stated" : `${c.reading_cfs} cfs`;
+    const minimum = c.minimum_cfs === null ? "not stated" : `${c.minimum_cfs} cfs`;
+    detail.textContent =
+      `${reading} against a ${minimum} minimum in force that day` +
+      (c.near_threshold ? ", inside the near-threshold band" : "");
+    wrap.appendChild(detail);
+    return wrap;
+  }
+
+  function clearBacktest(reason) {
+    document.getElementById("backtest-cases").replaceChildren();
+    document.getElementById("backtest-excluded").replaceChildren();
+    document.getElementById("backtest-headline").textContent = "";
+    document.getElementById("backtest-note").textContent = reason;
+    document.getElementById("backtestcard").dataset.state = "unavailable";
+  }
+
+  async function loadBacktest() {
+    const mine = ++generation.bt;
+    const card = document.getElementById("backtestcard");
+    let body;
+    try {
+      body = await payloadOf(await fetch("/api/backtest"), "the backtest");
+    } catch (error) {
+      if (mine !== generation.bt) return;
+      clearBacktest(`Could not load the comparison: ${error.message}`);
+      return;
+    }
+    if (mine !== generation.bt) return;
+    if (!Array.isArray(body.cases) || !Array.isArray(body.exclusions)) {
+      clearBacktest("The service returned a comparison this page cannot render.");
+      return;
+    }
+
+    document.getElementById("backtest-headline").textContent = body.headline;
+    document
+      .getElementById("backtest-cases")
+      .replaceChildren(...body.cases.map(caseNode));
+
+    //: The exclusions are rendered, not counted. A metric that quietly drops its
+    //: awkward cases is a metric about the easy ones, and the reasons here are the
+    //: most interesting thing on this card: the Board stated a BOUND rather than a
+    //: measurement, and scoring a bound as a reading would invent precision.
+    const excluded = document.getElementById("backtest-excluded");
+    excluded.replaceChildren();
+    if (body.exclusions.length) {
+      const heading = document.createElement("p");
+      heading.className = "note";
+      heading.textContent =
+        `${body.exclusions.length} decisions were excluded before scoring, each for a ` +
+        `stated reason:`;
+      excluded.appendChild(heading);
+      for (const item of body.exclusions) {
+        const div = document.createElement("div");
+        div.className = "excl note";
+        div.textContent = `${item.id}: ${item.reason}`;
+        excluded.appendChild(div);
+      }
+    }
+
+    const matches = body.cases.filter((c) => c.outcome === "match").length;
+    document.getElementById("backtest-note").textContent =
+      `${matches} of ${body.cases.length} scored decisions reach the same direction. ` +
+      `The claim is about DIRECTION, restrict or relieve, and never about deriving a ` +
+      `cutoff date. Every quote above is verbatim from the Board's own document.`;
+    card.dataset.state = "loaded";
+    card.dataset.matches = String(matches);
+  }
+
   document.getElementById("draft").addEventListener("click", draftIntoQueue);
   document.getElementById("refresh").addEventListener("click", loadQueue);
   document.getElementById("go").addEventListener("click", run);
@@ -2446,6 +2614,7 @@
   drawGraph();
   loadLedger();
   drawTimeline();
+  loadBacktest();
   run();
   loadQueue();
 </script>
