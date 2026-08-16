@@ -853,6 +853,63 @@ def ledger(basin: str) -> dict[str, Any]:
     }
 
 
+_TIMELINE: dict[str, Any] | None = None
+
+
+@app.get("/api/timeline")
+def timeline() -> dict[str, Any]:
+    """Five years of curtailment administration, ordered by a date this can prove.
+
+    **Every date here says what KIND of date it is, and that is the whole design.** These
+    documents do not print an adoption date. Two heuristics for inferring one were tried
+    and both were wrong: the modal date in the text fails on a document that lists gage
+    readings by date, and the latest date in the text fails because 73 of 101 documents
+    name a date AFTER their file was created, since an addendum states when it expires.
+
+    So the timeline orders by the PDF's creation timestamp, which is a fact about the
+    file, and says so on screen. Two documents carry an adoption date established
+    independently by the rights loader, and the measured gap between the two on those
+    documents is reported rather than assumed to hold for the other 99.
+
+    That a hundred curtailment documents carry no machine-readable adoption date is not a
+    defect in this endpoint. It is the coordination gap the project exists to describe.
+    """
+    global _TIMELINE
+    if _TIMELINE is None:
+        path = Path(curtail_core.__file__).resolve().parent / "data" / "timeline.json"
+        if not path.is_file():
+            raise HTTPException(
+                status_code=503,
+                detail="timeline.json is not packaged. Run scripts/build_timeline.py.",
+            )
+        _TIMELINE = json.loads(path.read_text())
+
+    payload = _TIMELINE
+    return {
+        "counts": payload["counts"],
+        "method": payload["source"]["method"],
+        "measured_offsets": payload["source"]["measured_offsets"],
+        "events": [
+            {
+                "file": entry["file"],
+                "series": entry["series"],
+                "kind": entry["kind"],
+                "number": entry["number"],
+                "action": entry["action"] or "unrecorded",
+                "file_date": entry["file_date"],
+                "adoption_date": entry["adoption_date"],
+            }
+            for entry in payload["entries"]
+            if entry["file_date"]
+        ],
+        "gaps": payload["gaps"],
+        "disclaimer": (
+            "A recommendation. 23 CCR 875(b) vests the determination in a named "
+            "human official, and nothing this system produces self-executes."
+        ),
+    }
+
+
 @app.get("/api/diversions/{basin}")
 def diversions(basin: str) -> dict[str, Any]:
     """Where the curtailed rights actually divert, from the Board's own layer.
