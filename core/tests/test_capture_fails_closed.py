@@ -112,6 +112,20 @@ class TestABadTakeIsRefused:
             "the cleanup happens after the raise, which is to say never"
         )
 
+    def test_any_mid_session_failure_cleans_up_not_just_a_refusal(self) -> None:
+        """A Playwright timeout writes the same unusable webm a deliberate refusal
+        does, and the first version of the wrapper caught only CaptureFailedError, so
+        the most common failure, a settle timing out, still left a file behind."""
+        source = SCRIPT.read_text()
+        assert "except BaseException:" in source, (
+            "the capture wrapper no longer cleans up on arbitrary failures, so a "
+            "timeout leaves an unusable recording for downstream assembly"
+        )
+        wrapper = source[source.index("except BaseException:") :]
+        assert 'OUT.glob("*.webm")' in wrapper.split("def ")[0], (
+            "the broad except no longer purges the recording directory"
+        )
+
     def test_partial_coverage_is_written_into_the_artifact(self) -> None:
         """The capture films the agent-execution beats and leaves the evidence beats to
         separate captures. That split is a design decision, but a marks file listing five
