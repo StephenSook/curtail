@@ -262,7 +262,8 @@ _All 18 items accounted for: 9 open, 9 closed._
 
 ## Knowing when to decline
 
-- **5 of 5 refusal traps declined correctly.** These are cases where the CORRECT answer is that the system says nothing, which no other eval here asks about.
+- **5 of 5 restraint cases behaved correctly**: cases where the right answer is NOT the obvious action. **2 REFUSE** outright, raising rather than answering, and **3 WITHHOLD** the consequential act, an order, a suspension or a placement, while still reporting what they saw.
+- An earlier version of this line said all of them 'declined' and described the system as saying nothing. **That was an overclaim about three of them**, caught in review before it reached the video. The distinction is kept rather than smoothed away because withholding is the BETTER behaviour: a system that answers 'field verification first' is more useful than one that goes silent, and silence is not a virtue.
 - 5 distinct reasons to decline, not one repeated: impossible_reading, near_threshold, undated_right, unsustained_recovery, unverified_era.
 - **4 of 5 run on real data**: a live gage reading, the date the 2021 Shasta order issued, a day from the July 2025 sequence, and rights the Board itself published without a priority date. The remaining one is constructed and is labelled so in the artifact.
 - Scoring this axis immediately found a real defect: the Sentinel accepted a discharge of -5 cfs and CLASSIFIED it, which on a sensor fault reads as far below the minimum and points at curtailment. Now unrepresentable at the domain object.

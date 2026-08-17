@@ -428,7 +428,18 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
 
     scored: list[dict[str, Any]] = []
 
-    def record(eval_id: str, expected: str, actual: str, real: str) -> None:
+    def record(eval_id: str, expected: str, actual: str, real: str, kind: str) -> None:
+        """`kind` is load-bearing and was added after a review caught an overclaim.
+
+        Two of these cases REFUSE: they raise rather than answer, and nothing usable comes
+        back. Three WITHHOLD: they decline the consequential act, an order, a suspension or
+        a placement, while still reporting what they saw. Calling all five "declined" and
+        describing them as the system saying nothing was wrong about three of them.
+
+        The distinction is worth keeping rather than smoothing away, because withholding
+        is the BETTER behaviour of the two. A system that answers "field verification
+        first" is more useful than one that goes silent, and silence is not a virtue.
+        """
         scored.append(
             {
                 "eval_id": eval_id,
@@ -436,6 +447,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
                 "actual": actual,
                 "match": expected == actual,
                 "data": real,
+                "kind": kind,
             }
         )
 
@@ -452,6 +464,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
             rights=rights_for(Basin.SHASTA).rights,
         ).action.value,
         "live Shasta gage reading, 54.5 cfs against a 50 cfs minimum",
+        "withholds",
     )
 
     # 2. A date whose flow schedule is not verified must REFUSE rather than score against
@@ -467,6 +480,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
         "refused",
         outcome,
         "September 10 2021, the date the Shasta order WR 2021-0082-DWR issued",
+        "refuses",
     )
 
     # 3. An impossible reading must refuse. Constructed, and no river produces one, but a
@@ -484,6 +498,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
         "refused",
         outcome,
         "CONSTRUCTED: a negative discharge, which a sensor fault or a typo produces",
+        "refuses",
     )
 
     # 4. A recovery above the minimum must not immediately recommend suspension. The
@@ -498,6 +513,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
         EventType.FLOW_ABOVE_MINIMUM_UNSUSTAINED.value,
         single.event_type.value,
         "Fort Jones 78.4 cfs on a single day of the July 2025 sequence",
+        "withholds",
     )
 
     # 5. A right the Board publishes with no priority date must not be silently placed in
@@ -508,6 +524,7 @@ def _run_refusal_traps() -> list[dict[str, Any]]:
         "not_placed",
         _undated_placement(),
         "rights the Board's own Attachment A publishes without a priority date",
+        "withholds",
     )
     return scored
 
@@ -589,9 +606,11 @@ def build_results(eval_set: dict[str, Any]) -> dict[str, Any]:
     refusals = _summary(
         "refusal_traps",
         _run_refusal_traps(),
-        "cases where the correct answer is that the system DECLINES: a near-threshold "
-        "reading, an era whose schedule is unverified, an impossible reading, an "
-        "unsustained recovery, and a right published with no priority date",
+        "restraint: cases where the correct answer is NOT the obvious action. Two REFUSE "
+        "outright, raising rather than answering, and three WITHHOLD the consequential "
+        "act while still reporting what they saw. The second kind is the better "
+        "behaviour, because a system that says field verification first is more useful "
+        "than one that goes silent",
     )
     herald = _summary(
         "herald",
