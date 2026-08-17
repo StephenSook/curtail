@@ -8,11 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Commit the container reports: `a72723f89b5298b29bb404e8f0b2275214d31e98`
+- Commit the container reports: `509301318740759a66a29c18d365ae40659c473f`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `0f856597b38018fcaa363e5decc175a557bd8367`
-- Probed at: `2026-08-17T04:00:07+00:00`
-- Serving revision at probe time: `curtail-console-api-00068-twv`
+- Probed at repository commit: `509301318740759a66a29c18d365ae40659c473f`
+- Probed at: `2026-08-17T04:58:33+00:00`
+- Serving revision at probe time: `curtail-console-api-00069-49l`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -71,13 +71,7 @@ record for that reason, so a newer revision serving it contradicts nothing.
 
 - Season Ledger durable in production: **True**
 - Container reports its own commit: **yes**
-- Deployment built from the current runtime source: **no**
-
-**Production is STALE.** 1 runtime path(s) changed since the
-commit the container names, so the live URL is running a different program
-from the one this repository describes. Run `make deploy`.
-
-- `agents/src/curtail_agents/data/FACTS.md`
+- Deployment built from the current runtime source: **yes**
 
 | Capability | Route that settles it | Served |
 |---|---|---|
