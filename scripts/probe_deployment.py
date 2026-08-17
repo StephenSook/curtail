@@ -30,6 +30,7 @@ import json
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -311,7 +312,15 @@ def _recent_trace() -> tuple[list[str], str | None]:
     page_token = ""
     exhausted = True
     for _ in range(12):
-        request = urllib.request.Request(f"{base}&pageToken={page_token}")
+        # **The token is URL-ENCODED, and this line is why the intermittent 400 was
+        # intermittent.** Cloud Trace's nextPageToken is base64 carrying `/` and `+`;
+        # interpolated raw, `+` arrives as a space and the API rejects the request as
+        # malformed. Page one has no token, so any diagnosis that reproduced only the
+        # first request concluded the API was fine, which is exactly what happened.
+        # The fail-loud 400 path below caught the real cause on its first live run.
+        request = urllib.request.Request(
+            f"{base}&pageToken={urllib.parse.quote(page_token, safe='')}"
+        )
         request.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:

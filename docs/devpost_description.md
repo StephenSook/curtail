@@ -34,7 +34,7 @@ The Core recommends and never determines. 875(b) vests determination in a named 
 
 **Loops are bounded** by a per-node iteration ceiling, a deadline that cancellation actually enforces rather than a timeout that does not, and a dead-letter path preserving the correlation id.
 
-**`make chaos` runs in CI and can go red.** It kills Herald mid-run and shows the dedup table making the replay a no-op, feeds a poisoned order PDF through Model Armor, and forces a Scribe hallucination into both guards. Eight disarm tests prove the drill fails when a guard is removed.
+**`make chaos` runs in CI and can go red.** It kills Herald mid-run and shows the dedup table making the replay a no-op, feeds a poisoned order PDF through Model Armor, and forces a Scribe hallucination into both guards. A suite of disarm tests proves the drill fails when a guard is removed.
 
 ## State and memory
 
