@@ -5,9 +5,14 @@ itself, which is why this can run unattended, and it is arguably stronger eviden
 screen capture: the frames are a browser genuinely hitting the production URL, not a window
 on somebody's desktop that could be showing anything.
 
-ONE CONTINUOUS SESSION for the whole run. The console holds state in memory across cards,
-and the rules ask for "an unedited, live execution", so cutting between sessions would be
-both technically wrong and a worse answer to the criterion.
+ONE CONTINUOUS SESSION for the agent-execution beats, 1 through 5. The console holds
+state in memory across cards, and the rules ask for "an unedited, live execution" of the
+agent performing its task, so those beats are one browser, one session, no cuts. Beats 6
+to 8 are a different kind of evidence and are captured separately, on purpose: the Google
+Cloud consoles need an authenticated human session this headless context does not hold,
+and the closing card is not a live execution of anything. marks.json records exactly
+which beats this take covers, so the assembler can refuse to mux until every absent beat
+has its own source.
 
 **The fleet traversal takes about 63 seconds and is not cut.** It calls Gemini for real. The
 narration talks through the wait, which is what an operator watching this actually
@@ -256,7 +261,7 @@ def capture(url: str) -> Path:
         settle(page, "#searchout", search_before, timeout=120_000)
         clock.hold(until)
 
-        print("  beats 6 to 8 are captured separately")
+        print("  beats 6 to 8 are separate evidence captures; marks.json records them as absent")
         total = clock.elapsed()
         context.close()
         browser.close()
@@ -279,10 +284,23 @@ def capture(url: str) -> Path:
             f"{len(errors)} page error(s) during the take: {errors[:4]}. The console threw "
             "while being filmed, and a video of a product erroring is worse than no video."
         )
+    # **The omission is written into the artifact, not left in a print line.** This take
+    # covers the agent-execution beats only, and a marks file that listed five marks
+    # without saying eight were expected would hand the assembler a film quietly missing
+    # its final minute. `beats_absent` is a refusal list: the mux may not run until every
+    # beat named there has its own separately captured source.
+    captured = [str(m["beat"]) for m in clock.marks]
+    absent = [b["beat"] for b in beats["beats"] if b["beat"] not in captured]
     (OUT / "marks.json").write_text(
         json.dumps(
-            {"url": url, "seconds": round(total, 3), "traversal_seconds": round(traversal, 3),
-             "marks": clock.marks},
+            {
+                "url": url,
+                "seconds": round(total, 3),
+                "traversal_seconds": round(traversal, 3),
+                "beats_captured": captured,
+                "beats_absent": absent,
+                "marks": clock.marks,
+            },
             indent=2,
         )
         + "\n"

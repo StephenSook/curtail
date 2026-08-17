@@ -71,6 +71,27 @@ class TestABadTakeIsRefused:
         )
         assert "r.status >= 400" in source, "responses are observed but their status is not checked"
 
+    def test_partial_coverage_is_written_into_the_artifact(self) -> None:
+        """The capture films the agent-execution beats and leaves the evidence beats to
+        separate captures. That split is a design decision, but a marks file listing five
+        marks without saying eight were expected hands the assembler a film quietly
+        missing its final minute. The omission must live in the ARTIFACT: a print line
+        scrolls away, and the assembler reads the file, not the terminal."""
+        body = tail()
+        assert '"beats_captured"' in body, (
+            "marks.json no longer names the beats this take covers, so a consumer must "
+            "guess coverage from the marks themselves"
+        )
+        assert '"beats_absent"' in body, (
+            "marks.json no longer names the beats this take does NOT cover, so a mux "
+            "trusting it would assemble a film missing its final beats with nothing "
+            "saying so"
+        )
+        assert 'beats["beats"]' in body, (
+            "the absent list is not computed against beats.json, so a beat added to the "
+            "narration would not appear in either list and the omission returns"
+        )
+
     def test_the_traversal_has_a_floor(self) -> None:
         """The first take reported a 64.5 second Gemini call as finishing in 0.0 seconds,
         because the wait matched the pending state. A floor makes that unrepresentable
