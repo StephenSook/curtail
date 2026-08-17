@@ -46,8 +46,8 @@ by AB 460, effective January 1 2025.)*
 *Screen: run the Allocation Core. The recommendation and the per-right ledger appear.*
 
 > The Allocation Core is not a language model. It is deterministic Python over a priority
-> ladder defined by four court adjudications, and it produces a justification line for every
-> single right. No model can move a water right in this system.
+> ladder defined by four court adjudications, and it writes a justification line for every
+> right. No model can move a water right here.
 
 ## Beat 3, the refusal (0:45 to 1:10)
 
@@ -57,10 +57,10 @@ by AB 460, effective January 1 2025.)*
 > asks for a field measurement, which is what the Fort Jones watermaster actually does.
 >
 > Five restraint cases are scored: two where the system refuses outright, three where it
-> withholds the consequential act and still tells you what it saw. Scoring that found a real
-> defect in this build. The Sentinel accepted a discharge of minus five cubic feet per
-> second and classified it. On a sensor fault that reads as far below the minimum and points
-> at curtailment. It is now unrepresentable.
+> withholds the consequential act and still says what it saw. Scoring them found a real
+> defect. The Sentinel accepted a discharge of minus five cubic feet per second and
+> classified it. A sensor fault reads as far below the minimum and points at curtailment.
+> It is now unrepresentable.
 
 ## Beat 4, the fleet, running (1:10 to 2:20)
 
@@ -89,15 +89,14 @@ by AB 460, effective January 1 2025.)*
 > Against the Board's own published decisions, the engine reproduces six of six scored
 > historical actions, with five excluded before scoring and every exclusion named.
 >
-> Fourteen rights out of eighty-seven are refused a place on the ladder, because their
-> records state no priority precise enough. Refusing is the correct answer. Feeding an
-> unknown priority in as a real date puts undated rights in the group that shuts off first.
+> Fourteen rights of eighty-seven are refused a place on the ladder, because their records
+> state no priority precise enough. Refusing is correct: an unknown priority fed in as a
+> real date puts undated rights in the group that shuts off first.
 
 *Screen: corpus search, a natural-language question.*
 
 > Five hundred and seventy-seven passages from a hundred and one Board documents, indexed
-> with gemini-embedding-001. It names the five documents it cannot search, on every
-> response, because they are scans with no text layer.
+> with gemini-embedding-001. It names the five it cannot search.
 
 ## Beat 6, proof it runs on Google Cloud (2:50 to 3:25)
 
@@ -117,13 +116,12 @@ run; Cloud Scheduler jobs; Firestore.*
 > a river with a flow meter.
 >
 > In July 2025 the gage read low, curtailment was reinstated, the community disputed the
-> measurement, the district took field flows, USGS shifted the rating curve, and curtailment
-> was lifted. This system is built so that correction flows back into the agents' reasoning,
-> from a phone, offline, and the device never holds authority. It submits evidence. The
-> server acts.
+> reading, field flows went to USGS, the rating curve shifted, and curtailment was lifted.
+> This system is built so that correction flows back into the agents' reasoning, from a
+> phone, offline. The device never holds authority: it submits evidence, the server acts.
 >
-> Gemma 3 runs locally for document normalisation, so an agency that cannot send landowner
-> records to a third-party API can host the weights itself.
+> Gemma 3 runs locally, so an agency that cannot send landowner records to a third-party
+> API hosts the weights itself.
 
 ## Beat 8, close (3:55 to 4:00)
 

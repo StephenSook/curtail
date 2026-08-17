@@ -21,6 +21,7 @@ dead air included.
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import time
 from pathlib import Path
@@ -33,11 +34,22 @@ class CaptureFailedError(RuntimeError):
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "docs" / "video" / "capture"
+BEATS = REPO / "docs" / "video" / "beats.json"
 LIVE = "https://curtail-console-api-672785135387.us-central1.run.app"
 
 #: Wide enough that the console's three-column cards are not stacked, and exactly the
 #: dimension the shipped file is checked against later.
 VIEWPORT = {"width": 1920, "height": 1080}
+
+#: **The shortest a real traversal can be.** The first take reported a 64.5 second Gemini
+#: call as finishing in 0.0 seconds, because the wait matched the card's pending state
+#: rather than its result. Anything under this is a spinner being filmed as a product.
+#:
+#: A named constant rather than a literal, because the guard's own test asserted the
+#: string `elapsed < 5` and broke the moment the variable was renamed to `traversal`. The
+#: floor was intact and the test failed anyway. A test should assert a symbol that has to
+#: exist, not a spelling that happens to.
+MINIMUM_TRAVERSAL_SECONDS = 5.0
 
 
 def settle(page: Any, card: str, previous: str, timeout: int = 300_000) -> str:
@@ -64,14 +76,71 @@ def settle(page: Any, card: str, previous: str, timeout: int = 300_000) -> str:
     return page.locator(card).get_attribute("data-render") or ""
 
 
-def beat(page: Any, label: str, seconds: float) -> None:
-    """Hold on a beat, and say which one on stdout so a failed run is diagnosable."""
-    print(f"    {label:38} hold {seconds:>5.1f}s", flush=True)
-    page.wait_for_timeout(int(seconds * 1000))
+def scroll(page: Any, selector: str) -> None:
+    """Move the camera, and refuse to pretend when the target is not there.
+
+    Playwright's own `scroll_into_view_if_needed` raises on a missing element, which is
+    the behaviour this capture needs: a selector that silently matches nothing produces
+    a take that narrates one thing while showing another, and nothing in the output says
+    so.
+    """
+    page.locator(selector).first.scroll_into_view_if_needed(timeout=10_000)
+
+
+class Clock:
+    """Holds the capture to the narration's real timings, and records where it landed.
+
+    **The holds used to be numbers typed into this file.** They drifted from the
+    narration the moment a word was cut, and a beat whose picture ends before its
+    sentence does is the most obvious kind of amateur cut there is. Now every hold is
+    read from `beats.json`, which the narration builder writes by MEASURING the
+    synthesised audio, so the two cannot disagree.
+
+    `marks` is what makes the mux deterministic. A beat can legitimately overrun its
+    narration (the fleet traversal calls Gemini for real and takes as long as it takes),
+    so the assembler needs the offsets that ACTUALLY happened, not the ones intended.
+    """
+
+    def __init__(self, page: Any, beats: dict[str, Any]) -> None:
+        self.page = page
+        self.gap = float(beats["gap_seconds"])
+        self.seconds = {b["beat"]: float(b["seconds"]) for b in beats["beats"]}
+        self.start = time.monotonic()
+        self.marks: list[dict[str, float | str]] = []
+
+    def elapsed(self) -> float:
+        return time.monotonic() - self.start
+
+    def open(self, beat: str) -> float:
+        """Record where a beat begins and return the wall-clock deadline for its end."""
+        at = self.elapsed()
+        self.marks.append({"beat": beat, "at": round(at, 3)})
+        print(f"    {beat:8} opens at {at:6.1f}s, narration {self.seconds[beat]:5.1f}s", flush=True)
+        return at + self.seconds[beat] + self.gap
+
+    def hold(self, until: float) -> None:
+        """Wait out the rest of a beat, or note that the product overran it.
+
+        An overrun is not an error. The winning film studied for this build visibly
+        waits on its own system, and a traversal that takes longer than its sentence is
+        the honest thing to show.
+        """
+        remaining = until - self.elapsed()
+        if remaining <= 0:
+            print(f"      the product overran its narration by {-remaining:.1f}s", flush=True)
+            return
+        self.page.wait_for_timeout(int(remaining * 1000))
 
 
 def capture(url: str) -> Path:
     from playwright.sync_api import sync_playwright
+
+    if not BEATS.exists():
+        raise CaptureFailedError(
+            "docs/video/beats.json is missing, so the holds would have to be guessed. "
+            "Run scripts/build_narration.py first: the narration sets the timing."
+        )
+    beats = json.loads(BEATS.read_text())
 
     if OUT.exists():
         shutil.rmtree(OUT)
@@ -113,22 +182,29 @@ def capture(url: str) -> Path:
             ),
         )
 
+        clock = Clock(page, beats)
+
         print("  beat 1, the console loads")
+        until = clock.open("beat1")
         page.goto(url, wait_until="domcontentloaded")
-        beat(page, "hook, console visible", 19.4)
+        clock.hold(until)
 
         print("  beat 2, the river, live")
+        until = clock.open("beat2")
         page.select_option("#basin", "shasta")
         page.fill("#cfs", "45.3")
         page.fill("#at", "2026-06-16")
         before = page.locator("#out").get_attribute("data-render") or ""
         page.click("#go")
         before = settle(page, "#out", before, timeout=90_000)
-        beat(page, "live classification on screen", 10.0)
-        page.evaluate("document.querySelector('#rec').scrollIntoView({block:'center'})")
-        beat(page, "allocation core and its ledger", 14.2)
+        # Halfway through the sentence the narration moves from the reading to the Core,
+        # so the picture moves with it.
+        page.wait_for_timeout(int(clock.seconds["beat2"] * 400))
+        scroll(page, "#rec")
+        clock.hold(until)
 
         print("  beat 3, the refusal")
+        until = clock.open("beat3")
         # 54.5 against a 50 cfs minimum sits inside the near-threshold band, so the
         # engine declines to order and asks for a field measurement instead. This is the
         # single most important thing on screen: the system NOT acting, and saying why.
@@ -136,10 +212,11 @@ def capture(url: str) -> Path:
         page.fill("#at", "2026-08-16")
         page.click("#go")
         settle(page, "#out", before, timeout=90_000)
-        beat(page, "near-threshold, declines to order", 34.2)
+        clock.hold(until)
 
         print("  beat 4, the fleet, uncut")
-        page.evaluate("document.querySelector('#fleet').scrollIntoView({block:'center'})")
+        until = clock.open("beat4")
+        scroll(page, "#fleet")
         page.fill("#cfs", "45.3")
         page.fill("#at", "2026-06-16")
         fleet_before = page.locator("#fleetout").get_attribute("data-render") or ""
@@ -148,29 +225,39 @@ def capture(url: str) -> Path:
         # The RESULT, not the pending state. See settle(): the first take matched the
         # spinner and reported this 63-second traversal as finishing in 0.0 seconds.
         settle(page, "#fleetout", fleet_before, timeout=300_000)
-        elapsed = time.monotonic() - started
-        print(f"    traversal completed in {elapsed:.1f}s")
-        if elapsed < 5:
-            raise RuntimeError(
-                f"the traversal returned in {elapsed:.1f}s, which is not a real Gemini "
+        traversal = time.monotonic() - started
+        print(f"      traversal completed in {traversal:.1f}s")
+        if traversal < MINIMUM_TRAVERSAL_SECONDS:
+            raise CaptureFailedError(
+                f"the traversal returned in {traversal:.1f}s, which is not a real Gemini "
                 "call. The capture would show a spinner rather than the product."
             )
-        beat(page, "every node attributed", 8.0)
+        # Let the finished traversal sit on screen long enough to read the attribution,
+        # even when it overran its own sentence getting there.
+        page.wait_for_timeout(6_000)
+        clock.hold(until)
 
         print("  beat 5, what it proves and refuses")
-        page.evaluate(
-            "const el = document.querySelector('#bt');if (el) el.scrollIntoView({block: 'center'});"
-        )
-        beat(page, "backtest", 12.0)
+        until = clock.open("beat5")
+        # **`scroll` raises on a missing id, deliberately.** This used to read
+        # `const el = ...; if (el) el.scrollIntoView(...)` against `#bt`, an id that does
+        # not exist in the console at all. The guard made a broken selector look like a
+        # successful scroll, so beat 5 would have narrated the backtest over whatever
+        # happened to be on screen. A capture step that cannot fail cannot be trusted.
+        share = clock.seconds["beat5"] / 3
+        scroll(page, "#backtestcard")
+        page.wait_for_timeout(int(share * 1000))
+        scroll(page, "#ledgercard")
+        page.wait_for_timeout(int(share * 1000))
+        scroll(page, "#q")
         page.fill("#q", "when was curtailment lifted after a gage revision")
         search_before = page.locator("#searchout").get_attribute("data-render") or ""
         page.click("#ask")
         settle(page, "#searchout", search_before, timeout=120_000)
-        beat(page, "corpus search answered", 21.6)
+        clock.hold(until)
 
-        print("  beat 6 and 7 are captured separately")
-        beat(page, "tail", 4.0)
-
+        print("  beats 6 to 8 are captured separately")
+        total = clock.elapsed()
         context.close()
         browser.close()
 
@@ -192,6 +279,14 @@ def capture(url: str) -> Path:
             f"{len(errors)} page error(s) during the take: {errors[:4]}. The console threw "
             "while being filmed, and a video of a product erroring is worse than no video."
         )
+    (OUT / "marks.json").write_text(
+        json.dumps(
+            {"url": url, "seconds": round(total, 3), "traversal_seconds": round(traversal, 3),
+             "marks": clock.marks},
+            indent=2,
+        )
+        + "\n"
+    )
     return videos[0]
 
 

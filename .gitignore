@@ -175,3 +175,10 @@ CLAUDE-SECURITY-*/
 # Video capture output. Large, regenerable from scripts/capture_demo.py, and the
 # published artifact is the YouTube upload rather than anything in the tree.
 docs/video/capture/
+
+# Synthesised narration: audio bytes, regenerable from scripts/build_narration.py and
+# the shot list. `docs/video/beats.json` is NOT ignored, because it carries the measured
+# per-beat timings the capture is driven by and the loudness the build was verified at,
+# which is the part worth reviewing in a diff.
+docs/video/audio/
+docs/video/narration.wav

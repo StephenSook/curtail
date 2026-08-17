@@ -74,6 +74,20 @@ class TestABadTakeIsRefused:
     def test_the_traversal_has_a_floor(self) -> None:
         """The first take reported a 64.5 second Gemini call as finishing in 0.0 seconds,
         because the wait matched the pending state. A floor makes that unrepresentable
-        rather than merely unlikely."""
+        rather than merely unlikely.
+
+        **This assertion used to read `assert "elapsed < 5" in source` and it broke on a
+        rename.** The floor was fully intact, the variable was simply called something
+        else, and the suite went red over a spelling. A test that asserts source TEXT is
+        testing how the code is written; asserting a NAMED CONSTANT tests that the thing
+        exists, which is what was actually meant. The floor now has a name.
+        """
         source = SCRIPT.read_text()
-        assert "elapsed < 5" in source
+        assert "MINIMUM_TRAVERSAL_SECONDS = " in source, (
+            "the traversal floor is not a named constant, so nothing here can check it "
+            "survives a refactor"
+        )
+        assert "< MINIMUM_TRAVERSAL_SECONDS" in source, (
+            "the floor is defined but never compared against, which is a constant "
+            "documenting a guard rather than a guard"
+        )
