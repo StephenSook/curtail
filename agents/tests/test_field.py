@@ -431,9 +431,8 @@ class TestStoredScriptInjectionOnTheFieldLedger:
         [
             '<img src=x onerror="alert(1)">',
             "<script>fetch('/api/session')</script>",
-            'Smith" onmouseover="alert(1)',
-            "Jones & <b>Co</b>",
-            "Taylor`whoami`",
+            "Jones <b>Co</b>",
+            "Taylor <svg onload=alert(1)>",
         ],
     )
     def test_the_server_refuses_markup_in_the_observer_name(self, payload: str) -> None:
@@ -463,20 +462,44 @@ class TestStoredScriptInjectionOnTheFieldLedger:
         )
         assert response.status_code == 422
 
-    def test_an_ordinary_name_is_still_accepted(self) -> None:
-        """The other direction. A character class tightened until it rejects real names
-        would break the surface it was meant to protect, and every test above would still
-        pass."""
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "A. Watermaster-Jones, Jr.",
+            "O'Connor, Sean",
+            "D'Angelo, Maria",
+            "Ann-Marie O'Brien",
+            "Smith & Sons Ranch",
+            "Jose Pena",
+            'Attested by "the district"',
+        ],
+    )
+    def test_real_names_are_still_accepted(self, name: str) -> None:
+        """The direction that actually failed, and the reason this list is long.
+
+        The first version of the filter rejected apostrophes, ampersands and quotes, which
+        barred O'Connor, D'Angelo and Smith & Sons Ranch from filing evidence at all. **A
+        guard tightened until it refuses the people it exists to protect has not made the
+        surface safer, it has removed the surface.**
+
+        The test that should have caught it asserted "an ordinary name" and I chose
+        "A. Watermaster-Jones, Jr.", which has no apostrophe, so it passed while the defect
+        was live. One carefully chosen happy-path example is not a guard. These are the
+        shapes real names actually take.
+
+        They are safe because the rendering side is the real fix: the field ledger is built
+        as DOM nodes with textContent, where an apostrophe is an apostrophe.
+        """
         response = self.client().post(
             "/api/field/measurement/shasta",
             json={
-                "idempotency_key": "ordinary-name-probe",
-                "observer": "A. Watermaster-Jones, Jr.",
+                "idempotency_key": f"name-probe-{abs(hash(name))}",
+                "observer": name,
                 "discharge_cfs": 45.3,
                 "captured_at": "2026-08-16T12:00:00+00:00",
             },
         )
-        assert response.status_code == 200, response.text
+        assert response.status_code == 200, f"{name!r} was refused: {response.text[:160]}"
 
     def test_the_field_page_does_not_build_the_ledger_from_a_string(self) -> None:
         """The rendering half, asserted on the source. The desktop console builds every

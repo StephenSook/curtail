@@ -121,10 +121,20 @@ def measurement_from(payload: dict[str, Any], basin: Basin) -> FieldMeasurement:
     # the second layer is a character class: a person's name has no angle brackets, no
     # ampersands, no quotes and no control characters. The rendering side was fixed too;
     # neither layer is trusted alone.
-    if any(character in observer for character in "<>&\"'`"):
-        raise FieldEvidenceError(
-            "observer carries markup characters. A name does not contain < > & \" ' or `"
-        )
+    # **Angle brackets and control characters only.**
+    #
+    # The first version also rejected apostrophes, ampersands and quotes, and that barred
+    # O'Connor, D'Angelo and "Smith & Sons Ranch" from filing evidence at all. A guard
+    # tightened until it refuses the people it exists to protect has not made the surface
+    # safer, it has removed the surface. The test that was supposed to catch this asserted
+    # an "ordinary name" and I chose one with no apostrophe, so it passed while the defect
+    # was live.
+    #
+    # Those characters are safe here because the rendering side is the real fix: the field
+    # ledger is built as DOM nodes with textContent, where an apostrophe is an apostrophe.
+    # This layer exists to stop a tag ever being stored, and a tag needs angle brackets.
+    if "<" in observer or ">" in observer:
+        raise FieldEvidenceError("observer carries angle brackets, which a person's name does not")
     if any(ord(character) < 32 or ord(character) == 127 for character in observer):
         raise FieldEvidenceError("observer carries control characters")
 
