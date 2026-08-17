@@ -26,6 +26,7 @@ measurement moved the rating curve, and the true value was 78.4.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -62,6 +63,26 @@ class Observation:
     def __post_init__(self) -> None:
         if self.observed_at.tzinfo is None:
             raise ValueError("observed_at must be timezone aware")
+        # **Found by a refusal-trap eval, not by review.** A discharge of -5 cfs was
+        # accepted and CLASSIFIED, which on a sensor fault or a typed minus sign would
+        # read as far below the minimum and point at curtailment. The API rejected
+        # negatives at its edge, so the guard existed only where a caller happened to be
+        # polite; putting it here makes the wrong value unrepresentable rather than
+        # caught, and every path into the Sentinel inherits it.
+        #
+        # Zero is allowed on purpose: a river can genuinely read zero, and refusing that
+        # would refuse a real and legally significant condition.
+        if not math.isfinite(self.observed_cfs):
+            raise ValueError(
+                f"observed_cfs is {self.observed_cfs}, which is not a finite number and "
+                "cannot be compared with a minimum"
+            )
+        if self.observed_cfs < 0:
+            raise ValueError(
+                f"observed_cfs is {self.observed_cfs}, and a river does not run backwards. "
+                "A negative discharge is a sensor fault or a typo, and classifying it "
+                "would point at curtailment on evidence that does not exist."
+            )
 
 
 class SentinelError(RuntimeError):
