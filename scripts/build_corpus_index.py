@@ -89,13 +89,21 @@ BATCH = 20
 APPLICATION_NUMBER = re.compile(r"\b(?:SG|[ACDS])\d{5,6}\b")
 DIGIT_SHARE = 0.30
 
-#: The Attachment A column header. Any paragraph carrying it is a rights table however it
-#: scores on every other test, and this is the direct check rather than an inference.
-OWNER_HEADER = re.compile(r"PRIMARY\s+OWNER", re.IGNORECASE)
+#: The owner-column headers, and this is the rule that actually holds. A passage carrying
+#: one of these IS a rights table however it scores on everything else.
+#:
+#: **The first version knew only "PRIMARY OWNER" and that let real names through.** The
+#: Shasta decree tables head their columns "Present Owner" and "Decreed Owner", so the
+#: header check missed them, and every other rule missed them too for separate reasons.
+#: A header is the most reliable signal available here because it is printed by the Board
+#: rather than inferred by me, so it is checked first and it is checked broadly.
+OWNER_HEADER = re.compile(
+    r"(?:PRIMARY|PRESENT|DECREED)\s+OWNERS?|List of Water Rights", re.IGNORECASE
+)
 
 #: `Surname, Firstname` as these tables print it, which always carries an initial or an
-#: ampersand: "Lunsford, Carolyn S.", "Fine, Glenn & Susan", "Farmer, M. & J. Trust",
-#: "Stapleton, Michael R. & Betsy".
+#: ampersand: "Surname, Firstname S.", "Surname, Firstname & Firstname",
+#: "Surname, F. & J. Trust". Shapes, not people: see below.
 #:
 #: **That tail is doing real work and its absence cost 20 documents.** The looser version,
 #: any capitalised word on each side of a comma, matched "Friday, February", "Wednesday,
@@ -105,7 +113,8 @@ OWNER_HEADER = re.compile(r"PRIMARY\s+OWNER", re.IGNORECASE)
 #: reported all 101 documents. A filter over personal data that is too eager does not
 #: announce itself: it removes content and leaves the counts looking fine.
 #:
-#: A name with no initial, "St Germaine, Katherine Anne", is not matched here and does not
+#: A two-part given name with no initial, "Surname Surname, Firstname Firstname", is not matched
+#: here and does not
 #: need to be: it only ever appears as a table ROW, beside a right identifier, and the
 #: identifier rules below catch the row.
 PERSON = re.compile(r"\b[A-Z][A-Za-z'\-]{2,},\s+(?:[A-Z][A-Za-z'\-]*\s+)?(?:[A-Z]\.|&)")
@@ -164,7 +173,22 @@ def is_table_fragment(text: str) -> bool:
     table. Filtering the merged result as well is what closes it.
     """
     identifiers = APPLICATION_NUMBER.findall(text)
-    if len(identifiers) >= 2:
+    # **ANY right identifier means table material. Not two, one.**
+    #
+    # This replaced a set of increasingly clever name patterns, and it did so because they
+    # failed twice in a row on formats nobody predicted. First a decree table keyed by
+    # paragraph number rather than application number, whose header read "Present Owner"
+    # rather than "PRIMARY OWNER". Then a row printing "FIRSTNAME MIDDLE SURNAME" in
+    # capitals with no comma at all, which matches no `Surname, Firstname` shape and
+    # carries no company suffix.
+    #
+    # The lesson is that the name formats are unbounded and the identifier is not. An
+    # application number is printed by the Board in one machine-checkable form, and in
+    # these documents it appears beside a holder essentially always. The cost of the blunt
+    # rule is 3 chunks out of 582, two of which merely mention a public irrigation district
+    # in prose. The cost of the clever rule was a private individual's name in a public
+    # repository, twice.
+    if identifiers:
         return True
     if OWNER_HEADER.search(text) or PARTY_LIST.search(text):
         return True
@@ -177,6 +201,14 @@ def is_table_fragment(text: str) -> bool:
     # shape that defeated the counting rules above. The holder may be a person or a
     # business, and both are parties whose names do not belong here.
     if identifiers and (people or ENTITY.search(text)):
+        return True
+    # **The AND above is what let a real name through, so a name no longer needs an
+    # identifier beside it to count.** The Shasta decree tables key their rows by decree
+    # PARAGRAPH number rather than by an application number, so `identifiers` was empty and
+    # the whole clause short-circuited to False before ENTITY or PERSON were ever
+    # consulted. A rule that can only fire in the presence of another signal is not a rule,
+    # it is a modifier.
+    if people or ENTITY.search(text):
         return True
     digits = sum(character.isdigit() for character in text)
     return digits / max(len(text), 1) > DIGIT_SHARE

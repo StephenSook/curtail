@@ -15,7 +15,7 @@ that decision, and it walked through three times before it was closed:
    exist and missed `SG`, the most common one in these documents by roughly four to one.
    49 Attachment A fragments carrying private individuals' full names were indexed.
 2. The person pattern required capitals, and the "List of Parties Curtailed" tables print
-   title case, so "Lunsford, Carolyn S." and "Fine, Glenn & Susan" passed. Worse, that
+   title case, so a "Surname, Firstname S." row passed. Worse, that
    table prints one row per paragraph and a row holds ONE identifier, so a rule of "two or
    more" was satisfied by no row at all, and the rows were then merged into a chunk that
    was nothing but table. The filter now runs on the assembled chunk as well.
@@ -63,12 +63,36 @@ class TestNoOwnerDataIsIndexed:
     """One test per shape that has actually leaked, plus the header checks that make a
     new leak visible. A pattern here failing means a rights table reached the index."""
 
+    def test_no_owner_column_header_in_any_form(self, prose: str) -> None:
+        """The check that would have caught the leak, in the form it needed to be.
+
+        The original knew only "PRIMARY OWNER". The Shasta decree tables head their
+        columns **"Present Owner"** and **"Decreed Owner"**, so the header rule missed
+        them, every other rule missed them for its own separate reason, and a private
+        individual's name reached a public artifact whose own metadata asserts that no
+        owner names are indexed.
+
+        A header is the most reliable signal available, because the Board prints it and I
+        do not infer it. So it is checked first and it is checked broadly.
+        """
+        found = re.findall(
+            r"(?:PRIMARY|PRESENT|DECREED)\s+OWNERS?|List of (?:Parties|Water Rights)",
+            prose,
+            re.IGNORECASE,
+        )
+        assert not found, f"an owner-column table reached the index: {sorted(set(found))[:4]}"
+
     def test_no_application_numbers(self, prose: str) -> None:
         """A right identifier in an indexed passage means a table row got through, and a
         row carries an owner name beside it. Prefixes are the ones the corpus actually
         uses, counted rather than guessed: A, C, D, S and SG."""
         found = re.findall(r"\b(?:SG|[ACDS])\d{5,6}\b", prose)
-        assert not found, f"{len(found)} right identifiers are indexed, e.g. {found[:5]}"
+        assert not found, (
+            f"{len(found)} right identifiers are indexed, e.g. {found[:5]}. ANY identifier "
+            "is table material now, not two: the name formats beside them turned out to be "
+            "unbounded (a comma-less all-capitals row defeated every name pattern) while "
+            "the identifier is printed in one machine-checkable form."
+        )
 
     def test_no_primary_owner_column(self, prose: str) -> None:
         assert not re.search(r"PRIMARY\s+OWNER", prose, re.IGNORECASE)
@@ -93,8 +117,7 @@ class TestNoOwnerDataIsIndexed:
 
     def test_no_personal_names(self, prose: str) -> None:
         """`Surname, Firstname` as these tables print it, which always carries an initial
-        or an ampersand: "Lunsford, Carolyn S.", "Fine, Glenn & Susan", "Farmer, M. & J.
-        Trust".
+        or an ampersand.
 
         The tail is what makes this assertable at zero. A looser pattern, any capitalised
         word on each side of a comma, matches ordinary prose constantly: "Friday,
@@ -103,7 +126,7 @@ class TestNoOwnerDataIsIndexed:
         while the counts still reported all 101, which is the opposite failure and just as
         invisible.
 
-        A name with no initial, "St Germaine, Katherine Anne", is not matched here and
+        A two-part given name with no initial is not matched here and
         does not need to be: it appears only as a table row beside a right identifier, and
         `test_no_application_numbers` covers the row.
         """
@@ -532,3 +555,42 @@ class TestTheBuilderRefusesNonFiniteToo:
 
         problems = module.check()
         assert any("not unit length" in problem for problem in problems), problems
+
+    @pytest.mark.parametrize(
+        ("passage", "why"),
+        [
+            (
+                "Summer Winter Decreed Paragraph Curtailment Present Owner Source Creek "
+                "Right Right Priority Date Owner Number Status (CFS) (CFS) Example, Alex "
+                "Upper Condition",
+                "the Shasta decree layout, whose header reads Present Owner rather than "
+                "PRIMARY OWNER and whose rows key by paragraph number, so no application "
+                "number appears and every count-based rule short-circuited",
+            ),
+            (
+                "Attachment A: List of Water Rights in Shasta River Watershed Associated "
+                "with Orders WR 2021-0082-DWR",
+                "the other table heading, which names no owner but introduces the rows",
+            ),
+            (
+                "Erik Ekdahl, Deputy Director Division of Water Rights EXAMPLE J PERSON "
+                "A028119 ZOLLS GULCH 4/24/1984 Curtailed",
+                "an all-capitals row with no comma, which matches no Surname-comma-"
+                "Firstname shape and carries no company suffix. ONE identifier is enough",
+            ),
+            (
+                "The right is held by Anonymous Holdings LLC under the decree.",
+                "a single holder named with NO identifier, NO header and only ONE name, so "
+                "neither the identifier rule nor the two-or-more-names rule fires. Only "
+                "the ungated name rule catches it, which is why that rule is not redundant",
+            ),
+        ],
+    )
+    def test_the_layouts_that_actually_leaked_are_rejected(self, passage: str, why: str) -> None:
+        """Each of these reached a committed artifact. None was hypothetical.
+
+        The names here are replaced; using the real ones would put them in the repository,
+        which is the thing being prevented, and this file previously broke that rule in its
+        own docstrings while stating it.
+        """
+        assert builder().is_table_fragment(passage), f"not filtered: {why}"

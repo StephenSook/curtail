@@ -267,11 +267,36 @@ async function paintLedger() {
     const r = await fetch(`/api/field/measurements/${$("basin").value}`);
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
-    $("ledger").innerHTML = d.count
-      ? `<b>${d.count}</b> measurement(s) recorded. Latest
-         <b>${d.latest.discharge_cfs} cfs</b> by ${d.latest.observer}.
-         <div class="hint">${d.durable ? "Durable store" : "NOT durable"}: ${d.store}</div>`
-      : '<span class="muted">No field measurement has been recorded for this basin yet.</span>';
+    //: **Built as nodes, never as an HTML string.** `observer` is free text submitted to
+    //: an unauthenticated endpoint and stored durably, so interpolating it into innerHTML
+    //: was a persistent script injection: one POST, no credential, and it runs for
+    //: everyone who opens this page afterwards, on the same origin as the signing console.
+    //: The desktop console builds every dynamic value with textContent and this file was
+    //: the one place that did not.
+    const ledger = $("ledger");
+    ledger.textContent = "";
+    if (!d.count) {
+      const none = document.createElement("span");
+      none.className = "muted";
+      none.textContent = "No field measurement has been recorded for this basin yet.";
+      ledger.appendChild(none);
+      return;
+    }
+    const line = document.createElement("div");
+    const count = document.createElement("b");
+    count.textContent = String(d.count);
+    line.appendChild(count);
+    line.appendChild(document.createTextNode(" measurement(s) recorded. Latest "));
+    const cfs = document.createElement("b");
+    cfs.textContent = `${d.latest.discharge_cfs} cfs`;
+    line.appendChild(cfs);
+    line.appendChild(document.createTextNode(` by ${d.latest.observer}.`));
+    ledger.appendChild(line);
+
+    const store = document.createElement("div");
+    store.className = "hint";
+    store.textContent = `${d.durable ? "Durable store" : "NOT durable"}: ${d.store}`;
+    ledger.appendChild(store);
   } catch (e) {
     $("ledger").textContent = "Could not read the ledger from here. It is not empty, it is unknown.";
   }
