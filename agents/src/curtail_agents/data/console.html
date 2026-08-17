@@ -418,8 +418,10 @@
     <p class="muted">
       Every 15 minute reading USGS published for this gage over the window, with the
       minimum in force drawn as it actually behaves. The rule STEPS on the days the
-      schedule changes, and the shaded band is the 10 cfs above it inside which a reading
-      is treated as near-threshold and points at field verification rather than an order.
+      schedule changes. A reading within 10 cfs of the minimum ON EITHER SIDE is treated
+      as near-threshold and points at field verification rather than an order; the shaded
+      band marks the 10 cfs above the line, because below it the reading is already below
+      the minimum and the chart says that by position.
     </p>
     <div class="row" style="align-items:end; margin-bottom:12px">
       <label for="graph-basin">Basin
@@ -1287,7 +1289,27 @@
     }
     if (mine !== generation.queue) return;
 
-    if (!Array.isArray(body.pending) || !Array.isArray(body.decided)) {
+    //: Per-entry shape, not just the two arrays. signRow reads requires_role and
+    //: blocking_violations bare, and the decided line reads role and overridden, so
+    //: one malformed entry used to throw mid-loop and leave a half-built table with
+    //: no stamp and no message: a queue that looks short rather than broken, on the
+    //: card where an unsigned order waits.
+    const queueReadable =
+      Array.isArray(body.pending) &&
+      Array.isArray(body.decided) &&
+      body.pending.every(
+        (e) =>
+          typeof e.order_id === "string" &&
+          typeof e.requires_role === "string" &&
+          Array.isArray(e.blocking_violations)
+      ) &&
+      body.decided.every(
+        (d) =>
+          typeof d.order_id === "string" &&
+          typeof d.role === "string" &&
+          (!d.is_override || Array.isArray(d.overridden))
+      );
+    if (!queueReadable) {
       queueState("\u26A0", "Unavailable", "the queue answer is not readable");
       stamp(queueBox, mine);
       return;
@@ -1711,14 +1733,22 @@
   //: ramp between two rules. A ramp would imply the minimum slid gradually from 50 to
   //: 30 cfs across late July, and it did not: it changed on August 1, and every
   //: reading before that date is judged against 50.
-  function stepPoints(steps, since, until, offset) {
+  //: The line ENDS where the schedule ends. The server truncates the steps honestly on
+  //: a schedule gap; extending the last step to the window's edge here repainted a
+  //: minimum "in force", in the rule's own hue, across the exact dates the server had
+  //: refused to resolve. The payload now says where the gap starts and the line stops
+  //: there, which is the chart saying "unknown" the only way a line can.
+  function stepPoints(steps, since, until, offset, gapFrom) {
+    const stop = gapFrom
+      ? Math.min(new Date(until).getTime(), new Date(gapFrom + "T00:00:00Z").getTime())
+      : new Date(until).getTime();
     const out = [];
     steps.forEach((step, i) => {
       const from = new Date(step.from + "T00:00:00Z").getTime();
       const start = Math.max(from, new Date(since).getTime());
       const end = i + 1 < steps.length
         ? new Date(steps[i + 1].from + "T00:00:00Z").getTime()
-        : new Date(until).getTime();
+        : stop;
       out.push([start, step.minimum_cfs + offset], [end, step.minimum_cfs + offset]);
     });
     return out;
@@ -1762,7 +1792,17 @@
     }
     if (mine !== generation.graph) return;
 
-    if (!Array.isArray(body.series) || !Array.isArray(body.minimum_steps)) {
+    if (
+      !Array.isArray(body.series) ||
+      !Array.isArray(body.minimum_steps) ||
+      typeof body.count !== "number" ||
+      body.count !== body.series.length ||
+      typeof body.gage_id !== "string"
+    ) {
+      // The count check is not pedantry: the note below reads series[0] and
+      // series[count - 1], so a payload whose count disagrees with its series would
+      // render a chart and then throw past it, leaving a drawn card that never
+      // reaches its loaded state.
       clearGraph("The service returned a hydrograph this page cannot render.");
       return;
     }
@@ -1794,8 +1834,9 @@
     if (chart) chart.dispose();
     chart = echarts.init(el, null, { renderer: "canvas" });
 
+    const gapFrom = typeof body.schedule_gap_from === "string" ? body.schedule_gap_from : null;
     const readings = body.series.map((p) => [new Date(p.t).getTime(), p.cfs]);
-    const minimums = stepPoints(body.minimum_steps, body.since, body.until, 0);
+    const minimums = stepPoints(body.minimum_steps, body.since, body.until, 0, gapFrom);
 
 
     //: Exposed so a browser test can assert on the option the page BUILT, which is
@@ -1887,14 +1928,32 @@
     window.__chartOption = JSON.stringify(option);
 
     const first = body.series[0], last = body.series[body.series.length - 1];
-    const boundaries = body.minimum_steps.length - 1;
-    note.textContent =
-      `${body.count.toLocaleString()} readings from ${body.gage_id}, ` +
-      `${first.cfs} cfs to ${last.cfs} cfs. ` +
-      (boundaries > 0
+    //: Three cases, because "did not change" is an affirmative claim about the whole
+    //: window and this note used to make it whenever the steps array was EMPTY, which
+    //: is the one situation where nothing is known about any of it. The server refuses
+    //: schedule dates it cannot resolve and now says where it stopped; the note passes
+    //: that on instead of papering over it.
+    let rule;
+    if (!body.minimum_steps.length) {
+      rule = gapFrom
+        ? `No operative minimum could be resolved for this window (schedule gap from ` +
+          `${gapFrom}), so no rule line or band is drawn.`
+        : "No operative minimum is defined for this window, so no rule line is drawn.";
+    } else {
+      const boundaries = body.minimum_steps.length - 1;
+      rule = boundaries > 0
         ? `The minimum changed ${boundaries} time${boundaries > 1 ? "s" : ""} inside this ` +
           `window, so the rule is drawn as a step.`
-        : "The minimum did not change inside this window.");
+        : "The minimum did not change inside the dates the rule line covers.";
+      if (gapFrom) {
+        rule += ` The rule line stops at ${gapFrom}: the schedule could not be resolved ` +
+          "past that date, and a line that kept going would be a guess drawn in the " +
+          "rule's own colour.";
+      }
+    }
+    note.textContent =
+      `${body.count.toLocaleString()} readings from ${body.gage_id}, ` +
+      `${first.cfs} cfs to ${last.cfs} cfs. ` + rule;
     document.getElementById("graph").dataset.state = "drawn";
   }
 
@@ -2271,7 +2330,17 @@
       return;
     }
     if (mine !== generation.ledger) return;
-    if (!Array.isArray(body.rows) || typeof body.count !== "number") {
+    //: open_questions and not_placed_grouped are validated HERE, before any rendering,
+    //: because they are read at the bottom of this function: a payload missing them
+    //: used to throw after the table had drawn, leaving rendered rows under a card
+    //: whose state never reached loaded, which reads as a working ledger to a person
+    //: and a broken one to nothing.
+    if (
+      !Array.isArray(body.rows) ||
+      typeof body.count !== "number" ||
+      !Array.isArray(body.open_questions) ||
+      !(body.not_placed_grouped === undefined || Array.isArray(body.not_placed_grouped))
+    ) {
       clearLedger("The service returned a ledger this page cannot render.");
       return;
     }
@@ -2381,7 +2450,18 @@
       return;
     }
     if (mine !== generation.tl) return;
-    if (!Array.isArray(body.events) || !body.events.length) {
+    //: The note at the bottom reads counts.by_action, measured_offsets and gaps bare,
+    //: so they are validated here with events: a payload missing any of them used to
+    //: throw AFTER the chart had drawn, leaving a rendered timeline whose card never
+    //: reached its drawn state and whose note was half a sentence.
+    if (
+      !Array.isArray(body.events) ||
+      !body.events.length ||
+      typeof body.counts !== "object" ||
+      body.counts === null ||
+      !Array.isArray(body.measured_offsets) ||
+      !Array.isArray(body.gaps)
+    ) {
       clearTimeline("The service returned a timeline this page cannot render.");
       return;
     }
@@ -2717,10 +2797,21 @@
     }
     if (mine !== generation.brief) return;
 
-    if (!body.audio_base64 || !body.script) {
+    //: audio_mime and the two provenance strings are in the guard because they are
+    //: interpolated below. A missing mime made a malformed data: URI that the <audio>
+    //: element, which has no error listener, failed on silently: a complete-looking
+    //: card whose play button does nothing, which is worse than a refusal.
+    if (
+      !body.audio_base64 ||
+      !body.script ||
+      typeof body.audio_mime !== "string" ||
+      typeof body.model !== "string" ||
+      typeof body.voice !== "string"
+    ) {
       briefSystemState("\u2298", "Refused",
-        "The service answered without both audio and a transcript, and one without the " +
-        "other is not checkable, so neither is shown.");
+        "The service answered without all of audio, mime type, transcript and " +
+        "provenance, and a briefing missing any of them is not checkable, so none " +
+        "of it is shown.");
       stamp(briefOut, mine);
       return;
     }
@@ -2798,10 +2889,32 @@
     }
     if (mine !== generation.search) return;
 
-    if (!Array.isArray(body.results)) {
+    //: The whole shape, before anything is cleared or rendered. The scope line reads
+    //: searched.passages and body.model, and every result row reads documents[0],
+    //: score and appears_in; any of them missing used to throw AFTER the spinner was
+    //: cleared, leaving a permanently blank card in no state at all, or rendered the
+    //: string "undefined" into a judge-facing sentence.
+    const searchReadable =
+      Array.isArray(body.results) &&
+      typeof body.searched === "object" &&
+      body.searched !== null &&
+      typeof body.searched.passages === "number" &&
+      typeof body.searched.documents === "number" &&
+      typeof body.searched.documents_in_corpus === "number" &&
+      typeof body.model === "string" &&
+      body.results.every(
+        (hit) =>
+          Array.isArray(hit.documents) &&
+          hit.documents.length &&
+          typeof hit.score === "number" &&
+          typeof hit.appears_in === "number" &&
+          typeof hit.snippet === "string"
+      );
+    if (!searchReadable) {
       searchSystemState("\u2298", "Refused",
-        "The service answered without a result list, so nothing is shown rather than an " +
-        "empty one: an empty list would claim the corpus is silent on the question.");
+        "The service answered without a readable result list, so nothing is shown " +
+        "rather than part of an answer: an empty or partial list would claim the " +
+        "corpus is silent on the question.");
       stamp(searchOut, mine);
       return;
     }
