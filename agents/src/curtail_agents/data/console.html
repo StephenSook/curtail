@@ -1797,7 +1797,16 @@
       !Array.isArray(body.minimum_steps) ||
       typeof body.count !== "number" ||
       body.count !== body.series.length ||
-      typeof body.gage_id !== "string"
+      typeof body.gage_id !== "string" ||
+      typeof body.near_threshold_band_cfs !== "number" ||
+      // The ELEMENTS, not just the arrays. A null reading or a step missing its date
+      // throws inside the map or inside stepPoints, after this guard has passed, which
+      // is the same half-rendered-card defect one shape deeper. The first version of
+      // this guard checked the containers and called the payload readable.
+      !body.series.every((p) => p && typeof p.t === "string" && typeof p.cfs === "number") ||
+      !body.minimum_steps.every(
+        (s) => s && typeof s.from === "string" && typeof s.minimum_cfs === "number"
+      )
     ) {
       // The count check is not pedantry: the note below reads series[0] and
       // series[count - 1], so a payload whose count disagrees with its series would
