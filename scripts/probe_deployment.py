@@ -309,18 +309,34 @@ def _recent_trace() -> tuple[list[str], str | None]:
 
     traces: list[dict[str, Any]] = []
     page_token = ""
+    exhausted = True
     for _ in range(12):
         request = urllib.request.Request(f"{base}&pageToken={page_token}")
         request.add_header("Authorization", f"Bearer {token}")
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
                 payload = json.load(response)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 400:
+                # **A 400 is the API rejecting THIS request as malformed**, which is a
+                # defect in the probe and never a fact about the world. It was once
+                # recorded as an environmental unknown, under a heading saying exactly
+                # that, above an exit 0, and sat in the committed record as a good one.
+                # 401, 403, 429 and 5xx are genuinely environmental; 400 is ours.
+                raise RuntimeError(
+                    "Cloud Trace rejected the probe's own request as malformed "
+                    f"(HTTP 400): {base}&pageToken={page_token}. Fix the probe. "
+                    "Nothing is recorded from a request the API refused to parse."
+                ) from exc
+            return [], f"Cloud Trace could not be read: HTTP {exc.code} {exc.reason}"
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             return [], f"Cloud Trace could not be read: {exc}"
         traces.extend(payload.get("traces") or [])
         page_token = payload.get("nextPageToken") or ""
         if not page_token:
             break
+    else:
+        exhausted = False
 
     fleet = [
         t
@@ -328,8 +344,18 @@ def _recent_trace() -> tuple[list[str], str | None]:
         if any(s.get("name") == "curtail.fleet_request" for s in (t.get("spans") or []))
     ]
     if not fleet:
+        # The negative names its own scope. "No traversal in the window" read from a
+        # page-capped partial is an affirmative claim the read never earned.
+        scope = (
+            f"the last {TRACE_WINDOW_HOURS} hours"
+            if exhausted
+            else (
+                f"the first {len(traces)} traces of the last {TRACE_WINDOW_HOURS} "
+                "hours; the read stopped at its page cap before the window was exhausted"
+            )
+        )
         return [], (
-            f"no fleet traversal was traced in the last {TRACE_WINDOW_HOURS} hours. "
+            f"no fleet traversal was traced in {scope}. "
             "This is not evidence that telemetry is broken: nobody may have run one."
         )
     newest = max(fleet, key=lambda t: min(s.get("startTime", "") for s in t["spans"]))
@@ -380,7 +406,11 @@ def _live_capabilities() -> dict[str, object]:
         out["stamped"] = bool(body.get("stamped"))
         out["revision"] = body.get("revision")
     except Exception as exc:
-        out["stamped"] = False
+        # **None, not False.** A transient timeout here used to publish the affirmative
+        # claim that the container carries no stamp, while the actual reason was written
+        # to `version_error` and read by nothing. An errored probe knows nothing either
+        # way, and the record must carry that third state rather than pick a side.
+        out["stamped"] = None
         out["revision"] = None
         out["version_error"] = str(exc)[:160]
     try:
@@ -391,7 +421,7 @@ def _live_capabilities() -> dict[str, object]:
         out["durable"] = bool(body.get("durable"))
         out["store"] = str(body.get("store", ""))[:120]
     except Exception as exc:
-        out["durable"] = False
+        out["durable"] = None
         out["store"] = f"unreachable: {str(exc)[:120]}"
     return out
 
@@ -413,12 +443,19 @@ def build() -> str:
     add("")
     caps = _live_capabilities()
     served_rev = caps.get("revision")
+    version_error = caps.get("version_error")
     add(f"- Service: {SERVICE_URL}")
-    add(
-        f"- Commit the container reports: `{served_rev}`"
-        if served_rev
-        else "- Commit the container reports: **NOT STAMPED**, so its vintage is unknown"
-    )
+    if served_rev:
+        add(f"- Commit the container reports: `{served_rev}`")
+    elif version_error:
+        # An unreadable endpoint and an unstamped container are different facts, and
+        # the record used to print the second whenever the first happened.
+        add(
+            f"- Commit the container reports: **UNREADABLE** ({version_error}), "
+            "recorded as unknown rather than as unstamped"
+        )
+    else:
+        add("- Commit the container reports: **NOT STAMPED**, so its vintage is unknown")
     # Only the store NAME here. The durable/not-durable BOOLEAN lives in the compared
     # capability block below, and stating it in both places would be one fact with two
     # renderings, of which the header copy is the one `--check` never looks at. Two
@@ -471,8 +508,19 @@ def build() -> str:
     # stable fact, and WHICH commit changes on every deploy. Comparing the value would
     # redden the gate for the system working normally, which is how a real drift later
     # goes unnoticed.
-    add(f"- Season Ledger durable in production: **{caps['durable']}**")
-    add(f"- Container reports its own commit: **{'yes' if caps['stamped'] else 'no'}**")
+    # `unknown` is a real value here, not a softer no. These booleans come from live
+    # probes, and an errored probe used to publish the affirmative negative (no stamp,
+    # not durable) with the reason discarded. Inside the compared block, `unknown`
+    # against a committed `True` still turns `--check` red, which is the loud failure
+    # an errored probe deserves; what it never does again is claim the capability is
+    # absent on the strength of a timeout.
+    durable = caps["durable"]
+    stamped = caps["stamped"]
+    add(f"- Season Ledger durable in production: **{'unknown' if durable is None else durable}**")
+    add(
+        "- Container reports its own commit: "
+        f"**{'unknown' if stamped is None else 'yes' if stamped else 'no'}**"
+    )
     # **The whole reason this file exists, finally stated as a value rather than as a
     # caveat.** The header above prints the served commit beside the repository commit
     # and leaves the reader to compare them, which is the printed-caveat shape: a
