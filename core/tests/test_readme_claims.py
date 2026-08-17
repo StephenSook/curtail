@@ -1543,3 +1543,56 @@ def test_every_qr_code_encodes_its_url() -> None:
     # The TestFlight link is permanent from the moment the external group exists, so it
     # is pinned by host and shape rather than by whether the beta is open today.
     assert urls["testflight-qr.png"].startswith("https://testflight.apple.com/join/")
+
+
+class TestNoSurfaceClaimsAnArtifactThatDoesNotExist:
+    """The wired-or-cut rule, applied to the submission prose rather than to code.
+
+    A rewrite of the Devpost description asserted "The demo video shows the Cloud Run
+    console, a Cloud Trace Gantt across agent hops, and the Cloud Scheduler jobs,
+    unedited." **No video existed.** It was a claim about an artifact that had not been
+    built, on the single surface the Official Rules say judges may score without ever
+    touching the app.
+
+    The instance was easy to fix. The CLASS needs a guard, because the next one will be
+    written the same way: describing what the finished submission will look like, in the
+    present tense, in a file that ships.
+    """
+
+    SURFACES = ("README.md", "docs/devpost_description.md")
+
+    def video_is_published(self) -> bool:
+        links = json.loads((REPO / "docs" / "submission_links.json").read_text())
+        return bool(str(links.get("video_url", "")).strip())
+
+    def test_the_video_is_not_described_in_the_present_tense_before_it_exists(self) -> None:
+        if self.video_is_published():
+            pytest.skip("the video is published, so describing what it shows is a fact")
+
+        # Phrasings that assert the video currently demonstrates something. A future or
+        # planned framing is fine and is deliberately not matched.
+        asserting = re.compile(
+            r"\b(?:the\s+)?(?:demo\s+)?video\s+(?:shows|demonstrates|proves|contains|"
+            r"captures|records|walks through)\b",
+            re.IGNORECASE,
+        )
+        offenders: list[str] = []
+        for name in self.SURFACES:
+            for number, line in enumerate((REPO / name).read_text().splitlines(), 1):
+                if asserting.search(line):
+                    offenders.append(f"{name}:{number}: {line.strip()[:110]}")
+        assert not offenders, (
+            "a judge-facing surface says the video shows something and no video_url is "
+            "recorded in docs/submission_links.json, so the artifact does not exist yet:\n"
+            + "\n".join(offenders)
+        )
+
+    def test_the_guard_knows_when_it_would_stop_applying(self) -> None:
+        """Guards the guard. If `video_url` were read from the wrong place this would
+        skip forever and never protect anything, which is the vacuous-guard shape this
+        repository keeps meeting."""
+        links = json.loads((REPO / "docs" / "submission_links.json").read_text())
+        assert "video_url" in links, (
+            "submission_links.json has no video_url key, so the check above can never "
+            "become active and is permanently vacuous"
+        )

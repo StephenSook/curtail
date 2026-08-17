@@ -62,7 +62,7 @@ Scoring that axis immediately found a real defect. The Sentinel accepted a disch
 
 ## Reproducible setup and visual proof of Google Cloud deployment
 
-Public repo, Apache-2.0, one-command setup in the README, live on Cloud Run with the commit stamped at `/api/version`. The demo video shows the Cloud Run console, a Cloud Trace Gantt across agent hops, and the Cloud Scheduler jobs, unedited.
+Public repo, Apache-2.0, one-command setup in the README, live on Cloud Run with the commit stamped at `/api/version`, the Season Ledger in Cloud Firestore, and both rivers polled by Cloud Scheduler on offset minutes. Every one of those is checkable right now without an account: `/api/version` returns the deployed commit, `/api/watch/{basin}` returns the scheduled observations with the name of the store holding them, and `/api/response-lag` recomputes the headline figure on request.
 
 ## Bonuses
 
