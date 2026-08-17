@@ -22,10 +22,14 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import sys
 import time
 from pathlib import Path
 from typing import Any
+
+
+class CaptureFailedError(RuntimeError):
+    """The take is not usable. Distinct from the script itself being broken."""
+
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "docs" / "video" / "capture"
@@ -83,7 +87,16 @@ def capture(url: str) -> Path:
             device_scale_factor=1,
         )
         page = context.new_page()
+        failed: list[str] = []
         page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on(
+            "requestfailed",
+            lambda r: (
+                failed.append(f"{r.url.split('?')[0]} {r.failure or ''}".strip())
+                if "/api/" in r.url
+                else None
+            ),
+        )
 
         print("  beat 1, the console loads")
         page.goto(url, wait_until="domcontentloaded")
@@ -149,10 +162,21 @@ def capture(url: str) -> Path:
     videos = sorted(OUT.glob("*.webm"))
     if not videos:
         raise RuntimeError("no video was written")
+    if failed:
+        # **Raise, do not print.** The first version printed this to stderr and then
+        # returned the path, so a take where the console threw would have exited 0 and
+        # shipped. That is the same defect this project has now recorded five times: a
+        # printed caveat is not a verdict, because the exit code is what a pipeline and a
+        # tired person both read. A capture is either usable or it is not.
+        raise CaptureFailedError(
+            f"{len(failed)} request(s) failed during the take, so the film would show a "
+            f"broken product: {failed[:4]}"
+        )
     if errors:
-        # A page error during the take means the film would show a broken product. Better
-        # to know now than to discover it in the shipped file.
-        print(f"\n  PAGE ERRORS DURING CAPTURE: {errors}", file=sys.stderr)
+        raise CaptureFailedError(
+            f"{len(errors)} page error(s) during the take: {errors[:4]}. The console threw "
+            "while being filmed, and a video of a product erroring is worse than no video."
+        )
     return videos[0]
 
 
