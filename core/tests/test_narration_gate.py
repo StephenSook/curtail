@@ -16,6 +16,7 @@ no synthesis; the Chirp call lives inside `build()` and is never touched here).
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 from types import ModuleType
 
@@ -111,6 +112,23 @@ class TestTheDurationIsAVerdict:
         assert ").stderr" not in self.SOURCE, (
             "a measurement reads stderr without checking the returncode, so a dead "
             "ffmpeg reports as an empty measurement"
+        )
+
+
+class TestTheTimingFileMatchesTheShotList:
+    def test_beats_json_speaks_the_script(self) -> None:
+        """beats.json is written by the builder from the synthesised audio, and the
+        capture paces the film with it. Editing the shot list without rebuilding left
+        the two disagreeing on what beat 5 says, with nothing red anywhere: the film
+        would have been timed to one text and captioned by another. The words are the
+        identity; the seconds belong to the synthesis."""
+        bn = load()
+        beats = bn.parse_beats((REPO / "docs" / "video" / "script.md").read_text())
+        timing = json.loads((REPO / "docs" / "video" / "beats.json").read_text())
+        spoken = [(b["beat"], b["spoken"]) for b in timing["beats"]]
+        assert spoken == beats, (
+            "docs/video/beats.json no longer speaks docs/video/script.md. Rebuild the "
+            "narration: the shot list was edited after the audio was synthesised."
         )
 
 
