@@ -10,8 +10,8 @@ deploys on merge, so the repository can be correct and the live URL behind it.
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
 - Commit the container reports: `a72723f89b5298b29bb404e8f0b2275214d31e98`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `39fa57ae3a946e2ce53f853043c429b01f0de8c4`
-- Probed at: `2026-08-17T02:43:44+00:00`
+- Probed at repository commit: `0f856597b38018fcaa363e5decc175a557bd8367`
+- Probed at: `2026-08-17T04:00:07+00:00`
 - Serving revision at probe time: `curtail-console-api-00068-twv`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
@@ -71,7 +71,13 @@ record for that reason, so a newer revision serving it contradicts nothing.
 
 - Season Ledger durable in production: **True**
 - Container reports its own commit: **yes**
-- Deployment built from the current runtime source: **yes**
+- Deployment built from the current runtime source: **no**
+
+**Production is STALE.** 1 runtime path(s) changed since the
+commit the container names, so the live URL is running a different program
+from the one this repository describes. Run `make deploy`.
+
+- `agents/src/curtail_agents/data/FACTS.md`
 
 | Capability | Route that settles it | Served |
 |---|---|---|
@@ -100,9 +106,14 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-Cloud Trace could not be read: HTTP Error 400: Bad Request
+- `curtail.fleet_request`
+- `invocation`
+- `invoke_workflow curtailment`
+- `invoke_node gage_sentinel`
+- `invoke_node allocation_core`
+- `invoke_node order_scribe`
+- `invoke_node herald`
 
-Recorded as unknown rather than as a failure. The fact sheet's telemetry
-claim is computed from source, and source cannot see whether a span landed;
-this section is the other half of that question and it can only answer when
-somebody has actually driven the fleet.
+7 spans. ADK opens `invoke_node` per fleet member and
+`invoke_workflow` around the traversal; the root `curtail.fleet_request`
+span carries the correlation id, so a trace and a log line join on one key.

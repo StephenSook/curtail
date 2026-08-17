@@ -48,7 +48,7 @@ returns its input unchanged.
   synthetic and every report says so.
 - OpenTelemetry export to Cloud Trace is WIRED: the shipped source imports the Cloud Trace exporter, installs a tracer provider, and the HTTP entrypoint calls `configure_tracing` at import. ADK opens an `invoke_node` span per fleet node and an `invoke_workflow` span around the traversal, so the agent-hop trace is a property of the graph. It exports only where a project id is present, and the fleet response says so either way.
 - Model Armor is CALLED as layer 2: the Scribe path screens untrusted order text before drafting, chunked to stay inside the documented prompt-injection window, and an unreachable or partial screen reports UNAVAILABLE rather than clean. `make chaos` screens the same injection alone and embedded in an order and reports both verdicts.
-- 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-17T02:43:44+00:00 against revision curtail-console-api-00068-twv. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
+- 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-17T04:00:07+00:00 against revision curtail-console-api-00068-twv. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
 - Gemma **gemma3:4b** ran locally through Ollama over a published Board order and returned **4 fields, each verified verbatim against the source text** before being accepted, recorded at 2026-08-14T20:44:55.142692+00:00. Guard rejections on that run: none. **No document left the machine**, which is the point: an agency that cannot send landowner records to a third-party inference API can host these weights itself. The model identifies and files a document; it is not permitted to read law out of one, and `priority_cutoff` was removed from its schema for exactly that reason. Values are verbatim-checked.
 - The Season Ledger is held in **Cloud Firestore**, and a **second, independently constructed client read a season back** with 2 statutory clock(s) still running, which is the check that distinguishes durable from remembered (durable=True, second_client=True). A signature on the queue path writes those clocks. `GET /api/season/{basin}` reports `durable` and names its store on every response, so an empty season can never be read as a quiet river.
 - The Order Scribe runs **gemini-3.5-flash** on Vertex AI, which satisfies the required Gemini 3.5 or newer. Read from the shipped constant, so a model downgrade changes this sentence rather than leaving a stale claim in the video and the README.
@@ -149,6 +149,8 @@ Addendum itself states 78.4 cfs.
 Computed from Water Code 1846(b) as amended by AB 460 (Stats. 2024, Ch. 342),
 effective January 1, 2025.
 
+- Statutory rate, 1846(b)(1): **$10,000 per day**
+- The rate 23 CCR 875.9(b) still prints: **$500 per day**
 - Statutory exposure, 8 days of violation: **$80,000**
 - The same 8 days computed from 23 CCR 875.9(b), which still prints $500 per
   day: **$4,000**

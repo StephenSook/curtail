@@ -950,6 +950,11 @@ def build() -> str:
     add("Computed from Water Code 1846(b) as amended by AB 460 (Stats. 2024, Ch. 342),")
     add("effective January 1, 2025.")
     add("")
+    # The per-day rates themselves, not only the 8-day derivations. The narration gate
+    # found the sheet recording $80,000 while never stating the $10,000 a day it is
+    # computed from, so the single most-quoted figure in the pitch had no source line.
+    add(f"- Statutory rate, 1846(b)(1): **${eight_days.statutory_daily:,} per day**")
+    add(f"- The rate 23 CCR 875.9(b) still prints: **${eight_days.regulation_daily:,} per day**")
     add(f"- Statutory exposure, 8 days of violation: **${eight_days.statutory_total_maximum:,}**")
     add("- The same 8 days computed from 23 CCR 875.9(b), which still prints $500 per")
     add(f"  day: **${eight_days.regulation_total:,}**")
