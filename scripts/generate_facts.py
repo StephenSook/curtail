@@ -959,6 +959,16 @@ def build() -> str:
     add(f"  day: **${eight_days.regulation_total:,}**")
     add(f"- Understatement factor: **{eight_days.understatement_multiple:g}x**")
     add("")
+    # The incident that produced AB 460, carried verbatim from the penalties module's
+    # own docstring (the shipped code is the source; this line just surfaces it here so
+    # the narration gate can see its figures). The rancher is deliberately unnamed, the
+    # same choice the module makes.
+    add("The history that produced AB 460, as the shipped penalties module records it:")
+    add("in August 2022 a water association serving about 80 ranchers ran pumps for 8")
+    add("days against a standing curtailment order. The Board proposed $4,000 in total,")
+    add('which is $500 per day for eight days. A rancher on the record: "We could have')
+    add('kept going for $500 a day."')
+    add("")
     add("The published regulation is stale on its face while the statute has moved. A")
     add("system computing liability from the regulation text would be wrong by that")
     add("factor. The multiple is computed from the two figures, not asserted.")

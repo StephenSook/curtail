@@ -89,10 +89,16 @@ def result_state(page: Any, card: str) -> None:
     generation stamp, precisely so a reader is never shown a wrong answer quietly, and
     that is the one honesty this capture could not see: an untrustworthy 200 is not an
     HTTP failure, so a take could film a calm refusal over narration describing a
-    working product and pass every network check. System states carry the `s-system`
-    class; results never do.
+    working product and pass every network check.
+
+    **DIRECT child only.** A healthy fleet result deliberately contains `s-system`
+    LINES (the Herald service status is a statement about the system, and the console's
+    palette rule keeps system statements out of river hues), so matching any descendant
+    refused a working take on its first run. The failure states this exists to catch
+    (`fleetState`, `systemState`, `searchSystemState`) all write the s-system status as
+    the card's first, direct child; informational lines sit wrapped one level deeper.
     """
-    if page.locator(f"{card} .status.s-system").count() > 0:
+    if page.locator(f"{card} > .status.s-system").count() > 0:
         text = page.locator(card).inner_text()[:200].replace("\n", " ")
         raise CaptureFailedError(
             f"{card} settled on a system state rather than a result: {text!r}. The film "
@@ -156,19 +162,33 @@ class Clock:
         self.page.wait_for_timeout(int(remaining * 1000))
 
 
-def capture(url: str) -> Path:
-    from playwright.sync_api import sync_playwright
+def capture(url: str, beats_path: Path = BEATS) -> Path:
 
-    if not BEATS.exists():
+    if not beats_path.exists():
         raise CaptureFailedError(
-            "docs/video/beats.json is missing, so the holds would have to be guessed. "
-            "Run scripts/build_narration.py first: the narration sets the timing."
+            f"{beats_path} is missing, so the holds would have to be guessed. "
+            "Build the narration first: the narration sets the timing."
         )
-    beats = json.loads(BEATS.read_text())
+    beats = json.loads(beats_path.read_text())
 
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
+
+    try:
+        return _drive(url, beats)
+    except CaptureFailedError:
+        # A refusal raised MID-SESSION (a settled card holding a system state, a short
+        # traversal) still leaves Playwright's webm on disk, because the recording is
+        # written as the session runs. Same rule as the post-session refusals: a refused
+        # take does not stay on disk for an assembler to glob.
+        for stale in OUT.glob("*.webm"):
+            stale.unlink()
+        raise
+
+
+def _drive(url: str, beats: dict[str, Any]) -> Path:
+    from playwright.sync_api import sync_playwright
 
     errors: list[str] = []
     with sync_playwright() as pw:
@@ -353,9 +373,17 @@ def capture(url: str) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default=LIVE)
+    parser.add_argument(
+        "--beats",
+        default=str(BEATS),
+        help=(
+            "timing file that paces the holds. Defaults to the repo narration's; a film "
+            "cut with its own narration passes its own, in the same schema."
+        ),
+    )
     args = parser.parse_args()
-    print(f"  capturing {args.url}")
-    path = capture(args.url)
+    print(f"  capturing {args.url} paced by {args.beats}")
+    path = capture(args.url, beats_path=Path(args.beats))
     size = path.stat().st_size
     print(f"\n  wrote {path.relative_to(REPO)} ({size / 1e6:.1f} MB)")
     return 0

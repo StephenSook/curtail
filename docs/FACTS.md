@@ -156,6 +156,12 @@ effective January 1, 2025.
   day: **$4,000**
 - Understatement factor: **20x**
 
+The history that produced AB 460, as the shipped penalties module records it:
+in August 2022 a water association serving about 80 ranchers ran pumps for 8
+days against a standing curtailment order. The Board proposed $4,000 in total,
+which is $500 per day for eight days. A rancher on the record: "We could have
+kept going for $500 a day."
+
 The published regulation is stale on its face while the statute has moved. A
 system computing liability from the regulation text would be wrong by that
 factor. The multiple is computed from the two figures, not asserted.

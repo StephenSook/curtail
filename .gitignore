@@ -182,3 +182,7 @@ docs/video/capture/
 # which is the part worth reviewing in a diff.
 docs/video/audio/
 docs/video/narration.wav
+
+# Film workspace and the demo-video brief: internal working material, never shipped.
+/film/
+/DEMO VIDEO
