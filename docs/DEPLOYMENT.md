@@ -8,11 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Commit the container reports: `0f2064a17fea353c5bb7de325df967a4c20d74ed`
+- Commit the container reports: `34423d49540f5ae7a8f0a14bd5d2edddecfa603b`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `0f2064a17fea353c5bb7de325df967a4c20d74ed`
-- Probed at: `2026-08-15T03:38:01+00:00`
-- Serving revision at probe time: `curtail-console-api-00037-gmd`
+- Probed at repository commit: `34423d49540f5ae7a8f0a14bd5d2edddecfa603b`
+- Probed at: `2026-08-17T01:19:00+00:00`
+- Serving revision at probe time: `curtail-console-api-00066-fbq`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -30,21 +30,42 @@ record for that reason, so a newer revision serving it contradicts nothing.
 ## Routes the live service advertises
 
 - `/`
+- `/.well-known/assetlinks.json`
+- `/api/backtest`
 - `/api/basins`
+- `/api/brief/{basin}`
 - `/api/classify/{basin}`
+- `/api/diversions/{basin}`
 - `/api/facts`
+- `/api/field/measurement/{basin}`
+- `/api/field/measurements/{basin}`
+- `/api/field/transcribe`
 - `/api/fleet/{basin}`
+- `/api/gage/{basin}`
 - `/api/healthz`
+- `/api/hydrograph/{basin}`
+- `/api/ledger/{basin}`
 - `/api/queue`
 - `/api/queue/draft/{basin}`
 - `/api/queue/{order_id}`
 - `/api/queue/{order_id}/sign`
 - `/api/recommendation/{basin}`
+- `/api/response-lag`
+- `/api/search`
 - `/api/season/{basin}`
 - `/api/session`
+- `/api/timeline`
 - `/api/version`
+- `/api/watch/{basin}`
+- `/field`
+- `/fonts/{name}`
+- `/icons/{name}`
+- `/internal/poll/{basin}`
+- `/manifest.webmanifest`
+- `/sw.js`
+- `/vendor/{name}`
 
-14 routes.
+35 routes.
 
 ## Capabilities the repository may claim
 
@@ -79,7 +100,7 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-Cloud Trace could not be read: HTTP Error 400: Bad Request
+no fleet traversal was traced in the last 6 hours. This is not evidence that telemetry is broken: nobody may have run one.
 
 Recorded as unknown rather than as a failure. The fact sheet's telemetry
 claim is computed from source, and source cannot see whether a span landed;

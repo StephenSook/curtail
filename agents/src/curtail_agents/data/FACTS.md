@@ -48,7 +48,7 @@ returns its input unchanged.
   synthetic and every report says so.
 - OpenTelemetry export to Cloud Trace is WIRED: the shipped source imports the Cloud Trace exporter, installs a tracer provider, and the HTTP entrypoint calls `configure_tracing` at import. ADK opens an `invoke_node` span per fleet node and an `invoke_workflow` span around the traversal, so the agent-hop trace is a property of the graph. It exports only where a project id is present, and the fleet response says so either way.
 - Model Armor is CALLED as layer 2: the Scribe path screens untrusted order text before drafting, chunked to stay inside the documented prompt-injection window, and an unreachable or partial screen reports UNAVAILABLE rather than clean. `make chaos` screens the same injection alone and embedded in an order and reports both verdicts.
-- 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-15T03:38:01+00:00 against revision curtail-console-api-00037-gmd. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
+- 4 Curtail agents were registered in Agent Registry, as recorded by `scripts/probe_deployment.py` at 2026-08-17T01:19:00+00:00 against revision curtail-console-api-00066-fbq. **This is a snapshot, not a live reading.** Nothing re-probes on its own and CI never queries the network, so run `make deployed-check` to re-probe and fail on drift before quoting this anywhere that cannot be corrected.
 - Gemma **gemma3:4b** ran locally through Ollama over a published Board order and returned **4 fields, each verified verbatim against the source text** before being accepted, recorded at 2026-08-14T20:44:55.142692+00:00. Guard rejections on that run: none. **No document left the machine**, which is the point: an agency that cannot send landowner records to a third-party inference API can host these weights itself. The model identifies and files a document; it is not permitted to read law out of one, and `priority_cutoff` was removed from its schema for exactly that reason. Values are verbatim-checked.
 - The Season Ledger is held in **Cloud Firestore**, and a **second, independently constructed client read a season back** with 2 statutory clock(s) still running, which is the check that distinguishes durable from remembered (durable=True, second_client=True). A signature on the queue path writes those clocks. `GET /api/season/{basin}` reports `durable` and names its store on every response, so an empty season can never be read as a quiet river.
 
@@ -251,5 +251,27 @@ formatting convention was the worst defect in this file.
 - RESOLVED 2026-08-10: both recorded conflicts are closed from the documents. (1) The Shasta order-number year is 2022, not 2021: WR 2022-0162-DWR is dated August 2 2022 and WR 2022-0167-DWR September 13 2022, each printing its own number, and both amend the 2021 parent order which is the likely source of the index page's 2021 reference. (2) The Scott September 9 2021 surface-water order is genuinely UNNUMBERED as published, carrying no WR identifier at all, so this was never an index-page omission to fix.
 
 _All 18 items accounted for: 9 open, 9 closed._
+
+## The headline, in the watermaster's currency
+
+- Across **8 curtailment actions** in the verified regulatory era, the river had already been below its minimum for a **median of 3 days**, up to **8**, when the Board's document was dated. Computed from the USGS daily discharge series and the dates of the Board's own documents.
+- The longest: **shasta**, below since 2024-06-25, document dated 2024-07-03, a gap of **8 days**.
+- **This is NOT a measure of administrative delay.** 23 CCR 875(b) directs the Deputy Director to weigh hydrologic and weather conditions, so part of any gap is judgment, and judgment is what this system says belongs to a human. Curtail removes the wait for somebody to notice, and nothing stronger than that is supported by this computation.
+- **12 actions excluded**, of which **10 could not be evaluated at all** because the flow schedule for the 2021 era is unverified here. That is a gap in what is known, not a finding about the river, and the two exclusion classes are counted separately so one can never pass for the other.
+- Conservative by construction: daily MEAN discharge cannot see a river that dips below in the afternoon and recovers overnight, so the figure can only understate.
+
+## Knowing when to decline
+
+- **5 of 5 refusal traps declined correctly.** These are cases where the CORRECT answer is that the system says nothing, which no other eval here asks about.
+- 5 distinct reasons to decline, not one repeated: impossible_reading, near_threshold, undated_right, unsustained_recovery, unverified_era.
+- **4 of 5 run on real data**: a live gage reading, the date the 2021 Shasta order issued, a day from the July 2025 sequence, and rights the Board itself published without a priority date. The remaining one is constructed and is labelled so in the artifact.
+- Scoring this axis immediately found a real defect: the Sentinel accepted a discharge of -5 cfs and CLASSIFIED it, which on a sensor fault reads as far below the minimum and points at curtailment. Now unrepresentable at the domain object.
+
+## What the corpus index covers
+
+- **609 passages** indexed with **gemini-embedding-001** at 768 dimensions, across **96 of 101 documents**.
+- The 5 absent documents are NAMED with their reason on every search response. They are scanned images with no text layer, so a question they would answer is not findable here at all, and a search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
+- **No owner name, business name, contact address or right identifier is indexed.** The rights tables are parsed exactly elsewhere; only prose is embedded, and a test asserts the committed artifact against every one of those patterns.
+- Vectors are normalised at build time and the loader REFUSES an index whose vectors are not actually unit length, because this model returns a non-unit vector below its full dimensionality and a dot product over those ranks partly by magnitude without raising.
 
 _Provenance: run `git log -- docs/FACTS.md` for when this was last regenerated, and `git log -- data/ core/src/` for the inputs it was computed from._
