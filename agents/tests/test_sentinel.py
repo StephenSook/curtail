@@ -181,3 +181,43 @@ class TestExactlyOneEventPerReading:
         event = evaluate(obs(cfs, JULY_22), correlation_id="c")
         assert event.event_type in set(EventType)
         assert event.minimum_cfs == 50.0
+
+
+class TestAnImpossibleReadingIsUnrepresentable:
+    """Found by a refusal-trap eval, not by review, and not by any existing test.
+
+    A discharge of -5 cfs was accepted and CLASSIFIED. On a sensor fault or a typed minus
+    sign that reads as far below the minimum and points at curtailment, which is a legally
+    operative recommendation built on evidence that does not exist.
+
+    The API rejected negatives at its own edge, so the guard existed only where a caller
+    happened to be polite. Moving it into `Observation` makes the wrong value
+    unrepresentable rather than caught, and every path into the Sentinel inherits it.
+    """
+
+    @staticmethod
+    def observation(cfs: float) -> Observation:
+        return Observation(
+            Basin.SCOTT, cfs, datetime(2026, 8, 16, tzinfo=UTC), Provenance.USGS_LIVE
+        )
+
+    @pytest.mark.parametrize("cfs", [-0.1, -5.0, -999999.0])
+    def test_a_negative_discharge_is_refused(self, cfs: float) -> None:
+        with pytest.raises(ValueError, match="does not run backwards"):
+            self.observation(cfs)
+
+    @pytest.mark.parametrize("cfs", [float("nan"), float("inf"), float("-inf")])
+    def test_a_non_finite_discharge_is_refused(self, cfs: float) -> None:
+        """NaN in particular: every comparison with it is False, so a NaN reading would
+        pass a below-minimum test, pass an above-minimum test, and fall through to
+        whatever branch is last."""
+        with pytest.raises(ValueError, match="not a finite number"):
+            self.observation(cfs)
+
+    def test_zero_is_allowed(self) -> None:
+        """A river can genuinely read zero, and that is a real and legally significant
+        condition. Refusing it would refuse the most serious reading there is."""
+        assert self.observation(0.0).observed_cfs == 0.0
+
+    def test_an_ordinary_reading_still_works(self) -> None:
+        assert self.observation(45.3).observed_cfs == 45.3

@@ -176,6 +176,54 @@
           "match": true
         }
       ]
+    },
+    "refusal_traps": {
+      "agent": "refusal_traps",
+      "measures": "cases where the correct answer is that the system DECLINES: a near-threshold reading, an era whose schedule is unverified, an impossible reading, an unsustained recovery, and a right published with no priority date",
+      "judge_model_required": false,
+      "cases_total": 5,
+      "cases_scored": 5,
+      "cases_blocked": 0,
+      "matched": 5,
+      "score": 1.0,
+      "blocked_reasons": [],
+      "cases": [
+        {
+          "eval_id": "near_threshold/declines_to_order",
+          "expected": "field_verification_first",
+          "actual": "field_verification_first",
+          "match": true,
+          "data": "live Shasta gage reading, 54.5 cfs against a 50 cfs minimum"
+        },
+        {
+          "eval_id": "unverified_era/refuses_rather_than_guessing",
+          "expected": "refused",
+          "actual": "refused",
+          "match": true,
+          "data": "September 10 2021, the date the Shasta order WR 2021-0082-DWR issued"
+        },
+        {
+          "eval_id": "impossible_reading/refuses",
+          "expected": "refused",
+          "actual": "refused",
+          "match": true,
+          "data": "CONSTRUCTED: a negative discharge, which a sensor fault or a typo produces"
+        },
+        {
+          "eval_id": "unsustained_recovery/does_not_suspend",
+          "expected": "flow_above_minimum_unsustained",
+          "actual": "flow_above_minimum_unsustained",
+          "match": true,
+          "data": "Fort Jones 78.4 cfs on a single day of the July 2025 sequence"
+        },
+        {
+          "eval_id": "undated_right/is_not_placed",
+          "expected": "not_placed",
+          "actual": "not_placed",
+          "match": true,
+          "data": "rights the Board's own Attachment A publishes without a priority date"
+        }
+      ]
     }
   },
   "metrics": {

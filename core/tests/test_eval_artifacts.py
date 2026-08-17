@@ -281,3 +281,58 @@ class TestTheMeasuredScoresAreRealMeasurements:
         for name, entry in results["measured"].items():
             assert entry["judge_model_required"] is False, name
             assert entry["measures"].strip(), f"{name} does not say what it measures"
+
+
+class TestTheRefusalTrapsAreScored:
+    """Every other eval here asks whether the engine AGREES with the Board. None of them
+    asked whether it knows when to say nothing.
+
+    A system that always produces an answer is not safer than one that sometimes refuses,
+    it is more dangerous, and an agent that fabricates a confident recommendation on a
+    reading it cannot evaluate is the exact failure this project exists to prevent. The
+    axis was unmeasured until a survey of what recent winners published made it obvious it
+    should be, and scoring it immediately found a real defect: the Sentinel classified a
+    negative discharge instead of refusing it.
+    """
+
+    def measured(self) -> dict[str, Any]:
+        results = json.loads((REPO / "docs" / "evals" / "eval_results.json").read_text())
+        assert "refusal_traps" in results["measured"], (
+            "the refusal traps are no longer scored, so nothing measures whether the "
+            "system knows when to decline"
+        )
+        return dict(results["measured"]["refusal_traps"])
+
+    def test_every_trap_is_declined(self) -> None:
+        traps = self.measured()
+        failed = [c["eval_id"] for c in traps["cases"] if not c["match"]]
+        assert not failed, f"the system answered where it should have declined: {failed}"
+        assert traps["score"] == 1.0
+
+    def test_the_traps_cover_distinct_ways_of_not_knowing(self) -> None:
+        """One trap repeated five times would score 5/5 and prove almost nothing. These
+        are five different reasons to decline: a reading too close to call, an era whose
+        rule is unverified, an input no river produces, a recovery not yet sustained, and
+        a right the Board published without a priority date."""
+        ids = {c["eval_id"].split("/")[0] for c in self.measured()["cases"]}
+        assert ids >= {
+            "near_threshold",
+            "unverified_era",
+            "impossible_reading",
+            "unsustained_recovery",
+            "undated_right",
+        }, f"the traps collapsed to fewer distinct kinds: {sorted(ids)}"
+
+    def test_each_trap_names_the_data_it_ran_on(self) -> None:
+        """Four of the five run on real data and one is constructed. Which is which has to
+        travel with the result, because this repository's own rule is that a judged claim
+        never rests on synthetic data without saying so."""
+        for case in self.measured()["cases"]:
+            assert case.get("data", "").strip(), f"{case['eval_id']} does not say what it ran on"
+
+    def test_the_constructed_one_is_labelled(self) -> None:
+        constructed = [c for c in self.measured()["cases"] if c["data"].startswith("CONSTRUCTED")]
+        assert len(constructed) == 1, (
+            "exactly one trap is constructed and it must say so. If a second appears "
+            "without the label, the set has drifted toward synthetic evidence."
+        )

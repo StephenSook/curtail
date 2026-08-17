@@ -403,6 +403,129 @@ def _run_herald_lanes() -> list[dict[str, Any]]:
     return scored
 
 
+def _run_refusal_traps() -> list[dict[str, Any]]:
+    """Cases where the CORRECT answer is that the system declines.
+
+    **Every other eval here asks whether the engine agrees with the Board. None of them
+    asks whether it knows when to say nothing**, and a system that always produces an
+    answer is not safer than one that sometimes refuses, it is more dangerous. An agent
+    that fabricates a confident recommendation on a reading it cannot evaluate is exactly
+    the failure this project exists to prevent, so it should be scored, not assumed.
+
+    Four of the five traps run on real data: a live reading from the Shasta gage, a real
+    2021 document date, a real undated right from the Board's own Attachment A, and the
+    hysteresis case from the July 2025 sequence. The fifth is constructed, and is labelled
+    so, because no river produces a negative discharge.
+    """
+    from datetime import UTC, date, datetime
+
+    from curtail_agents.events import EventType
+    from curtail_agents.sentinel import Observation, Provenance, SentinelError, evaluate
+    from curtail_core.allocation import RecommendedAction, recommend
+    from curtail_core.basins import Basin
+    from curtail_core.flow_minimums import ScheduleGapError, minimum_flow
+    from curtail_core.rights import rights_for
+
+    scored: list[dict[str, Any]] = []
+
+    def record(eval_id: str, expected: str, actual: str, real: str) -> None:
+        scored.append(
+            {
+                "eval_id": eval_id,
+                "expected": expected,
+                "actual": actual,
+                "match": expected == actual,
+                "data": real,
+            }
+        )
+
+    # 1. A reading inside the near-threshold band must NOT produce a curtailment
+    #    recommendation. It must ask for a field measurement, which is what the Fort Jones
+    #    practice actually is. Real reading, taken from the live Shasta gage.
+    record(
+        "near_threshold/declines_to_order",
+        RecommendedAction.FIELD_VERIFICATION_FIRST.value,
+        recommend(
+            basin=Basin.SHASTA,
+            when=date(2026, 8, 16),
+            observed_cfs=54.5,
+            rights=rights_for(Basin.SHASTA).rights,
+        ).action.value,
+        "live Shasta gage reading, 54.5 cfs against a 50 cfs minimum",
+    )
+
+    # 2. A date whose flow schedule is not verified must REFUSE rather than score against
+    #    a table that was not in force. Marking the Board wrong for correctly applying the
+    #    rule of its day would be the worst kind of confident error.
+    try:
+        minimum_flow(Basin.SHASTA, date(2021, 9, 10))
+        outcome = "returned a minimum"
+    except ScheduleGapError:
+        outcome = "refused"
+    record(
+        "unverified_era/refuses_rather_than_guessing",
+        "refused",
+        outcome,
+        "September 10 2021, the date the Shasta order WR 2021-0082-DWR issued",
+    )
+
+    # 3. An impossible reading must refuse. Constructed, and no river produces one, but a
+    #    sensor or a typo does and the system must not classify it.
+    try:
+        evaluate(
+            Observation(Basin.SCOTT, -5.0, datetime(2026, 8, 16, tzinfo=UTC), Provenance.USGS_LIVE),
+            correlation_id="refusal-trap",
+        )
+        outcome = "classified it"
+    except (SentinelError, ValueError):
+        outcome = "refused"
+    record(
+        "impossible_reading/refuses",
+        "refused",
+        outcome,
+        "CONSTRUCTED: a negative discharge, which a sensor fault or a typo produces",
+    )
+
+    # 4. A recovery above the minimum must not immediately recommend suspension. The
+    #    Board's own practice requires a sustained window, and the July 2025 sequence is
+    #    the reason: a single high reading was disputed and later revised.
+    single = evaluate(
+        Observation(Basin.SCOTT, 78.4, datetime(2025, 7, 20, tzinfo=UTC), Provenance.USGS_LIVE),
+        correlation_id="refusal-trap-hysteresis",
+    )
+    record(
+        "unsustained_recovery/does_not_suspend",
+        EventType.FLOW_ABOVE_MINIMUM_UNSUSTAINED.value,
+        single.event_type.value,
+        "Fort Jones 78.4 cfs on a single day of the July 2025 sequence",
+    )
+
+    # 5. A right the Board publishes with no priority date must not be silently placed in
+    #    the group that gets curtailed FIRST. Feeding None for unknown once put 14 real
+    #    rights there, which is a legally operative error made by a default value.
+    record(
+        "undated_right/is_not_placed",
+        "not_placed",
+        _undated_placement(),
+        "rights the Board's own Attachment A publishes without a priority date",
+    )
+    return scored
+
+
+def _undated_placement() -> str:
+    """Whether any right lacking a priority date was nonetheless given a grouping."""
+    from curtail_core.basins import Basin
+    from curtail_core.rights import rights_for
+
+    for basin in (Basin.SCOTT, Basin.SHASTA):
+        for right in rights_for(basin).rights:
+            if getattr(right, "priority_date", None) is None and getattr(
+                right, "grouping", None
+            ) not in (None, ""):
+                return "placed"
+    return "not_placed"
+
+
 def _summary(name: str, scored: list[dict[str, Any]], measures: str) -> dict[str, Any]:
     """One agent's score, with the denominator it actually ran on stated separately."""
     runnable = [s for s in scored if "blocked" not in s]
@@ -463,6 +586,13 @@ def build_results(eval_set: dict[str, Any]) -> dict[str, Any]:
         "the hallucination guard: a draft asserting a right or a priority date outside "
         "the Core's computed set must be rejected, and a faithful draft must pass",
     )
+    refusals = _summary(
+        "refusal_traps",
+        _run_refusal_traps(),
+        "cases where the correct answer is that the system DECLINES: a near-threshold "
+        "reading, an era whose schedule is unverified, an impossible reading, an "
+        "unsustained recovery, and a right published with no priority date",
+    )
     herald = _summary(
         "herald",
         _run_herald_lanes(),
@@ -484,6 +614,7 @@ def build_results(eval_set: dict[str, Any]) -> dict[str, Any]:
             "allocation_core": core,
             "order_scribe": scribe,
             "herald": herald,
+            "refusal_traps": refusals,
         },
         "metrics": {
             "tool_trajectory_avg_score": {
