@@ -1631,6 +1631,35 @@ class TestTheHydrograph:
         assert "changed 1 time" in note, "the step boundary was not reported to the reader"
         assert page.locator("#chart canvas").count() >= 1, "no canvas was rendered"
 
+    def test_a_malformed_reading_is_refused_not_half_rendered(
+        self, page: Page, console_url: str
+    ) -> None:
+        """The container checks passed a payload whose ELEMENTS were malformed: a null
+        reading threw inside the map after the guard had called the payload readable,
+        one shape deeper than the defect the guard was added for."""
+        poisoned = dict(self.PAYLOAD)
+        poisoned["series"] = [self.PAYLOAD["series"][0], None, self.PAYLOAD["series"][2]]
+        page.route("**/api/hydrograph/**", _fulfil(poisoned))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert "cannot render" in page.locator("#graph-note").inner_text()
+
+    def test_a_step_missing_its_date_is_refused(self, page: Page, console_url: str) -> None:
+        """stepPoints reads step.from and step.minimum_cfs bare, so a step without its
+        date used to throw mid-chart rather than refuse."""
+        poisoned = dict(self.PAYLOAD)
+        poisoned["minimum_steps"] = [{"minimum_cfs": 50.0}]
+        page.route("**/api/hydrograph/**", _fulfil(poisoned))
+        page.goto(console_url)
+        page.wait_for_function(
+            "() => document.getElementById('graph')?.dataset.state === 'unavailable'",
+            timeout=45_000,
+        )
+        assert "cannot render" in page.locator("#graph-note").inner_text()
+
     def test_the_caution_band_is_a_band_and_not_a_fill_from_zero(
         self, page: Page, console_url: str
     ) -> None:
