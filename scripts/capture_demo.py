@@ -89,11 +89,26 @@ def capture(url: str) -> Path:
         page = context.new_page()
         failed: list[str] = []
         page.on("pageerror", lambda e: errors.append(str(e)))
+        # **Two different events, because they catch two different things.**
+        #
+        # `requestfailed` fires only when a request never completed: DNS, refused
+        # connection, abort. **A 500 is a perfectly successful HTTP transaction** and never
+        # fires it, so watching only that one leaves the likeliest failure in a filmed demo
+        # completely invisible: a card that 503s renders as an empty panel and the take
+        # passes.
         page.on(
             "requestfailed",
             lambda r: (
-                failed.append(f"{r.url.split('?')[0]} {r.failure or ''}".strip())
+                failed.append(f"{r.url.split('?')[0]} did not complete: {r.failure}")
                 if "/api/" in r.url
+                else None
+            ),
+        )
+        page.on(
+            "response",
+            lambda r: (
+                failed.append(f"{r.url.split('?')[0]} returned HTTP {r.status}")
+                if "/api/" in r.url and r.status >= 400
                 else None
             ),
         )
@@ -169,7 +184,7 @@ def capture(url: str) -> Path:
         # printed caveat is not a verdict, because the exit code is what a pipeline and a
         # tired person both read. A capture is either usable or it is not.
         raise CaptureFailedError(
-            f"{len(failed)} request(s) failed during the take, so the film would show a "
+            f"{len(failed)} API call(s) failed during the take, so the film would show a "
             f"broken product: {failed[:4]}"
         )
     if errors:
