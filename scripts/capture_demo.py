@@ -177,11 +177,13 @@ def capture(url: str, beats_path: Path = BEATS) -> Path:
 
     try:
         return _drive(url, beats)
-    except CaptureFailedError:
-        # A refusal raised MID-SESSION (a settled card holding a system state, a short
-        # traversal) still leaves Playwright's webm on disk, because the recording is
-        # written as the session runs. Same rule as the post-session refusals: a refused
-        # take does not stay on disk for an assembler to glob.
+    except BaseException:
+        # ANY failure, not only a deliberate refusal. The recording is written as the
+        # session runs, so a Playwright timeout, a network error, or a KeyboardInterrupt
+        # leaves exactly the same unusable webm a refused take does, and the first
+        # version of this cleanup caught only CaptureFailedError, which meant the most
+        # common failure (a settle timing out) still left a file for an assembler to
+        # glob. Success is the only path on which a video survives.
         for stale in OUT.glob("*.webm"):
             stale.unlink()
         raise
