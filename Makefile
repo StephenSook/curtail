@@ -58,6 +58,18 @@ secrets: ## Full-history secret scan
 evals: ## Regenerate the committed eval artifacts from the Board's own cases
 	uv run python scripts/export_evals.py
 
+.PHONY: response-lag
+response-lag: ## Rebuild the response-lag record from the USGS series and Board dates
+# The fact sheet's missing-record message names this target, and for a while the
+# target did not exist: the message pointed a reader at `make response-lag` while the
+# only way to build the record was knowing the script's filename. An instruction that
+# cannot be followed is worse than none.
+	uv run python scripts/build_response_lag.py
+
+.PHONY: response-lag-check
+response-lag-check: ## Fail if the committed response-lag record has drifted
+	uv run python scripts/build_response_lag.py --check
+
 rights: ## Re-parse Attachment A from the fetched corpus into the committed record
 	uv run python scripts/extract_attachment_a.py
 
