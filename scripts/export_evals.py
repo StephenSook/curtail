@@ -13,11 +13,16 @@ same requirements:
 - `tool_trajectory_avg_score` is DETERMINISTIC. It compares the tool calls an agent
   made against the calls a case expects, with no model in the loop.
 - `final_response_match_v2`, `safety_v1` and `hallucinations_v1` are LLM-as-a-judge
-  metrics. Each needs a judge model, which needs Gemini credentials this environment
-  does not hold.
+  metrics. Each needs a judge model, and the judge COULD run here: the Scribe makes
+  real Gemini calls in production with the same credentials. They are left unrun for
+  the narrower, honest reason the result artifact states: a judge model scoring this
+  system's own output is a weaker instrument than the deterministic checks below,
+  which score the same components against arithmetic, a computed set and a statute.
+  (An earlier version of this docstring blamed missing credentials, which stopped
+  being true and sat here contradicting the artifact this script writes.)
 
 So this script exports what it can actually compute and records the rest as
-PENDING with the reason, rather than emitting a placeholder score that would read
+NOT_RUN with the reason, rather than emitting a placeholder score that would read
 like evidence. A number nobody produced is worse than an absent one, because the
 absence is visibly incomplete and the placeholder is confidently wrong.
 

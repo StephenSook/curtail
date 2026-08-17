@@ -41,7 +41,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from enum import StrEnum
 
 #: Water Code 1846(b)(1). Per day of violation.
 DAILY_PENALTY = Decimal("10000")
@@ -58,13 +57,6 @@ AB_460_EFFECTIVE = date(2025, 1, 1)
 
 #: Water Code 1058.5(d). A separate infraction, not additive by default.
 EMERGENCY_REGULATION_INFRACTION_DAILY = Decimal("500")
-
-
-class PenaltyBasis(StrEnum):
-    """Which authority a figure came from. Never inferred, always labeled."""
-
-    STATUTE_1846B = "water_code_1846b"
-    OBSOLETE_REGULATION_875_9B = "23_ccr_875.9b_obsolete"
 
 
 @dataclass(frozen=True, slots=True)

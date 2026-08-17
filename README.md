@@ -284,7 +284,7 @@ and `run_with_deadline` cancels waits that no timeout reaches, because ADK's nod
 timeout does not cover the session append that follows it.
 
 **The chaos drill**, `make chaos`, runs in CI and can go red. Three injected
-failures, three guards, and eight disarm tests prove it fails when a guard is
+failures, three guards, and a suite of disarm tests proves it fails when a guard is
 removed. It states one residual risk out loud: a worker that crashes between sending
 a notice and recording it will re-send, which no dedup table can prevent.
 
@@ -329,9 +329,12 @@ person's name is impersonation whatever disclaimer sits beside it.
 
 **Evidence.** [docs/evals/](docs/evals/) carries an ADK eval set built from the
 Board's own record, and an eval result that names which metrics were measured and
-which were not. Three of ADK's prebuilt metrics are LLM-as-a-judge and need
-credentials this environment does not hold, so they ship as pending with the reason
-rather than as a placeholder score.
+which were not. Three of ADK's prebuilt metrics are LLM-as-a-judge; they ship as
+`not_run` with the reason stated in the artifact itself: the judge could run here,
+and is left unrun because a judge model scoring this system's own output is a weaker
+instrument than the deterministic checks beside it, which score the same components
+against arithmetic, a computed set and a statute. A number nobody produced reads
+like evidence, which is why the gap ships labelled instead of filled.
 
 **Tests.** The suite runs on every push and its size is reported by CI rather than
 restated here, because a count in prose goes stale the moment somebody adds a test.
@@ -346,6 +349,10 @@ The console API runs on Cloud Run and needs no credentials to read:
 |---|---|
 | Liveness | https://curtail-console-api-672785135387.us-central1.run.app/api/healthz |
 | Classify a reading | [48.7 cfs at Fort Jones, 20 July 2025](https://curtail-console-api-672785135387.us-central1.run.app/api/classify/scott?cfs=48.7&at=2025-07-20T21:30:00%2B00:00) |
+| The river, live from USGS | [/api/gage/scott](https://curtail-console-api-672785135387.us-central1.run.app/api/gage/scott), fetched and classified on request |
+| The headline metric, recomputed | [/api/backtest](https://curtail-console-api-672785135387.us-central1.run.app/api/backtest), scored against the Board's own decisions when you ask |
+| The season's statutory clocks | [/api/season/shasta](https://curtail-console-api-672785135387.us-central1.run.app/api/season/shasta), read back from Cloud Firestore |
+| Ask the corpus a question | [/api/search?q=when was curtailment lifted after a gage revision](https://curtail-console-api-672785135387.us-central1.run.app/api/search?q=when%20was%20curtailment%20lifted%20after%20a%20gage%20revision) |
 | The generated fact sheet | https://curtail-console-api-672785135387.us-central1.run.app/api/facts |
 | Interactive docs | https://curtail-console-api-672785135387.us-central1.run.app/docs |
 
