@@ -53,12 +53,23 @@ class TestABadTakeIsRefused:
         body = tail()
         assert body.index("raise CaptureFailedError") < body.index("return videos[0]")
 
-    def test_failed_api_requests_are_watched_for(self) -> None:
+    def test_both_transport_failure_and_http_status_are_watched(self) -> None:
+        """Two events, because they catch two different things, and the second is the one
+        that actually matters here.
+
+        `requestfailed` fires only when a request never completed: DNS, refused connection,
+        abort. **A 500 is a perfectly successful HTTP transaction** and never fires it. So
+        a version watching only `requestfailed` leaves the likeliest failure in a filmed
+        demo entirely invisible: a card that 503s renders as an empty panel, and the take
+        passes.
+        """
         source = SCRIPT.read_text()
-        assert "requestfailed" in source, (
-            "nothing watches for failed API requests, so a card that 503s would be filmed "
-            "as an empty panel and reported as a good take"
+        assert "requestfailed" in source, "transport failures are not watched"
+        assert '"response"' in source, (
+            "HTTP status is not watched, so a 500 would film as an empty panel and the "
+            "take would be reported as good"
         )
+        assert "r.status >= 400" in source, "responses are observed but their status is not checked"
 
     def test_the_traversal_has_a_floor(self) -> None:
         """The first take reported a 64.5 second Gemini call as finishing in 0.0 seconds,
