@@ -81,6 +81,25 @@ def settle(page: Any, card: str, previous: str, timeout: int = 300_000) -> str:
     return page.locator(card).get_attribute("data-render") or ""
 
 
+def result_state(page: Any, card: str) -> None:
+    """The settled card must hold a RESULT, not a refusal wearing a fresh stamp.
+
+    `settle` proves the card re-rendered; it cannot prove WHAT rendered. The console's
+    own hardening renders "Unavailable" and "Refused" inside the card with a fresh
+    generation stamp, precisely so a reader is never shown a wrong answer quietly, and
+    that is the one honesty this capture could not see: an untrustworthy 200 is not an
+    HTTP failure, so a take could film a calm refusal over narration describing a
+    working product and pass every network check. System states carry the `s-system`
+    class; results never do.
+    """
+    if page.locator(f"{card} .status.s-system").count() > 0:
+        text = page.locator(card).inner_text()[:200].replace("\n", " ")
+        raise CaptureFailedError(
+            f"{card} settled on a system state rather than a result: {text!r}. The film "
+            "would narrate a working product over a card explaining why it is not one."
+        )
+
+
 def scroll(page: Any, selector: str) -> None:
     """Move the camera, and refuse to pretend when the target is not there.
 
@@ -170,11 +189,20 @@ def capture(url: str) -> Path:
         # fires it, so watching only that one leaves the likeliest failure in a filmed demo
         # completely invisible: a card that 503s renders as an empty panel and the take
         # passes.
+        #
+        # **Watched for the whole ORIGIN, not just /api/.** A 404 on the vendored chart
+        # bundle or a font is a completed HTTP transaction outside /api/, and the console
+        # catches the import failure and renders its message inside the card, so a take
+        # could film "the charting bundle did not load" over narration about the season
+        # and pass every check. Third-party hosts (map tiles) are deliberately excluded:
+        # one flaky tile is not a broken product, and the map is not what the narration
+        # is claiming when it is on screen.
+        origin = url.rstrip("/")
         page.on(
             "requestfailed",
             lambda r: (
                 failed.append(f"{r.url.split('?')[0]} did not complete: {r.failure}")
-                if "/api/" in r.url
+                if r.url.startswith(origin)
                 else None
             ),
         )
@@ -182,7 +210,7 @@ def capture(url: str) -> Path:
             "response",
             lambda r: (
                 failed.append(f"{r.url.split('?')[0]} returned HTTP {r.status}")
-                if "/api/" in r.url and r.status >= 400
+                if r.url.startswith(origin) and r.status >= 400
                 else None
             ),
         )
@@ -202,6 +230,7 @@ def capture(url: str) -> Path:
         before = page.locator("#out").get_attribute("data-render") or ""
         page.click("#go")
         before = settle(page, "#out", before, timeout=90_000)
+        result_state(page, "#out")
         # Halfway through the sentence the narration moves from the reading to the Core,
         # so the picture moves with it.
         page.wait_for_timeout(int(clock.seconds["beat2"] * 400))
@@ -217,6 +246,9 @@ def capture(url: str) -> Path:
         page.fill("#at", "2026-08-16")
         page.click("#go")
         settle(page, "#out", before, timeout=90_000)
+        # The near-threshold refusal is a CLASSIFICATION, rendered as a result. The
+        # `s-system` check still applies: "Unavailable" here would film as a calm card.
+        result_state(page, "#out")
         clock.hold(until)
 
         print("  beat 4, the fleet, uncut")
@@ -230,6 +262,7 @@ def capture(url: str) -> Path:
         # The RESULT, not the pending state. See settle(): the first take matched the
         # spinner and reported this 63-second traversal as finishing in 0.0 seconds.
         settle(page, "#fleetout", fleet_before, timeout=300_000)
+        result_state(page, "#fleetout")
         traversal = time.monotonic() - started
         print(f"      traversal completed in {traversal:.1f}s")
         if traversal < MINIMUM_TRAVERSAL_SECONDS:
@@ -259,6 +292,7 @@ def capture(url: str) -> Path:
         search_before = page.locator("#searchout").get_attribute("data-render") or ""
         page.click("#ask")
         settle(page, "#searchout", search_before, timeout=120_000)
+        result_state(page, "#searchout")
         clock.hold(until)
 
         print("  beats 6 to 8 are separate evidence captures; marks.json records them as absent")
@@ -269,6 +303,14 @@ def capture(url: str) -> Path:
     videos = sorted(OUT.glob("*.webm"))
     if not videos:
         raise RuntimeError("no video was written")
+    if failed or errors:
+        # **A refused take does not stay on disk.** The raise below refuses the exit
+        # code, but the .webm it leaves behind is a file, and a file that exists is a
+        # file something downstream eventually globs. An assembler that requires
+        # marks.json would skip it; one that does not would mux a take this very
+        # function judged unusable, and nothing in the output would say so.
+        for video in videos:
+            video.unlink()
     if failed:
         # **Raise, do not print.** The first version printed this to stderr and then
         # returned the path, so a take where the console threw would have exited 0 and
