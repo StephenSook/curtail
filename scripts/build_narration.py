@@ -76,8 +76,14 @@ def run(*args: str) -> str:
 def duration(path: Path) -> float:
     return float(
         run(
-            "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "csv=p=0", str(path),
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "csv=p=0",
+            str(path),
         ).strip()
     )
 
@@ -111,23 +117,87 @@ def parse_beats(text: str) -> list[tuple[str, str]]:
     return beats
 
 
+#: Number words the spelled-figure scan understands. Narration speaks its most material
+#: figures in words ("ten thousand dollars", "eighty thousand"), and a gate that reads
+#: only digits waves every one of them through. That was found in review: the dollar
+#: figures carrying the entire pitch were the least checked numbers in the film.
+WORD_VALUES = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+    "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+}  # fmt: skip
+SCALE_VALUES = {"hundred": 100, "thousand": 1_000, "million": 1_000_000}
+
+_NUMBER_WORD = "|".join([*WORD_VALUES, *SCALE_VALUES])
+#: A phrase starts at a number word, or at "a" only when a scale follows ("a hundred and
+#: one"), and continues through further number words joined by spaces, hyphens or "and".
+SPELLED = re.compile(
+    rf"\b(?:a(?=\s+(?:hundred|thousand|million)\b)|{_NUMBER_WORD})"
+    rf"(?:(?:\s+and\s+|\s+|-)(?:{_NUMBER_WORD}))*\b"
+)
+
+
+def phrase_value(phrase: str) -> int:
+    """'five hundred and seventy-seven' -> 577, 'eighty thousand' -> 80000."""
+    total = current = 0
+    for word in re.findall(r"[a-z]+", phrase):
+        if word == "and":
+            continue
+        if word == "a":
+            current = 1
+        elif word in WORD_VALUES:
+            current += WORD_VALUES[word]
+        elif SCALE_VALUES[word] == 100:
+            current = max(current, 1) * 100
+        else:
+            total += max(current, 1) * SCALE_VALUES[word]
+            current = 0
+    return total + current
+
+
+def present(figure: str, text: str) -> bool:
+    """Whether a figure appears in the text as a NUMBER, not as digits inside a longer one.
+
+    Bare substring matching passed "500" on the strength of gage id 11517500, which is a
+    match that verifies nothing. The lookarounds require the figure to stand on its own:
+    "$500" and "500 cfs" match, "11517500" does not. A trailing sentence period still
+    matches, which is why the right side excludes only digits.
+    """
+    return re.search(rf"(?<![\d.]){re.escape(figure)}(?!\d)", text) is not None
+
+
 def check_figures(beats: list[tuple[str, str]], facts: str) -> list[str]:
     """Every number spoken must be findable in the fact sheet.
 
-    Deliberately crude: it compares digit strings, so "$80,000" is checked as "80,000"
-    and "80000". A gate that is easy to reason about is one I will still trust at 2am,
-    and the cost of a false positive is reading one line of the fact sheet.
+    Two scans, one resolution floor. Digits are checked as written ("$80,000" as
+    "80,000" and "80000"). Spelled-out numbers are parsed to their values and checked
+    the same way, plus a fallback for a fact sheet that spells the word itself ("a
+    factor of twenty"). Values of ten and below are below the gate's resolution in
+    BOTH scans: a one-character match against a fact sheet full of digits verifies
+    nothing, which is the same honesty as NOT_A_CLAIM rather than a loophole. Those
+    claims are covered by the generated fact sheet's own tests, not by this gate.
     """
     missing: list[str] = []
     normal = facts.replace(",", "")
+    lowered = facts.lower()
     for title, spoken in beats:
         for raw in re.findall(r"\d[\d,\.]*", spoken):
             figure = raw.rstrip(".")
             if figure in NOT_A_CLAIM:
                 continue
-            if figure in facts or figure.replace(",", "") in normal:
+            if present(figure, facts) or present(figure.replace(",", ""), normal):
                 continue
             missing.append(f"{title}: {figure}")
+        for match in SPELLED.finditer(spoken.lower()):
+            phrase = match.group(0).strip()
+            value = phrase_value(phrase)
+            if value <= 10:
+                continue
+            if present(str(value), normal) or re.search(rf"\b{re.escape(phrase)}\b", lowered):
+                continue
+            missing.append(f"{title}: '{phrase}' ({value})")
     return missing
 
 
@@ -169,16 +239,38 @@ def build() -> int:
         mp3.write_bytes(synthesise(say(spoken)).audio_mp3)
         # Decode to WAV before concatenating. The concat demuxer over mp3s lost about a
         # fifth of a narration on this machine, and re-encoding did not fix it.
-        run("ffmpeg", "-y", "-loglevel", "error", "-i", str(mp3),
-            "-ar", "48000", "-ac", "1", str(wav))
+        run(
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            str(mp3),
+            "-ar",
+            "48000",
+            "-ac",
+            "1",
+            str(wav),
+        )
         seconds = duration(wav)
         print(f"    {title:8} {seconds:6.1f}s  {len(spoken.split()):3d} words")
         wavs.append(wav)
         manifest.append({"beat": title, "spoken": spoken, "seconds": round(seconds, 3)})
 
     silence = OUT / "gap.wav"
-    run("ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi",
-        "-i", "anullsrc=r=48000:cl=mono", "-t", str(GAP_SECONDS), str(silence))
+    run(
+        "ffmpeg",
+        "-y",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=48000:cl=mono",
+        "-t",
+        str(GAP_SECONDS),
+        str(silence),
+    )
 
     listing = OUT / "concat.txt"
     parts: list[Path] = []
@@ -189,8 +281,21 @@ def build() -> int:
     listing.write_text("".join(f"file '{p.name}'\n" for p in parts))
 
     joined = OUT / "narration_raw.wav"
-    run("ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0",
-        "-i", str(listing), "-c", "copy", str(joined))
+    run(
+        "ffmpeg",
+        "-y",
+        "-loglevel",
+        "error",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        str(listing),
+        "-c",
+        "copy",
+        str(joined),
+    )
 
     expected = sum(m["seconds"] for m in manifest) + GAP_SECONDS * (len(wavs) - 1)  # type: ignore[operator]
     actual = duration(joined)
@@ -207,28 +312,58 @@ def build() -> int:
     # the second applies those measurements, which is the difference between a target
     # and a result.
     analysis = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-nostats", "-i", str(joined), "-af",
-         f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11:print_format=json", "-f", "null", "-"],
-        capture_output=True, text=True,
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostats",
+            "-i",
+            str(joined),
+            "-af",
+            f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11:print_format=json",
+            "-f",
+            "null",
+            "-",
+        ],
+        capture_output=True,
+        text=True,
     ).stderr
     block = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", analysis, re.DOTALL)
     if not block:
         raise NarrationError("loudnorm's measurement pass reported nothing to apply")
     stats = json.loads(block.group(0))
     run(
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(joined), "-af",
+        "ffmpeg",
+        "-y",
+        "-loglevel",
+        "error",
+        "-i",
+        str(joined),
+        "-af",
         f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11"
         f":measured_I={stats['input_i']}:measured_TP={stats['input_tp']}"
         f":measured_LRA={stats['input_lra']}:measured_thresh={stats['input_thresh']}"
         f":offset={stats['target_offset']}:linear=true",
-        "-ar", "48000", str(final),
+        "-ar",
+        "48000",
+        str(final),
     )
 
     # ebur128 writes to stderr, so the verdict is read from there and not from stdout.
     report = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-nostats", "-i", str(final), "-af", "ebur128",
-         "-f", "null", "-"],
-        capture_output=True, text=True,
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostats",
+            "-i",
+            str(final),
+            "-af",
+            "ebur128",
+            "-f",
+            "null",
+            "-",
+        ],
+        capture_output=True,
+        text=True,
     ).stderr
     found = re.findall(r"I:\s+(-?\d+\.\d+) LUFS", report)
     if not found:
