@@ -1506,14 +1506,20 @@ async def hydrograph(basin: str, days: int = 30) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail=f"USGS could not be read: {exc}") from exc
 
     # One step per day the rule CHANGES, plus the endpoints, so the line is exact rather
-    # than sampled. A gap in the schedule ends the series honestly instead of guessing.
+    # than sampled. A gap in the schedule ends the series honestly instead of guessing,
+    # AND the payload says where: without the marker the client cannot tell a truncated
+    # schedule from a completed one, and the first version of this endpoint truncated
+    # silently while the chart extended the last step flat across the very dates the
+    # server had refused to resolve.
     steps: list[dict[str, Any]] = []
+    schedule_gap_from: str | None = None
     previous: float | None = None
     day = since.date()
     while day <= until.date():
         try:
             value = float(minimum_flow(which, day))
         except ScheduleGapError:
+            schedule_gap_from = day.isoformat()
             break
         if value != previous:
             steps.append({"from": day.isoformat(), "minimum_cfs": value})
@@ -1533,6 +1539,7 @@ async def hydrograph(basin: str, days: int = 30) -> dict[str, Any]:
         "count": len(series),
         "series": series,
         "minimum_steps": steps,
+        "schedule_gap_from": schedule_gap_from,
         "near_threshold_band_cfs": NEAR_THRESHOLD_BAND_CFS,
         "unit": "ft^3/s",
         "provenance": Provenance.USGS_LIVE.value,

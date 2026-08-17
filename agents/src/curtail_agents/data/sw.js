@@ -42,6 +42,26 @@ self.addEventListener("fetch", (event) => {
         caches.open(VERSION).then((c) => c.put(event.request, copy)).catch(() => {});
         return response;
       })
-      .catch(() => caches.match(event.request).then((hit) => hit || caches.match("/field")))
+      .catch(() =>
+        caches.match(event.request).then((hit) => {
+          if (hit) return hit;
+          /* The app-shell fallback is for NAVIGATIONS only. Serving the /field HTML to
+             a failed font or icon request hands the renderer HTML where it expected
+             binary, which fails a second time and less legibly; and if the shell is
+             not cached either, an undefined here rejects respondWith with a generic
+             error. A synthesized 504 names what actually happened. */
+          if (event.request.mode === "navigate") {
+            return caches.match("/field").then(
+              (shell) =>
+                shell ||
+                new Response("Offline, and the app shell is not cached yet.", {
+                  status: 504,
+                  headers: { "content-type": "text/plain" },
+                })
+            );
+          }
+          return new Response("Offline and not cached.", { status: 504 });
+        })
+      )
   );
 });
