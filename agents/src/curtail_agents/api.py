@@ -1022,8 +1022,8 @@ def spoken_brief(basin: str, cfs: float, at: str | None = None) -> dict[str, Any
 def search_corpus(q: str, limit: int = 5) -> dict[str, Any]:
     """Ask the corpus a question in ordinary words.
 
-    101 curtailment documents issued over five years across four order series, and the
-    question a watermaster actually has is not a keyword. "When was curtailment lifted
+    Five years of curtailment documents across four order series, and the question a
+    watermaster actually has is not a keyword. "When was curtailment lifted
     because the measurement itself turned out to be wrong" shares no words with the
     addendum that answers it: the documents say rating curve, shift, revised, field
     measurements and suspension of curtailment in different combinations, and no two

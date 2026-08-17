@@ -32,6 +32,7 @@ import base64
 import json
 import re
 import struct
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -198,11 +199,23 @@ class TestSearchRefusesRatherThanRanksWrongly:
             search(doubled)
 
     def test_a_repeated_passage_collapses_and_says_how_often(self) -> None:
-        """609 chunks over 96 of 101 documents, and these addenda restate the same standard
-        paragraphs constantly. Ranked naively a reader gets one boilerplate paragraph
-        several times and never sees the second-best answer."""
+        """The 2021 addenda restate the same standard paragraphs across DISTINCT
+        documents. Ranked naively a reader gets one boilerplate paragraph several times
+        and never sees the second-best answer.
+
+        The query is a vector whose TEXT is known to appear in more than one document,
+        found from the index itself. It used to be `vectors[0]`, which sat near a
+        duplicate only because three stray files doubled whole documents; when the build
+        stopped indexing strays, that accident evaporated and this test went red while
+        the collapse it checks was working perfectly. A test of a property constructs an
+        input that HAS the property. If the corpus ever stops repeating itself, the
+        `next()` below raises StopIteration, which is the loud version of that news."""
         loaded = load()
-        hits = search(list(loaded.vectors[0]), limit=5)
+        counts = Counter(entry["text_sha256"] for entry in loaded.entries)
+        position = next(
+            index for index, entry in enumerate(loaded.entries) if counts[entry["text_sha256"]] > 1
+        )
+        hits = search(list(loaded.vectors[position]), limit=5)
         assert len({hit.snippet for hit in hits}) == len(hits), "a passage was returned twice"
         assert any(hit.appears_in > 1 for hit in hits), (
             "no hit reports appearing in more than one document, so either the corpus "

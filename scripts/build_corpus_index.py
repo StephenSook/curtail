@@ -53,6 +53,7 @@ import httpx
 
 REPO = Path(__file__).resolve().parents[1]
 CORPUS = REPO / "data" / "corpus"
+MANIFEST = REPO / "data" / "corpus_manifest.json"
 OUT = REPO / "core" / "src" / "curtail_core" / "data" / "corpus_index.json"
 
 MODEL = "gemini-embedding-001"
@@ -324,9 +325,43 @@ def build(*, dry_run: bool = False) -> dict[str, Any]:
     if not CORPUS.is_dir():
         raise BuildError(f"{CORPUS} is absent. The corpus is not tracked in git.")
 
-    documents = sorted(CORPUS.glob("*.pdf"))
-    if not documents:
+    all_pdfs = sorted(CORPUS.glob("*.pdf"))
+    if not all_pdfs:
         raise BuildError(f"{CORPUS} holds no PDFs")
+
+    # **The corpus directory is not the corpus.** Three files on disk are hand-downloaded
+    # byte-copies of records already fetched under canonical names, and this builder used
+    # to walk the directory and index them: two whole documents twice, the counts
+    # inflated to 101, and one "absent" scan that was another absent scan wearing its
+    # second filename. The manifest names the strays; excluding them here is what makes
+    # `documents_read` a count of documents rather than of filenames.
+    status = json.loads(MANIFEST.read_text())["extraction_status"]
+    strays = set(status.get("stray_files", []))
+    if len(strays) != status["files_not_matching_a_record"]:
+        raise BuildError(
+            f"the manifest names {len(strays)} stray files but counts "
+            f"{status['files_not_matching_a_record']}. One of them has drifted; "
+            "fix the manifest before building an index on either number."
+        )
+    missing = sorted(strays - {p.name for p in all_pdfs})
+    if missing:
+        raise BuildError(
+            f"stray files named by the manifest are not on disk: {missing}. "
+            "The stray list has drifted from the corpus."
+        )
+    documents = [p for p in all_pdfs if p.name not in strays]
+    # **Every stray must be a byte-copy of a kept file.** A previous fix in this exact
+    # area was too eager and silently dropped twenty documents while the counts still
+    # said everything was present. Excluding a file that is NOT duplicated elsewhere
+    # would drop a document, so that is checked rather than assumed.
+    kept_hashes = {hashlib.sha256(p.read_bytes()).hexdigest() for p in documents}
+    for name in sorted(strays):
+        if hashlib.sha256((CORPUS / name).read_bytes()).hexdigest() not in kept_hashes:
+            raise BuildError(
+                f"{name} is listed as a stray but no kept file carries its bytes. "
+                "Excluding it would drop a document from the index, which is the "
+                "too-eager fix this guard exists to refuse."
+            )
 
     staged: list[dict[str, Any]] = []
     for path in documents:
@@ -363,10 +398,14 @@ def build(*, dry_run: bool = False) -> dict[str, Any]:
                         # and this artifact is an index into it, not a copy of it.
                         "snippet": item["text"][:SNIPPET_CHARS],
                         "characters": len(item["text"]),
-                        # The corpus carries at least one order under two different
-                        # filenames, so identical prose scores identically and would
-                        # occupy two of the reader's three results. Search collapses on
-                        # this and reports that it did, rather than quietly hiding one.
+                        # The 2021 addenda restate whole paragraphs verbatim across
+                        # DISTINCT documents, so identical prose scores identically and
+                        # would occupy two of the reader's three results. Search
+                        # collapses on this and reports that it did, rather than quietly
+                        # hiding one. (Same-document duplication under two filenames is
+                        # excluded at build by the stray-file guard above; this hash
+                        # remains for the boilerplate case, which is real text in real
+                        # separate documents.)
                         "text_sha256": hashlib.sha256(item["text"].encode()).hexdigest()[:16],
                         "vector": pack(vector),
                     }

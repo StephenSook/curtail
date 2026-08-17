@@ -217,19 +217,35 @@ def search(query: list[float] | tuple[float, ...], *, limit: int = 5) -> list[Hi
 
     hits: list[Hit] = []
     seen: dict[str, int] = {}
+    shown: dict[str, int] = {}
     for score, position in scored:
         entry = index.entries[position]
         digest = entry["text_sha256"]
-        if digest in seen:
-            # Same passage in another document. Fold it into the hit already made rather
-            # than spending a second slot on it or dropping the fact that it recurs.
-            existing = hits[seen[digest]]
-            hits[seen[digest]] = Hit(
-                score=existing.score,
-                snippet=existing.snippet,
-                files=(*existing.files, entry["file"]),
-                characters=existing.characters,
-            )
+        slot = seen.get(digest)
+        if slot is None:
+            # **A different text whose visible SNIPPET is identical is the same result
+            # to the reader.** The 2021 boilerplate diverges after the snippet cutoff
+            # (a date, a trailing sentence), so two chunks with distinct hashes rank
+            # side by side at nearly identical scores and render as the same passage
+            # twice, which is exactly the reader experience the digest collapse exists
+            # to prevent. The page shows the snippet, so the snippet is the identity
+            # that matters at display time.
+            slot = shown.get(entry["snippet"])
+        if slot is not None:
+            # Same passage, or same visible passage, in another document. Fold it into
+            # the hit already made rather than spending a second slot on it or dropping
+            # the fact that it recurs. The membership check keeps `appears_in` a count
+            # of DOCUMENTS: a file repeating its own boilerplate internally is not two
+            # documents carrying the passage.
+            existing = hits[slot]
+            if entry["file"] not in existing.files:
+                hits[slot] = Hit(
+                    score=existing.score,
+                    snippet=existing.snippet,
+                    files=(*existing.files, entry["file"]),
+                    characters=existing.characters,
+                )
+            seen[digest] = slot
             continue
         if len(hits) >= limit:
             # Full is full, but the scan continues: a duplicate of a hit already chosen
@@ -239,6 +255,7 @@ def search(query: list[float] | tuple[float, ...], *, limit: int = 5) -> list[Hi
             # being clever about an early exit.
             continue
         seen[digest] = len(hits)
+        shown[entry["snippet"]] = len(hits)
         hits.append(
             Hit(
                 score=score,
