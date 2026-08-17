@@ -314,6 +314,13 @@ _SEASON_STORE: SeasonStore | None = None
 _WATCH_STORE: WatchStore | None = None
 
 
+#: Resolved against the PACKAGED copy first, which is the fix for a defect that reached
+#: production twice: a path resolved from the repository root does not exist inside the
+#: container, and the endpoint 500s for a reason that has nothing to do with the endpoint.
+#: The Dockerfile copies `core/src`, so the packaged copy is the one that ships.
+RESPONSE_LAG_PATH = Path(curtail_core.__file__).resolve().parent / "data" / "response_lag.json"
+
+
 def watch_store() -> WatchStore:
     global _WATCH_STORE
     if _WATCH_STORE is None:
@@ -1239,6 +1246,57 @@ def read_watch(basin: str, limit: int = WATCH_LIMIT) -> dict[str, Any]:
             "A record of readings and how the Sentinel classified each one. It curtails "
             "nothing: 23 CCR 875(b) vests every determination in a named human official."
         ),
+    }
+
+
+@app.get("/api/response-lag")
+def response_lag() -> dict[str, Any]:
+    """How long the river was already below its minimum when the Board's order was dated.
+
+    **The backtest measures whether this system is RIGHT. This measures what a watermaster
+    GETS.** Those are different currencies and only the second one is worth anything to the
+    person doing the job. Computed from two public records that nobody had put beside each
+    other: the USGS daily discharge series and the dates of the Board's own documents.
+
+    The caveats ship inside the same response as the number, deliberately, because they are
+    the honest half and a figure that travels without them will be quoted without them.
+    Above all this is NOT a measure of administrative delay: 23 CCR 875(b) directs the
+    Deputy Director to weigh hydrologic and weather conditions, so part of any gap is
+    judgment, and judgment is exactly what this project says belongs to a human.
+    """
+    try:
+        record = json.loads(RESPONSE_LAG_PATH.read_text())
+    except (OSError, ValueError) as exc:
+        # Never a zero. A lag of zero days is a strong claim about the Board's speed and
+        # must never stand in for "the record could not be read".
+        log.warning("response lag unavailable", reason=str(exc))
+        raise HTTPException(
+            status_code=503, detail=f"the response-lag record could not be read: {exc}"
+        ) from exc
+
+    counts = record["counts"]
+    return {
+        "headline": (
+            f"Across {counts['scored']} curtailment actions in the verified regulatory era, "
+            f"the river had already been below its minimum for a median of "
+            f"{counts['median_lag_days']} days, up to {counts['max_lag_days']}, when the "
+            "Board's document was dated."
+        ),
+        "median_lag_days": counts["median_lag_days"],
+        "max_lag_days": counts["max_lag_days"],
+        "min_lag_days": counts["min_lag_days"],
+        "actions_scored": counts["scored"],
+        "excluded": counts["excluded"],
+        # Named separately because "nobody can evaluate this" and "this was evaluated and
+        # does not apply" are different statements, and reporting them as one number would
+        # let a gap in knowledge pass for a finding about the river.
+        "excluded_because_era_unverified": counts["excluded_unevaluable_era"],
+        "what_this_is_not": record["source"]["not_a_claim"],
+        "why_conservative": record["source"]["conservative_because"],
+        "date_caveat": record["source"]["date_caveat"],
+        "longest": record["scored"][0] if record["scored"] else None,
+        "method": record["source"]["claim"],
+        "gage_record": record["source"]["gage_record"],
     }
 
 

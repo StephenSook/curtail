@@ -36,7 +36,7 @@ Every row is checkable by a stranger with no account, no key, and nothing instal
 
 When a California river drops below its drought emergency minimum flow, someone has to work out exactly which water rights must stop diverting, in strict priority order set by four separate court decrees, then draft the curtailment order, serve it on the right parties by a legally specified method, track the statutory clocks it starts, and rescind it when the river recovers.
 
-Today that is slow. In 2021 the State Water Board issued curtailment orders "months after they were warranted." A single Scott River order has accumulated **12 addenda**; the 2021 Scott series carries **51**, individually enumerated from the Board's own index pages.
+Today that is slow. In 2021 the State Water Board issued curtailment orders "months after they were warranted" ([Green Nylen, Owen, Harder, Kiparsky and Hanemann, *Legal Planet*, UC Berkeley Law CLEE and UCLA Law, April 24 2023](https://legal-planet.org/2023/04/24/managing-water-scarcity/)). Their underlying report puts it at "at least four months", and the Shasta chronology is checkable in this repository's own corpus: the emergency regulation was adopted August 17 2021, became effective August 30, and the Shasta order issued September 10. A single Scott River order has accumulated **12 addenda**; the 2021 Scott series carries **51**, individually enumerated from the Board's own index pages.
 
 Two public facts show the shape of the gap:
 
@@ -255,6 +255,27 @@ service account. Anyone with a Google account can obtain a correctly signed toke
 signature alone proves nothing about who; a token minted for another service would otherwise
 be replayable here. Both settings fail closed when unset, because an unset allowlist that
 admitted everyone would turn a missing configuration into an open endpoint.
+
+**The number in the watermaster's currency**, `GET /api/response-lag`, computed from two
+public records nobody had put beside each other: the USGS daily discharge series and the
+dates of the Board's own documents. **Across the 8 curtailment actions in the verified
+regulatory era, the river had already been below its minimum for a median of 3 days, up to
+8, when the Board's document was dated.**
+
+**What that number is not, stated in the same response that carries it.** It is not a
+measure of administrative delay. 23 CCR 875(b) directs the Deputy Director to act with
+"consideration of hydrologic, weather, and other conditions", so part of any gap is
+deliberate judgment about whether a dip will persist, and that judgment is exactly what
+this system says belongs to a human. Curtail does not remove the official's judgment. It
+removes the wait for somebody to notice.
+
+Two further honesties ride with it. The figure is **conservative**, because daily mean
+discharge cannot see a river that dips below in the afternoon and recovers overnight. And
+**10 of the 20 imposing actions could not be scored at all**, because the flow schedule for
+the 2021 era is not verified in this repository, which is a gap in what is known rather
+than a finding about the river. Those two exclusion classes are counted separately, since
+"nobody can evaluate this" and "this was evaluated and does not apply" are different
+statements and reporting them as one number would let a gap pass for a result.
 
 **Failure-tolerant routing**, which the track scores by name. Retries are scoped by
 exception, so the deterministic Core never retries and the Sentinel does not retry a
