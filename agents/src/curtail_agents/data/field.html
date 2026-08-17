@@ -99,6 +99,7 @@
   .sync.sending { color: var(--suspended); }
   .sync.recorded { color: var(--exempt); }
   .sync.recorded .dot { background: currentColor; }
+  .sync.refused { color: var(--curtailed); }
 
   .queue { margin-top: 12px; display: grid; gap: 8px; }
   .item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
@@ -231,13 +232,30 @@ const dropItem = (key) => tx("readwrite", (s) => s.delete(key));
 const $ = (id) => document.getElementById(id);
 const state = { photo: null, coords: null };
 
+/* Interpolated into innerHTML by paintQueue, so every dynamic value is escaped. The
+   refusal reason comes back from the server and can echo what was submitted, and this
+   file has already been burned once by a value reaching innerHTML unescaped. */
+const esc = (v) =>
+  String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
 function syncRow(item) {
-  const cls = item.state === "recorded" ? "recorded" : item.state === "sending" ? "sending" : "local";
+  /* A server refusal is a FOURTH state, not a quieter "Saved on device". The refusal
+     reason used to be stored on the row and rendered by nothing, so a measurement the
+     server had rejected as evidence was indistinguishable from one waiting for signal:
+     it flipped back to "Saved on device", retried on every flush, and the operator
+     standing in a river believed it was queued. A state nobody sees is a state that
+     does not exist, and that includes this one. Transport failures stay "Saved on
+     device" on purpose: those retry and recover; a refusal does not. */
+  const refused = item.state === "local" && item.error;
+  const cls = refused
+    ? "refused"
+    : item.state === "recorded" ? "recorded" : item.state === "sending" ? "sending" : "local";
   const words = { local: "Saved on device", sending: "Syncing", recorded: "Recorded in ledger" };
+  const status = refused ? `Refused by server: ${esc(item.error)}` : words[cls];
   return `<div class="item">
-    <div><b>${item.discharge_cfs} cfs</b>
+    <div><b>${esc(item.discharge_cfs)} cfs</b>
       <div class="muted">${new Date(item.captured_at).toLocaleString()}</div></div>
-    <div class="sync ${cls}"><span class="dot"></span>${words[cls]}</div>
+    <div class="sync ${cls}"><span class="dot"></span>${status}</div>
   </div>`;
 }
 
@@ -305,10 +323,21 @@ async function paintLedger() {
 async function paintThreshold() {
   try {
     const r = await fetch(`/api/classify/${$("basin").value}?cfs=0`);
+    /* Both guards, because a 422 carries a JSON body with no minimum_cfs in it, and
+       interpolating that painted "Operative minimum undefined cfs" onto the one banner
+       a gloved operator relies on. A banner that cannot be filled must say so. */
+    if (!r.ok) throw new Error(String(r.status));
     const d = await r.json();
+    if (typeof d.minimum_cfs !== "number") throw new Error("no minimum in the body");
     $("threshold").innerHTML =
-      `Operative minimum <b>${d.minimum_cfs} cfs</b>. A reading within 10 cfs is flagged for field verification.`;
-  } catch { $("threshold").textContent = "Minimum unknown offline."; }
+      `Operative minimum <b>${esc(d.minimum_cfs)} cfs</b>. A reading within 10 cfs is flagged for field verification.`;
+  } catch {
+    /* "offline" was asserted unconditionally, so a 502 while standing in full signal
+       printed a false diagnosis. Say which of the two worlds this is. */
+    $("threshold").textContent = navigator.onLine
+      ? "The operative minimum could not be read. It is unknown, not zero."
+      : "Minimum unknown while offline.";
+  }
 }
 
 $("photo-btn").addEventListener("click", () => $("photo").click());

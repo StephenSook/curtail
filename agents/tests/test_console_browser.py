@@ -2978,3 +2978,65 @@ class TestCorpusSearch:
         self.ask(page, console_url, payload)
         assert page.locator("#searchout .legal img").count() == 0
         assert page.evaluate("() => window.__ran") is None
+
+
+class TestARefusedMeasurementSaysSo:
+    """A server refusal is a fourth sync state, not a quieter "Saved on device".
+
+    The refusal reason used to be stored on the queue row (`error`) and rendered by
+    nothing, so a measurement the server had rejected as evidence was indistinguishable
+    from one waiting for signal: it read "Saved on device", retried on every flush, and
+    the operator standing in a river believed it was queued. A state nobody sees is a
+    state that does not exist.
+    """
+
+    def submit(self, page: Page, url: str, handler: Callable[[Route], None]) -> None:
+        page.route("**/api/field/measurement/*", handler)
+        page.goto(url + "/field")
+        page.fill("#cfs", "12.5")
+        page.fill("#observer", "Field Observer")
+        page.click("#save")
+
+    def test_a_422_renders_the_refusal_reason_on_the_row(
+        self, page: Page, console_url: str
+    ) -> None:
+        self.submit(page, console_url, _fulfil({"detail": "not acceptable as evidence"}, 422))
+        page.wait_for_function(
+            "() => document.getElementById('queue').textContent.includes('Refused by server')"
+        )
+        row = page.text_content("#queue") or ""
+        assert "not acceptable as evidence" in row, (
+            "the refusal reason is stored but not rendered, so the operator cannot "
+            "learn why the ledger will never hold this measurement"
+        )
+        assert "Saved on device" not in row, (
+            "a refused measurement is still wearing the waiting-for-signal label"
+        )
+
+    def test_a_transport_failure_stays_saved_on_device(self, page: Page, console_url: str) -> None:
+        """A dropped connection retries and recovers, so it keeps the waiting label.
+        Only a refusal, which no retry can fix, wears the refused one."""
+        self.submit(page, console_url, lambda route: route.abort())
+        page.wait_for_function(
+            "() => document.getElementById('queue').textContent.includes('Saved on device')"
+        )
+        assert "Refused by server" not in (page.text_content("#queue") or "")
+
+
+class TestTheThresholdBannerCannotSayUndefined:
+    """/api/classify legitimately returns 422 when the schedule cannot resolve the
+    date. That body has no minimum_cfs, and interpolating it painted "Operative
+    minimum undefined cfs" onto the one banner a gloved operator relies on."""
+
+    def test_a_422_yields_unknown_not_undefined(self, page: Page, console_url: str) -> None:
+        page.route(
+            "**/api/classify/**",
+            _fulfil({"detail": "no operative minimum for that date"}, 422),
+        )
+        page.goto(console_url + "/field")
+        page.wait_for_function(
+            "() => document.getElementById('threshold').textContent.includes('could not be read')"
+        )
+        banner = page.text_content("#threshold") or ""
+        assert "undefined" not in banner
+        assert "unknown, not zero" in banner
