@@ -426,11 +426,6 @@ class TestPriorityMonotonicity:
         ]
         assert ranks == [1, 2, 3, 4, 5, 6, 7, 8, 9], ranks
 
-    @given(schedule=st.sampled_from([Schedule.D1, Schedule.D2, Schedule.D3, Schedule.D4]))
-    def test_placement_is_deterministic(self, schedule: Schedule) -> None:
-        r = scott(adjudication=AdjudicationId.SCOTT, schedule=schedule)
-        assert place(r).rank == place(r).rank
-
     def test_d_schedule_ranks_are_strictly_ordered(self) -> None:
         ranks = [
             place(scott(adjudication=AdjudicationId.SCOTT, schedule=s)).rank

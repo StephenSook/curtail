@@ -952,3 +952,13 @@ class TestTheFleetResponseDoesNotUnderstateWhatPersists:
         """
         source = (REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text()
         assert '"persistence": FLEET_PERSISTENCE_NOTE' in source
+
+
+class TestBasinsAreDiscoverable:
+    """The one route no page, script or test reached. A route nothing exercises is a
+    route whose breakage nothing notices, and this one is the discovery surface an
+    integrator would call first."""
+
+    def test_both_real_basins_and_nothing_else(self, client: TestClient) -> None:
+        body = client.get("/api/basins").json()
+        assert body == {"basins": ["scott", "shasta"]}
