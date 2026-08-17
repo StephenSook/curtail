@@ -414,8 +414,24 @@ def _service_claim() -> str:
     source = module.read_text()
     block = re.search(r"class ServiceMethod\(StrEnum\):(.*?)\n\n\n", source, re.DOTALL)
     methods = re.findall(r"^\s{4}([A-Z_]+) = ", block.group(1), re.M) if block else []
+    if not methods:
+        # **An errored extraction refuses, like the missing-module branch above.** This
+        # used to fall through and publish "Herald models **0 service methods** ... ()",
+        # the build quietly narrowing the statute to nothing, on the strength of a
+        # formatter moving the enum's trailing blank lines. A count computed from a
+        # missed regex is not a count.
+        return (
+            "**The ServiceMethod enum could not be read out of clocks.py**, so no "
+            "service-method claim is available. Fix the extraction before quoting one."
+        )
     herald = REPO / "agents" / "src" / "curtail_agents" / "herald.py"
-    lanes_split = "legal_service" in herald.read_text() if herald.exists() else False
+    if not herald.exists():
+        return (
+            f"Herald models **{len(methods)} service methods** under Water Code 1121, "
+            "but **no herald module ships**, so the lane claim is unavailable rather "
+            "than asserted."
+        )
+    lanes_split = "legal_service" in herald.read_text()
 
     lanes = "separate lanes" if lanes_split else "ONE LANE, which is wrong"
     return (
@@ -574,23 +590,6 @@ def _is_passthrough(fn: ast.AST) -> bool:
         and isinstance(body[0].value, ast.Name)
         and body[0].value.id == "node_input"
     )
-
-
-def _http_reaches() -> set[str]:
-    """Which node's logic the deployed HTTP surface actually invokes.
-
-    Computed, because the hand-written version of this sentence was wrong twice over: it
-    said the surface calls "the four node functions", and it calls THREE domain functions
-    that the nodes wrap, while `deliver_order` has no call site at all. A count written by
-    hand in a generated file is the one line nothing checks.
-    """
-    tree = ast.parse((REPO / "agents" / "src" / "curtail_agents" / "api.py").read_text())
-    called = {
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    }
-    return {node for node, fn in NODE_LOGIC.items() if fn in called}
 
 
 def _fleet_status() -> list[tuple[str, bool]]:
