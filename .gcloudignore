@@ -55,3 +55,12 @@ data/corpus/
 .ruff_cache/
 .mypy_cache/
 node_modules/
+
+# `#!include:.gitignore` splices in ONLY the root .gitignore and does not recurse, which
+# gcloud documents. Anything ignored solely by a NESTED .gitignore therefore enters the
+# Cloud Build upload. Two directories were doing exactly that: a security scan's output,
+# whose candidates file listed unfixed findings with full exploitation paths, and local
+# Hypothesis state that was 235 of 455 uploaded files. Named here because the include
+# cannot see them.
+CLAUDE-SECURITY-*/
+.hypothesis/

@@ -167,3 +167,11 @@ ios/DerivedData/
 # rather than deleted one at a time, because untracked is not protection.
 /*.html
 !docs/*.html
+
+# Security-scan output. Ignored here rather than relying on the tool's own nested
+# .gitignore, which a `git add -f` or a tool version change could drop.
+CLAUDE-SECURITY-*/
+
+# Video capture output. Large, regenerable from scripts/capture_demo.py, and the
+# published artifact is the YouTube upload rather than anything in the tree.
+docs/video/capture/

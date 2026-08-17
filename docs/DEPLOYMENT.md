@@ -8,11 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Commit the container reports: `34423d49540f5ae7a8f0a14bd5d2edddecfa603b`
+- Commit the container reports: `a72723f89b5298b29bb404e8f0b2275214d31e98`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `34423d49540f5ae7a8f0a14bd5d2edddecfa603b`
-- Probed at: `2026-08-17T01:19:00+00:00`
-- Serving revision at probe time: `curtail-console-api-00066-fbq`
+- Probed at repository commit: `39fa57ae3a946e2ce53f853043c429b01f0de8c4`
+- Probed at: `2026-08-17T02:43:44+00:00`
+- Serving revision at probe time: `curtail-console-api-00068-twv`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -100,7 +100,7 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-no fleet traversal was traced in the last 6 hours. This is not evidence that telemetry is broken: nobody may have run one.
+Cloud Trace could not be read: HTTP Error 400: Bad Request
 
 Recorded as unknown rather than as a failure. The fact sheet's telemetry
 claim is computed from source, and source cannot see whether a span landed;
