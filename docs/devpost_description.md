@@ -12,7 +12,7 @@ Every one of those steps is done by hand today, and the record of that shows up 
 
 **Two addenda in the same order series disagree about what September's minimum flow is.** Scott Addendum 6, issued November 13, 2024, states that flows have been at or above "the September flow requirement (60 cfs)". Under 23 CCR 875 the Scott September minimum is 33 cfs. 60 cfs is November's number, which is the month the addendum was written in. Scott Addendum 3 states September correctly as 33 cfs in the same series. That is a person under load reaching for the wrong row of a table in a legally operative document, and it is exactly the error a computed system does not make.
 
-**And it is slow.** In 2021 the Board issued curtailment orders "months after they were warranted". A single Scott order has since accumulated 12 addenda, and the 2021 Scott series carries 51, each one a hand-drafted document responding to a river that had already moved.
+**And it is slow.** In 2021 the Board issued curtailment orders "months after they were warranted" (Green Nylen et al., Legal Planet, UC Berkeley Law CLEE and UCLA Law, April 24 2023). A single Scott order has since accumulated 12 addenda, and the 2021 Scott series carries 51, each one a hand-drafted document responding to a river that had already moved.
 
 The state has systems that record water rights, display them on maps, and analyze them. None of them computes who must stop diverting, and none of them produces the order that makes it lawful. That is the missing layer, and it is missing everywhere: 17 to 19 western states run prior appropriation.
 

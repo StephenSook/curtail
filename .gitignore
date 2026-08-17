@@ -160,3 +160,10 @@ ios/DerivedData/
 *.xcuserstate
 *.ipa
 *.dSYM.zip
+
+# Scraped pages saved to the repo root by research passes. One of these, a 130KB Devpost
+# page for a DIFFERENT hackathon, was swept into a commit by `git add -A`, which is the
+# third time that flag has moved working material toward a public repo. Ignored as a class
+# rather than deleted one at a time, because untracked is not protection.
+/*.html
+!docs/*.html

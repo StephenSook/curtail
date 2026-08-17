@@ -1,0 +1,134 @@
+{
+  "source": {
+    "gage_record": "USGS daily mean discharge, parameter 00060, from 2021-01-01",
+    "documents": "data/corpus timeline, imposing and reinstating actions only",
+    "claim": "the river crossed its operative minimum this many days before the Board's document is dated",
+    "not_a_claim": "This is NOT a measure of administrative delay. 23 CCR 875(b) directs the Deputy Director to act with consideration of hydrologic, weather and other conditions, so part of any gap is deliberate judgment about whether a dip will persist, and that judgment is what this system says belongs to a human. Curtail does not remove the official's judgment. It removes the wait for somebody to notice.",
+    "conservative_because": "Daily MEAN discharge, not the instantaneous reading. A river that dips below in the afternoon and recovers overnight does not appear here, so this can only understate how long the river was below its minimum.",
+    "date_caveat": "The document date is the PDF creation timestamp, a fact about the file. Against the only two independently established adoption dates it lands 0 and 2 days after adoption, so it is a close proxy and not the adoption date itself."
+  },
+  "counts": {
+    "scored": 8,
+    "excluded": 12,
+    "excluded_unevaluable_era": 10,
+    "median_lag_days": 3,
+    "max_lag_days": 8,
+    "min_lag_days": 0
+  },
+  "scored": [
+    {
+      "file": "shasta_2024__addenda__1.pdf",
+      "basin": "shasta",
+      "action": "reinstate",
+      "document_dated": "2024-07-03",
+      "river_below_since": "2024-06-25",
+      "lag_days": 8
+    },
+    {
+      "file": "shasta_2024__addenda__6.pdf",
+      "basin": "shasta",
+      "action": "reinstate",
+      "document_dated": "2026-06-18",
+      "river_below_since": "2026-06-13",
+      "lag_days": 5
+    },
+    {
+      "file": "scott_2024__order__WR 2026-0005-DWR.pdf",
+      "basin": "scott",
+      "action": "impose",
+      "document_dated": "2026-06-11",
+      "river_below_since": "2026-06-07",
+      "lag_days": 4
+    },
+    {
+      "file": "scott_2024__order__WR 2026-0008-DWR.pdf",
+      "basin": "scott",
+      "action": "impose",
+      "document_dated": "2026-06-11",
+      "river_below_since": "2026-06-07",
+      "lag_days": 4
+    },
+    {
+      "file": "scott_2024__addenda__12.pdf",
+      "basin": "scott",
+      "action": "reinstate",
+      "document_dated": "2026-06-09",
+      "river_below_since": "2026-06-07",
+      "lag_days": 2
+    },
+    {
+      "file": "scott_2024__order__WR 2024-0025-DWR.pdf",
+      "basin": "scott",
+      "action": "impose",
+      "document_dated": "2024-07-24",
+      "river_below_since": "2024-07-23",
+      "lag_days": 1
+    },
+    {
+      "file": "scott_2024__order__WR 2024-0024-DWR.pdf",
+      "basin": "scott",
+      "action": "impose",
+      "document_dated": "2024-07-23",
+      "river_below_since": "2024-07-23",
+      "lag_days": 0
+    },
+    {
+      "file": "scott_2024__addenda__9.pdf",
+      "basin": "scott",
+      "action": "reinstate",
+      "document_dated": "2026-05-21",
+      "river_below_since": "2026-05-21",
+      "lag_days": 0
+    }
+  ],
+  "excluded": [
+    {
+      "file": "scott_2021__order__UNNUMBERED_ON_INDEX.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "scott_2021__order__WR 2021-0083-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "scott_2021__order__WR 2021-0084-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__order__WR 2021-0082-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__addenda__9.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__order__WR 2021-0085-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__order__WR 2022-0142-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__order__WR 2022-0162-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__order__WR 2022-0167-DWR.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2021__addenda__14.pdf",
+      "why": "cannot be scored: the operative flow schedule for this era is not verified in this repository, so all 15 day(s) of gage record before this document refuse rather than compare. This is a gap in what is known, not a finding about the river."
+    },
+    {
+      "file": "shasta_2024__order__WR 2024-0006-DWR.pdf",
+      "why": "the river was not below its minimum on any of the 15 evaluable day(s) in the 14 before this document, so it is not responding to a current crossing"
+    },
+    {
+      "file": "shasta_2024__addenda__4.pdf",
+      "why": "the river was not below its minimum on any of the 15 evaluable day(s) in the 14 before this document, so it is not responding to a current crossing"
+    }
+  ]
+}
