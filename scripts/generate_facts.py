@@ -357,6 +357,75 @@ def _normalizer_claim() -> str:
     )
 
 
+def _mandatory_model_claim() -> str:
+    """Which Gemini model the Scribe actually names, read from the shipped constant.
+
+    **This is the competition's own mandatory technology and the fact sheet did not
+    record it**, which was found by a narration gate refusing to speak "3.5" because no
+    audited source contained it. The gap mattered: the video, the README and the
+    submission all say the model out loud, and until now every one of them was sourcing
+    that from prose somebody typed.
+
+    The version comparison is deliberate rather than a string match. A future bump to a
+    newer model must keep satisfying "Gemini 3.5 or newer", and a bump BACKWARDS should
+    make this file say so rather than quietly keep the old sentence.
+    """
+    module = REPO / "agents" / "src" / "curtail_agents" / "scribe.py"
+    if not module.exists():
+        return "**No Scribe module ships**, so no artifact may name a Gemini model."
+
+    found = re.search(r'DEFAULT_MODEL = "([^"]+)"', module.read_text())
+    if not found:
+        return (
+            "**The Scribe names no model constant**, so which Gemini serves this build "
+            "cannot be read from the source and must not be claimed."
+        )
+    model = found.group(1)
+    version = re.search(r"gemini-(\d+)\.(\d+)", model)
+    if not version:
+        return f"The Scribe runs **{model}**, which is not a recognisably versioned Gemini name."
+
+    major, minor = int(version.group(1)), int(version.group(2))
+    satisfies = (major, minor) >= (3, 5)
+    verdict = (
+        "satisfies the required Gemini 3.5 or newer"
+        if satisfies
+        else "**does NOT satisfy the required Gemini 3.5 or newer**"
+    )
+    return (
+        f"The Order Scribe runs **{model}** on Vertex AI, which {verdict}. Read from the "
+        "shipped constant, so a model downgrade changes this sentence rather than "
+        "leaving a stale claim in the video and the README."
+    )
+
+
+def _service_claim() -> str:
+    """The service methods Water Code 1121 permits, counted from the enum that models them.
+
+    Herald splits into two lanes because formal service and notification are legally
+    different acts, and the count is the tell: SB 756 permits FOUR methods and a build
+    that models two has quietly narrowed the statute. Counting from the enum means the
+    claim cannot outlive the code.
+    """
+    module = REPO / "core" / "src" / "curtail_core" / "clocks.py"
+    if not module.exists():
+        return "**No clocks module ships**, so no service claim is available."
+
+    source = module.read_text()
+    block = re.search(r"class ServiceMethod\(StrEnum\):(.*?)\n\n\n", source, re.DOTALL)
+    methods = re.findall(r"^\s{4}([A-Z_]+) = ", block.group(1), re.M) if block else []
+    herald = REPO / "agents" / "src" / "curtail_agents" / "herald.py"
+    lanes_split = "legal_service" in herald.read_text() if herald.exists() else False
+
+    lanes = "separate lanes" if lanes_split else "ONE LANE, which is wrong"
+    return (
+        f"Herald models **{len(methods)} service methods** under Water Code 1121 as "
+        f"amended by SB 756 ({', '.join(m.lower() for m in methods)}), and keeps legal "
+        f"service and notification in {lanes}. "
+        "A green delivered indicator in the notification lane is never reported as service."
+    )
+
+
 def _season_claim() -> str:
     """Whether the Season Ledger's clocks OUTLIVE the request that computed them.
 
@@ -770,6 +839,8 @@ def build() -> str:
     add(f"- {_registry_claim()}")
     add(f"- {_normalizer_claim()}")
     add(f"- {_season_claim()}")
+    add(f"- {_mandatory_model_claim()}")
+    add(f"- {_service_claim()}")
     add("")
 
     add("## 1. The backtest")
