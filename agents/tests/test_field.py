@@ -11,6 +11,7 @@ import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -402,3 +403,93 @@ class TestTheLauncherIconsAreDerivedFromOneSource:
                 f"corner {corner} is {pixel}, which is not the app background. A "
                 "generated icon that kept its white frame looks broken on a home screen."
             )
+
+
+class TestStoredScriptInjectionOnTheFieldLedger:
+    """A one-request, no-credential, persistent script injection, found by a security scan.
+
+    `observer` was validated for LENGTH ONLY, on an unauthenticated endpoint, stored
+    durably, and then interpolated into `innerHTML` on the field page. 120 characters is
+    ample for an image tag with an error handler, and it would have run for everyone who
+    opened that page afterwards, on the same origin as the console that holds the signing
+    passphrase.
+
+    Both layers are tested because neither is trusted alone: the server refuses the
+    characters, and the page builds nodes rather than markup.
+    """
+
+    @staticmethod
+    def client() -> Any:
+        from fastapi.testclient import TestClient
+
+        from curtail_agents.api import app
+
+        return TestClient(app)
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            '<img src=x onerror="alert(1)">',
+            "<script>fetch('/api/session')</script>",
+            'Smith" onmouseover="alert(1)',
+            "Jones & <b>Co</b>",
+            "Taylor`whoami`",
+        ],
+    )
+    def test_the_server_refuses_markup_in_the_observer_name(self, payload: str) -> None:
+        response = self.client().post(
+            "/api/field/measurement/shasta",
+            json={
+                "idempotency_key": "xss-probe",
+                "observer": payload,
+                "discharge_cfs": 45.3,
+                "captured_at": "2026-08-16T12:00:00+00:00",
+            },
+        )
+        assert response.status_code == 422, (
+            f"a name containing markup was accepted: {payload!r}. It is stored durably and "
+            "rendered on a page, so this is a persistent injection."
+        )
+
+    def test_a_control_character_is_refused(self) -> None:
+        response = self.client().post(
+            "/api/field/measurement/shasta",
+            json={
+                "idempotency_key": "ctrl-probe",
+                "observer": "Ann\x00Smith",
+                "discharge_cfs": 45.3,
+                "captured_at": "2026-08-16T12:00:00+00:00",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_an_ordinary_name_is_still_accepted(self) -> None:
+        """The other direction. A character class tightened until it rejects real names
+        would break the surface it was meant to protect, and every test above would still
+        pass."""
+        response = self.client().post(
+            "/api/field/measurement/shasta",
+            json={
+                "idempotency_key": "ordinary-name-probe",
+                "observer": "A. Watermaster-Jones, Jr.",
+                "discharge_cfs": 45.3,
+                "captured_at": "2026-08-16T12:00:00+00:00",
+            },
+        )
+        assert response.status_code == 200, response.text
+
+    def test_the_field_page_does_not_build_the_ledger_from_a_string(self) -> None:
+        """The rendering half, asserted on the source. The desktop console builds every
+        dynamic value with textContent and this file was the one place that did not."""
+        page = (REPO / "agents" / "src" / "curtail_agents" / "data" / "field.html").read_text()
+        block = page[page.index("async function paintLedger") :]
+        block = block[: block.index("\n}")]
+        # The ASSIGNMENT, not the bare word. Reading innerHTML is harmless and writing it
+        # is the risk, and the first version of this assertion matched the word inside the
+        # comment that explains why the assignment was removed.
+        writes = re.findall(r"\.innerHTML\s*=", block)
+        assert not writes, (
+            "paintLedger assigns innerHTML again, and observer is caller-supplied, "
+            "unauthenticated and stored durably"
+        )
+        assert "textContent" in block

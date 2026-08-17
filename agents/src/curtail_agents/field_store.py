@@ -116,6 +116,17 @@ def measurement_from(payload: dict[str, Any], basin: Basin) -> FieldMeasurement:
     observer = str(payload.get("observer", "")).strip()
     if not 2 <= len(observer) <= 120:
         raise FieldEvidenceError("observer must name the person who took the reading")
+    # Length was the ONLY check, and this endpoint takes unauthenticated writes that are
+    # stored durably and rendered on a page. 120 characters is ample for a script tag, so
+    # the second layer is a character class: a person's name has no angle brackets, no
+    # ampersands, no quotes and no control characters. The rendering side was fixed too;
+    # neither layer is trusted alone.
+    if any(character in observer for character in "<>&\"'`"):
+        raise FieldEvidenceError(
+            "observer carries markup characters. A name does not contain < > & \" ' or `"
+        )
+    if any(ord(character) < 32 or ord(character) == 127 for character in observer):
+        raise FieldEvidenceError("observer carries control characters")
 
     raw_cfs = payload.get("discharge_cfs")
     try:
