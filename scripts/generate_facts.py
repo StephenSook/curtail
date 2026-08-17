@@ -580,10 +580,20 @@ def _refusal_claim() -> list[str]:
         return ["- Refusal traps are not scored, so nothing measures when the system declines."]
     kinds = sorted({c["eval_id"].split("/")[0] for c in traps["cases"]})
     real = sum(1 for c in traps["cases"] if not c["data"].startswith("CONSTRUCTED"))
+    refuses = sum(1 for c in traps["cases"] if c.get("kind") == "refuses")
+    withholds = sum(1 for c in traps["cases"] if c.get("kind") == "withholds")
     return [
-        f"- **{traps['matched']} of {traps['cases_scored']} refusal traps declined "
-        f"correctly.** These are cases where the CORRECT answer is that the system says "
-        "nothing, which no other eval here asks about.",
+        f"- **{traps['matched']} of {traps['cases_scored']} restraint cases behaved "
+        f"correctly**: cases where the right answer is NOT the obvious action. "
+        f"**{refuses} REFUSE** outright, raising rather than answering, and "
+        f"**{withholds} WITHHOLD** the consequential act, an order, a suspension or a "
+        "placement, while still reporting what they saw.",
+        "- An earlier version of this line said all of them 'declined' and described the "
+        "system as saying nothing. **That was an overclaim about three of them**, caught "
+        "in review before it reached the video. The distinction is kept rather than "
+        "smoothed away because withholding is the BETTER behaviour: a system that answers "
+        "'field verification first' is more useful than one that goes silent, and silence "
+        "is not a virtue.",
         f"- {len(kinds)} distinct reasons to decline, not one repeated: {', '.join(kinds)}.",
         f"- **{real} of {len(traps['cases'])} run on real data**: a live gage reading, the "
         "date the 2021 Shasta order issued, a day from the July 2025 sequence, and rights "

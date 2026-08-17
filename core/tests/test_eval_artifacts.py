@@ -323,6 +323,39 @@ class TestTheRefusalTrapsAreScored:
             "undated_right",
         }, f"the traps collapsed to fewer distinct kinds: {sorted(ids)}"
 
+    def test_refusing_and_withholding_stay_distinguished(self) -> None:
+        """Caught by review, after the fact sheet claimed all five "declined".
+
+        Only two of these RAISE. The other three return a value: `field_verification_first`,
+        `flow_above_minimum_unsustained`, and a right left unplaced. Describing all five as
+        the system saying nothing was wrong about three of them, and it was one step from
+        an immutable demo video.
+
+        The distinction is kept rather than smoothed away because **withholding is the
+        better behaviour**. A system that answers "field verification first" is more useful
+        than one that goes silent, and silence is not a virtue.
+        """
+        kinds = {c["eval_id"]: c.get("kind") for c in self.measured()["cases"]}
+        assert all(kinds.values()), f"a trap does not declare its kind: {kinds}"
+        assert set(kinds.values()) == {"refuses", "withholds"}, (
+            "the two kinds of restraint have collapsed into one, which is exactly the "
+            f"overclaim this test exists to prevent: {kinds}"
+        )
+        refuses = {k for k, v in kinds.items() if v == "refuses"}
+        assert refuses == {
+            "unverified_era/refuses_rather_than_guessing",
+            "impossible_reading/refuses",
+        }, f"a case changed which kind of restraint it exercises: {sorted(refuses)}"
+
+    def test_the_fact_sheet_does_not_say_they_all_declined(self) -> None:
+        """The generated prose, guarded at the sentence that was actually wrong."""
+        facts = (REPO / "docs" / "FACTS.md").read_text()
+        assert "restraint cases behaved correctly" in facts
+        assert "refusal traps declined correctly" not in facts, (
+            "the fact sheet is claiming all five refused again. Three of them return an "
+            "actionable value and do not refuse."
+        )
+
     def test_each_trap_names_the_data_it_ran_on(self) -> None:
         """Four of the five run on real data and one is constructed. Which is which has to
         travel with the result, because this repository's own rule is that a judged claim
