@@ -76,6 +76,44 @@ class TestDigitsStandAlone:
         assert bn.check_figures([("beat2", "flows read 45.3")], "the reading was 45.3.") == []
 
 
+class TestTheDurationIsAVerdict:
+    """A narration longer than the competition cap used to print a WARNING and exit 0,
+    the sixth instance of the printed-caveat defect this project has recorded. The
+    ceiling is now a refusal, and it comes before the timing file is written so a
+    refused narration cannot leave a beats.json behind for the capture to consume."""
+
+    SOURCE = (REPO / "scripts" / "build_narration.py").read_text()
+
+    def test_the_ceiling_is_a_named_constant_that_raises(self) -> None:
+        assert "NARRATION_CEILING = " in self.SOURCE
+        after = self.SOURCE[self.SOURCE.index("total > NARRATION_CEILING") :]
+        assert "raise NarrationError" in after.split("def ")[0], (
+            "the duration ceiling no longer raises, so an over-cap narration would "
+            "build green and the film's tail would simply never be judged"
+        )
+
+    def test_the_refusal_comes_before_the_timing_file(self) -> None:
+        assert self.SOURCE.index("total > NARRATION_CEILING") < self.SOURCE.index('"beats.json"'), (
+            "a refused narration would still write beats.json for the capture to consume"
+        )
+
+    def test_the_beat_count_is_exact_not_a_floor(self) -> None:
+        assert "EXPECTED_BEATS = 8" in self.SOURCE
+        assert "!= EXPECTED_BEATS" in self.SOURCE, (
+            "the beat count is a floor again, so cutting the final beats would build a "
+            "green narration missing a quarter of the film"
+        )
+
+    def test_measurement_passes_check_their_exit_code(self) -> None:
+        """Both loudness measurements read stderr, and both used to read it bare off
+        subprocess.run, so an ffmpeg that died produced an empty report and an error
+        message blaming the measurement instead of the tool."""
+        assert ").stderr" not in self.SOURCE, (
+            "a measurement reads stderr without checking the returncode, so a dead "
+            "ffmpeg reports as an empty measurement"
+        )
+
+
 class TestTheRealNarrationIsSourced:
     def test_every_figure_in_the_shot_list_is_in_the_fact_sheet(self) -> None:
         """The live gate, as a committed test. The narration and the fact sheet are both

@@ -45,6 +45,22 @@ GAP_SECONDS = 0.55
 TARGET_LUFS = -15.0
 LUFS_WINDOW = (-16.0, -14.0)
 
+#: The film is eight beats, exactly. The old guard was a floor of six, which let a
+#: heading edit drop the Unlikely Hero beat and the close and still build green:
+#: beats 1 to 5 would fail loudly in the capture's clock, but the separately captured
+#: beats have no downstream consumer to notice they are gone.
+EXPECTED_BEATS = 8
+
+#: The competition caps the video at 240 seconds, and only the first four minutes are
+#: evaluated. The narration must leave room inside that for the product's own overruns
+#: (the fleet traversal takes as long as Gemini takes). Above the ceiling the builder
+#: REFUSES: a printed warning here was the sixth instance of the defect this project
+#: keeps recording, a caveat above an exit 0, and the pipeline downstream reads only
+#: the exit code.
+CAP_SECONDS = 240.0
+NARRATION_CEILING = 232.0
+NARRATION_ADVISORY = 225.0
+
 #: Applied to the spoken text ONLY. The written script keeps the real identifier because
 #: that is what a reader needs to see; a speech engine reading "001" aloud as digits in
 #: the middle of a sentence sounds like a fault.
@@ -71,6 +87,20 @@ def run(*args: str) -> str:
     if done.returncode != 0:
         raise NarrationError(f"{args[0]} failed: {done.stderr.strip()[:400]}")
     return done.stdout
+
+
+def measure(*args: str) -> str:
+    """Run ffmpeg for a measurement whose verdict arrives on stderr.
+
+    The returncode is still checked. These two calls used to read `.stderr` bare, so an
+    ffmpeg that died before analysing anything produced an empty report and the raised
+    error said "nothing was measured" when the truth was "ffmpeg exited 1", burying the
+    diagnostic a tired person needed.
+    """
+    done = subprocess.run(args, capture_output=True, text=True)
+    if done.returncode != 0:
+        raise NarrationError(f"{args[0]} failed: {done.stderr.strip()[:400]}")
+    return done.stderr
 
 
 def duration(path: Path) -> float:
@@ -211,10 +241,12 @@ def build() -> int:
     from curtail_agents.speech import DEFAULT_VOICE, synthesise
 
     beats = parse_beats(SCRIPT.read_text())
-    if len(beats) < 6:
+    if len(beats) != EXPECTED_BEATS:
         raise NarrationError(
-            f"only {len(beats)} beats parsed out of the shot list, which means the "
-            "headings changed shape and the film would be missing narration"
+            f"{len(beats)} beats parsed out of the shot list where the film has "
+            f"{EXPECTED_BEATS}. Either the headings changed shape, or a beat was added "
+            "or cut: if the film itself changed, change EXPECTED_BEATS in the same "
+            "commit, so the count stays a decision and never an accident."
         )
 
     missing = check_figures(beats, FACTS.read_text())
@@ -311,22 +343,18 @@ def build() -> int:
     # window where any later re-encode tips it out. The first pass MEASURES the file and
     # the second applies those measurements, which is the difference between a target
     # and a result.
-    analysis = subprocess.run(
-        [
-            "ffmpeg",
-            "-hide_banner",
-            "-nostats",
-            "-i",
-            str(joined),
-            "-af",
-            f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11:print_format=json",
-            "-f",
-            "null",
-            "-",
-        ],
-        capture_output=True,
-        text=True,
-    ).stderr
+    analysis = measure(
+        "ffmpeg",
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        str(joined),
+        "-af",
+        f"loudnorm=I={TARGET_LUFS}:TP=-1.5:LRA=11:print_format=json",
+        "-f",
+        "null",
+        "-",
+    )
     block = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", analysis, re.DOTALL)
     if not block:
         raise NarrationError("loudnorm's measurement pass reported nothing to apply")
@@ -349,22 +377,18 @@ def build() -> int:
     )
 
     # ebur128 writes to stderr, so the verdict is read from there and not from stdout.
-    report = subprocess.run(
-        [
-            "ffmpeg",
-            "-hide_banner",
-            "-nostats",
-            "-i",
-            str(final),
-            "-af",
-            "ebur128",
-            "-f",
-            "null",
-            "-",
-        ],
-        capture_output=True,
-        text=True,
-    ).stderr
+    report = measure(
+        "ffmpeg",
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        str(final),
+        "-af",
+        "ebur128",
+        "-f",
+        "null",
+        "-",
+    )
     found = re.findall(r"I:\s+(-?\d+\.\d+) LUFS", report)
     if not found:
         raise NarrationError("ebur128 reported no integrated loudness, so nothing was measured")
@@ -377,6 +401,17 @@ def build() -> int:
         )
 
     total = duration(final)
+    # The verdict comes BEFORE beats.json and the final wav are announced, because a
+    # refused narration must not leave a timing file behind for a capture to consume.
+    if total > NARRATION_CEILING:
+        final.unlink(missing_ok=True)
+        raise NarrationError(
+            f"the narration runs {total:.1f}s against a {CAP_SECONDS:.0f}s competition "
+            f"cap, leaving under {CAP_SECONDS - NARRATION_CEILING:.0f}s for the product's "
+            "own overruns. Only the first four minutes are evaluated, so everything past "
+            "the cap is simply not judged. Trim the shot list; a warning here was read "
+            "by nobody and the exit code is read by everything."
+        )
     start = 0.0
     for entry in manifest:
         entry["start"] = round(start, 3)
@@ -395,10 +430,11 @@ def build() -> int:
         + "\n"
     )
     print(f"\n  narration {total:.1f}s at {integrated} LUFS -> docs/video/narration.wav")
-    if total > 232:
+    if total > NARRATION_ADVISORY:
         print(
-            f"  WARNING: {total:.1f}s of speech leaves under 8s for the close inside a "
-            "240s cap. Trim the shot list."
+            f"  NOTE: {total:.1f}s is inside the cap but within "
+            f"{NARRATION_CEILING - NARRATION_ADVISORY:.0f}s of the refusal ceiling. "
+            "A beat overrun on capture night eats this margin."
         )
     return 0
 
