@@ -230,22 +230,22 @@ project whose thesis is that undisclosed gaps are the failure mode, a
 section headed "stated as open" that omitted open items because of a
 formatting convention was the worst defect in this file.
 
-### Still open (9)
+### Still open (7)
 
 - OPEN (undated, carried from an earlier haul): The Shasta 2021 order-number year inconsistency (2021 versus 2022 for orders 0162 and 0167) is on the Board's own index page and must be resolved from the documents.
 - OPEN (undated, carried from an earlier haul): The Scott 2021 surface-water order carries no order number on the index page.
 - OPEN (undated, carried from an earlier haul): Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.
-- OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.
-- OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.
 - OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.
 - OPEN 2026-08-10: a third scope class exists that the extractor does not model. Scott Addenda 3, 4 and 5 scope curtailment relief to NAMED DIVERTERS, not to priority groupings and not basin-wide, and Addendum 5 assigns two different dispositions inside one document. The backtest's per-right disposition metric needs this class; priority_groups and affects_all cannot express it.
 - OPEN 2026-08-10: no 2021-era SHASTA document states a monthly minimum flow. All 18 recite that 'the Regulation establishes minimum instream flows' without printing the table, so the 2021 Shasta schedule stays empty and every 2021 Shasta date refuses. The 2021 SCOTT table is populated with the seven months documents state, all of which match the readopted table.
 - OPEN 2026-08-10: two documents resist classification for stated reasons. Scott 2021 Addendum 23 has a CORRUPTED HEADER text layer: the subject line decodes only under a +29 character shift ('6FRWW5LYHU' is 'Scott River'), and the body never restates the act self-referentially. Measured, the document is NOT wholly mojibake: 20.4 percent of its words are recognisable against 20.7 percent for a known-good sibling, so a garbage-text heuristic would not catch it. The decoded header reads 'Scott River Temporary Extension of Conditional Suspension of Curtailments'. Shasta 2021 order WR 2022-0161-DWR is a COVER LETTER describing an enclosed order in the third person ('The enclosed Order curtails certain surface water and groundwater diversions'), so its own action is transmittal, not curtailment.
 
-### Closed, kept for provenance (9)
+### Closed, kept for provenance (11)
 
 - RESOLVED 2026-08-10: superseded. This item read 'No document has been parsed yet'. 85 of 98 documents are now read and scorable. Retired rather than deleted so the record shows it was answered, not lost.
 - RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.
+- RESOLVED 2026-08-17: superseded by the two entries below dated 2026-08-10 that answered it, and left OPEN by oversight until an audit caught the generated fact sheet reprinting its stale premises beside their own corrections. This item read: '67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located.' Both premises fell: the addenda ARE individually published and were fetched, and the Shasta count was corrected 16 to 14. Retired rather than deleted so the record shows it was answered, not lost.
+- RESOLVED 2026-08-17: superseded by the two entries below dated 2026-08-10 that answered it, and left OPEN by oversight until the same audit. This item read: '4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8)... These require a vision model or transcription and stay document_read: false until something actually reads them.' All four were read from rendered pages the same day. Retired rather than deleted so the record shows it was answered, not lost.
 - RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.
 - RESOLVED 2026-08-10: Scott Addenda 3 and 4 read from rendered pages. All 4 scans in the fetched corpus are now read. Both are limited conditional suspensions scoped to NAMED DIVERTERS rather than to priority groupings, with per-diverter volumetric caps, a basin floor of 33 cfs for September, and an expiry of 2024-09-30. Addendum 4 ties Scott Valley Irrigation District to Schedule D3 of the Scott River Adjudication.
 - RESOLVED 2026-08-10: the 2021 addenda ARE individually published, on two index pages the main drought index does not surface: scott_addendums.html (51 Scott) and shasta_addendums.html (14 Shasta). All 65 are now enumerated with URLs where the filename carries a number. The earlier premise that no per-addendum URLs exist was wrong.
@@ -254,7 +254,7 @@ formatting convention was the worst defect in this file.
 - RESOLVED 2026-08-10: the four records that carried a note instead of a URL are resolved. Their filenames carry no number (scott-curtailment-suspension, scott-more-suspensions, addendum-two-to-order-... spelling the number out, shasta-more-suspensions), which is exactly what the plan predicted would defeat a filename-based mapping. Each number was then CONFIRMED FROM THE DOCUMENT'S OWN TEXT rather than from its position on the index page, because page order is an inference and the title is evidence.
 - RESOLVED 2026-08-10: both recorded conflicts are closed from the documents. (1) The Shasta order-number year is 2022, not 2021: WR 2022-0162-DWR is dated August 2 2022 and WR 2022-0167-DWR September 13 2022, each printing its own number, and both amend the 2021 parent order which is the likely source of the index page's 2021 reference. (2) The Scott September 9 2021 surface-water order is genuinely UNNUMBERED as published, carrying no WR identifier at all, so this was never an index-page omission to fix.
 
-_All 18 items accounted for: 9 open, 9 closed._
+_All 18 items accounted for: 7 open, 11 closed._
 
 ## The headline, in the watermaster's currency
 
@@ -274,8 +274,8 @@ _All 18 items accounted for: 9 open, 9 closed._
 
 ## What the corpus index covers
 
-- **577 passages** indexed with **gemini-embedding-001** at 768 dimensions, across **96 of 101 documents**.
-- The 5 absent documents are NAMED with their reason on every search response. They are scanned images with no text layer, so a question they would answer is not findable here at all, and a search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
+- **552 passages** indexed with **gemini-embedding-001** at 768 dimensions, across **94 of 98 documents**.
+- The 4 absent documents are NAMED with their reason on every search response. They are scanned images with no text layer, so a question they would answer is not findable here at all, and a search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
 - **No owner name, business name, contact address or right identifier is indexed.** The rights tables are parsed exactly elsewhere; only prose is embedded, and a test asserts the committed artifact against every one of those patterns.
 - Vectors are normalised at build time and the loader REFUSES an index whose vectors are not actually unit length, because this model returns a non-unit vector below its full dimensionality and a dot product over those ranks partly by magnitude without raising.
 

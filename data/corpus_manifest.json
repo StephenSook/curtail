@@ -3167,8 +3167,8 @@
     "OPEN (undated, carried from an earlier haul): The Scott 2021 surface-water order carries no order number on the index page.",
     "RESOLVED 2026-08-10 by reading Addendum 6: the Shasta cutoff is November 25, 1912, stated twice in bold. The same read corrected a 39.3 cfs figure that appears nowhere in the document; the actual readings are 45.3 and 46.5 cfs.",
     "OPEN (undated, carried from an earlier haul): Scott 2021 addenda 1 through 51 have index-verified numbering but no per-addendum dates on the index page.",
-    "OPEN 2026-08-10: 67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located. They are excluded from the metric denominator rather than counted as failures.",
-    "OPEN 2026-08-10: 4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8). pdftotext returns three or four bytes. Scott Addendum 8 is the July 22 2025 suspension that followed Watermaster field measurements, which is the project's central fixture, so reading it is not optional. These require a vision model or transcription and stay document_read: false until something actually reads them.",
+    "RESOLVED 2026-08-17: superseded by the two entries below dated 2026-08-10 that answered it, and left OPEN by oversight until an audit caught the generated fact sheet reprinting its stale premises beside their own corrections. This item read: '67 addenda in the 2021 series are declared by count (scott_2021: 51, shasta_2021: 16) but not individually enumerated, because the Board's index pages publish no per-addendum URLs. They cannot be fetched, read or scored until located.' Both premises fell: the addenda ARE individually published and were fetched, and the Shasta count was corrected 16 to 14. Retired rather than deleted so the record shows it was answered, not lost.",
+    "RESOLVED 2026-08-17: superseded by the two entries below dated 2026-08-10 that answered it, and left OPEN by oversight until the same audit. This item read: '4 fetched documents have no text layer (Scott 2024 addenda 3, 4, 7 and 8)... These require a vision model or transcription and stay document_read: false until something actually reads them.' All four were read from rendered pages the same day. Retired rather than deleted so the record shows it was answered, not lost.",
     "RESOLVED 2026-08-10: Scott Addenda 7 and 8 read from rendered pages, having no text layer. The July 2025 sequence is 48.7 cfs at 21:30 on July 20 (reinstate) and 78.4 cfs at 07:30 on July 22 (suspend), after USGS revised the rating curve on Watermaster measurements. Earlier drafts carried 'above 75 cfs' from the August 5 2025 Executive Director's Report paraphrase; the Addendum itself states 78.4. Addenda 3 and 4 remain unread scans.",
     "OPEN 2026-08-10: Addendum 8 is signed by Erik Ekdahl, CHIEF Deputy Director, a third signing role. The approval model currently distinguishes Deputy Director (875(b) curtailment determinations) and Executive Director (875(b)(2) health, safety and livestock). Chief Deputy Director is not yet modelled and the delegation basis for that signature is not yet verified.",
     "RESOLVED 2026-08-10: Scott Addenda 3 and 4 read from rendered pages. All 4 scans in the fetched corpus are now read. Both are limited conditional suspensions scoped to NAMED DIVERTERS rather than to priority groupings, with per-diverter volumetric caps, a basin floor of 33 cfs for September, and an expiry of 2024-09-30. Addendum 4 ties Scott Valley Irrigation District to Schedule D3 of the Scott River Adjudication.",
@@ -3194,6 +3194,11 @@
     "unscorable_with_reason": 3,
     "files_on_disk": 101,
     "files_not_matching_a_record": 3,
+    "stray_files": [
+      "addendum6-shasta-attach-a.pdf",
+      "addendum8-scottriver-7-22-2025.pdf",
+      "order-wr-0005-dwr-scott-sws-curtailment.pdf"
+    ],
     "stray_file_note": "Files on disk exceed fetched records because some documents were downloaded by hand early on, before the fetcher existed, under names that do not follow the record key scheme: addendum6-shasta-attach-a, addendum8-scottriver-7-22-2025, order-wr-0005-dwr-scott-sws-curtailment. They duplicate records already counted, so counting them as fetched would have inflated the numerator. The manifest guard caught it when pdfs_fetched exceeded the enumerated record count. The exact figures live in the fields beside this note."
   }
 }

@@ -208,8 +208,8 @@ The model runs in the `us` multi-region and in none of the six other locations t
 is recorded at the constant so the next reader does not rediscover it through an error
 message that reads like a broken model name.
 
-**Ask the corpus a question.** 101 curtailment documents issued over five years, indexed
-by meaning with `gemini-embedding-001` and searched from the console (`GET /api/search`).
+**Ask the corpus a question.** 94 of the corpus's 98 fetched documents are indexed by
+meaning with `gemini-embedding-001` and searched from the console (`GET /api/search`).
 "When was curtailment lifted because the measurement itself turned out to be wrong" shares
 no words with the addendum that answers it: these documents say rating curve, shift,
 revised, field measurements and suspension of curtailment in different combinations, and
@@ -218,7 +218,7 @@ no two phrase it the same way.
 **Three things this index reports that a search box normally hides.** A passage appearing
 in several documents is shown once with the count, because these addenda restate the same
 standard paragraphs constantly and a naive ranking hands a reader the same text five times.
-The five documents that could not be searched are named on every response, with the reason:
+The four documents that could not be searched are named on every response, with the reason:
 they are scanned images with no text layer, so a question they would answer is not findable
 here at all. And nothing is indexed from Attachment A: the rights tables are parsed exactly
 elsewhere in this system, and no owner name, business name or contact address enters the

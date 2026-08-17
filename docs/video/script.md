@@ -95,8 +95,8 @@ by AB 460, effective January 1 2025.)*
 
 *Screen: corpus search, a natural-language question.*
 
-> Five hundred and seventy-seven passages from a hundred and one Board documents, indexed
-> with gemini-embedding-001. It names the five it cannot search.
+> Five hundred and fifty-two passages from ninety-four of ninety-eight Board documents,
+> indexed with gemini-embedding-001. It names the four it cannot search.
 
 ## Beat 6, proof it runs on Google Cloud (2:50 to 3:25)
 
@@ -140,7 +140,7 @@ run; Cloud Scheduler jobs; Firestore.*
 | minus 5 cfs defect | same section |
 | 6 of 6, 5 excluded | backtest table |
 | 14 of 87 refused placement | rights record |
-| 577 passages, 101 documents, 5 unsearchable | "What the corpus index covers" |
+| 552 passages, 94 of 98 documents, 4 unsearchable | "What the corpus index covers". The old 577 over 101 counted three stray files that duplicate canonical documents byte for byte; the index now excludes them |
 | 7 spans | `docs/DEPLOYMENT.md`, re-probed after the traversal |
 | Gemma 3 local | normalizer section |
 
