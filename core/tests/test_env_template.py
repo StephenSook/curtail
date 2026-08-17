@@ -34,11 +34,16 @@ DOCUMENTED_ELSEWHERE = {
     "GEMINI_API_KEY": "read by google-genai when not using Vertex",
     "MODEL_SENTINEL": "reserved for the Sentinel's model, not yet wired",
     "MODEL_HERALD": "reserved for the Herald's model, not yet wired",
-    "MODEL_EMBEDDING": "reserved for semantic search, not yet wired",
     "AGENT_REGISTRY_ENDPOINT": "governance wiring, blank runs the documented Plan B2",
     "AGENT_GATEWAY_ENDPOINT": "governance wiring, blank runs the documented Plan B2",
-    "MODEL_ARMOR_TEMPLATE": "governance wiring, applied at deploy",
 }
+# Two exemptions were retired here rather than kept, because their excuses had gone
+# false while the code the guard checks moved on. MODEL_EMBEDDING said "not yet wired"
+# after semantic search shipped; the honest resolution was DELETING the variable, since
+# the embedding model is pinned by the committed index and configuring it would invite a
+# query embedded with one model to rank against vectors from another.
+# MODEL_ARMOR_TEMPLATE said "applied at deploy" while no code path could apply it; the
+# code now reads it, so the exemption is simply no longer needed.
 
 
 def _split() -> tuple[str, str]:
@@ -76,9 +81,16 @@ def referenced() -> set[str]:
     for root in SOURCE_DIRS:
         for path in root.rglob("*.py"):
             body = path.read_text()
+            # The optional annotation group is load-bearing: `DISABLE_ENV: Final =
+            # "CURTAIL_DISABLE_MODEL_ARMOR"` is exactly how this codebase declares
+            # these constants, and the unannotated-only version of this pattern made
+            # two shipped env reads invisible to the guard, so the template was
+            # missing both and the guard called it complete.
             constants = dict(
                 re.findall(
-                    r"""^([A-Z][A-Z0-9_]*)\s*=\s*["']([A-Z][A-Z0-9_]*)["']""", body, re.MULTILINE
+                    r"""^([A-Z][A-Z0-9_]*)(?:\s*:\s*[^=\n]+?)?\s*=\s*["']([A-Z][A-Z0-9_]*)["']""",
+                    body,
+                    re.MULTILINE,
                 )
             )
             for match in call.finditer(body):

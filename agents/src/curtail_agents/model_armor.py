@@ -51,6 +51,13 @@ DEFAULT_LOCATION: Final = "us-central1"
 #: malicious URI filtering, and RAI filters at MEDIUM_AND_ABOVE.
 DEFAULT_TEMPLATE: Final = "curtail-scribe-spike"
 
+#: Deploy-time override for the template NAME. A bare name, not the full resource path:
+#: the project and location come from their own settings and are formatted into the URL
+#: below. This variable was declared in the env template for weeks while nothing read
+#: it, so a deployer following the template would have created a template, set the
+#: variable, and watched the code call the spike template anyway.
+TEMPLATE_ENV: Final = "MODEL_ARMOR_TEMPLATE"
+
 #: Set to any non-empty value to skip screening. The test suite sets it: a suite that
 #: calls a real screening API is a suite that fails offline and bills for opinions.
 DISABLE_ENV: Final = "CURTAIL_DISABLE_MODEL_ARMOR"
@@ -166,7 +173,7 @@ def screen_document(
     *,
     project_id: str | None = None,
     location: str = DEFAULT_LOCATION,
-    template: str = DEFAULT_TEMPLATE,
+    template: str | None = None,
 ) -> ArmorVerdict:
     """Screen untrusted document text, chunk by chunk.
 
@@ -176,6 +183,9 @@ def screen_document(
     """
     if os.environ.get(DISABLE_ENV):
         return ArmorVerdict(ArmorState.UNAVAILABLE, f"{DISABLE_ENV} is set, so no screening ran")
+
+    if template is None:
+        template = os.environ.get(TEMPLATE_ENV, "").strip() or DEFAULT_TEMPLATE
 
     project = project_id or os.environ.get("GOOGLE_CLOUD_PROJECT")
     if not project:

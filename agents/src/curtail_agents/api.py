@@ -1034,12 +1034,35 @@ def search_corpus(q: str, limit: int = 5) -> dict[str, Any]:
     else here can reach.
 
     A repeated passage collapses to one result naming every document that carries it.
-    That is not tidying: 2,072 chunks hold 864 distinct texts, so a naive ranking hands
-    a reader the same standard paragraph five times and buries the second-best answer.
+    That is not tidying: these addenda restate the same standard paragraphs constantly,
+    so a naive ranking hands a reader one boilerplate paragraph several times and
+    buries the second-best answer. (An earlier version of this docstring quoted the
+    chunk counts, which drifted from the artifact within a week; the live numbers are
+    in the response's `searched` block, computed from the index itself.)
     """
     question = q.strip()
     if not question:
         raise HTTPException(status_code=422, detail="ask a question")
+
+    try:
+        index = corpus_index()
+    except CorpusIndexUnavailableError as exc:
+        log.warning("corpus index unavailable", reason=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    # The query must be embedded with the model the INDEX was built with. Vectors from
+    # different embedding models are mutually meaningless, and ranking across them
+    # produces a plausible-looking order with no relationship to relevance, which is
+    # worse than refusing. The index records its model; this service knows its own.
+    if index.model != EMBEDDING_MODEL:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"the committed index was embedded with {index.model} and this service "
+                f"embeds questions with {EMBEDDING_MODEL}. Ranking across models is "
+                "meaningless, so nothing is searched until they match."
+            ),
+        )
 
     try:
         vector = embed_query(question)
@@ -1052,7 +1075,6 @@ def search_corpus(q: str, limit: int = 5) -> dict[str, Any]:
 
     try:
         hits = corpus_search(vector, limit=max(1, min(limit, 20)))
-        index = corpus_index()
     except CorpusIndexUnavailableError as exc:
         log.warning("corpus index unavailable", reason=str(exc))
         raise HTTPException(status_code=503, detail=str(exc)) from exc
