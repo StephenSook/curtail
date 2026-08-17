@@ -533,6 +533,95 @@ def _fleet_status() -> list[tuple[str, bool]]:
     return [(name, found[name]) for name in FLEET_NODES if name in found]
 
 
+def _response_lag_claim() -> list[str]:
+    """The headline in the watermaster's currency, read from the committed record.
+
+    Present here so the video narration, the README and the submission all draw the same
+    figures from one code-audited place. A published video cannot be corrected, and the
+    only way three artifacts cannot disagree is if none of them is the source.
+    """
+    path = REPO / "core" / "src" / "curtail_core" / "data" / "response_lag.json"
+    if not path.is_file():
+        return ["- The response-lag record has not been built. Run `make response-lag`."]
+    record = json.loads(path.read_text())
+    counts = record["counts"]
+    longest = record["scored"][0]
+    return [
+        f"- Across **{counts['scored']} curtailment actions** in the verified regulatory "
+        f"era, the river had already been below its minimum for a **median of "
+        f"{counts['median_lag_days']} days**, up to **{counts['max_lag_days']}**, when the "
+        "Board's document was dated. Computed from the USGS daily discharge series and the "
+        "dates of the Board's own documents.",
+        f"- The longest: **{longest['basin']}**, below since {longest['river_below_since']}, "
+        f"document dated {longest['document_dated']}, a gap of **{longest['lag_days']} days**.",
+        "- **This is NOT a measure of administrative delay.** 23 CCR 875(b) directs the "
+        "Deputy Director to weigh hydrologic and weather conditions, so part of any gap is "
+        "judgment, and judgment is what this system says belongs to a human. Curtail "
+        "removes the wait for somebody to notice, and nothing stronger than that is "
+        "supported by this computation.",
+        f"- **{counts['excluded']} actions excluded**, of which "
+        f"**{counts['excluded_unevaluable_era']} could not be evaluated at all** because "
+        "the flow schedule for the 2021 era is unverified here. That is a gap in what is "
+        "known, not a finding about the river, and the two exclusion classes are counted "
+        "separately so one can never pass for the other.",
+        "- Conservative by construction: daily MEAN discharge cannot see a river that dips "
+        "below in the afternoon and recovers overnight, so the figure can only understate.",
+    ]
+
+
+def _refusal_claim() -> list[str]:
+    """Whether the system knows when to decline, which every other eval fails to ask."""
+    path = REPO / "docs" / "evals" / "eval_results.json"
+    if not path.is_file():
+        return ["- The eval artifacts have not been built. Run `make evals`."]
+    measured = json.loads(path.read_text())["measured"]
+    traps = measured.get("refusal_traps")
+    if not traps:
+        return ["- Refusal traps are not scored, so nothing measures when the system declines."]
+    kinds = sorted({c["eval_id"].split("/")[0] for c in traps["cases"]})
+    real = sum(1 for c in traps["cases"] if not c["data"].startswith("CONSTRUCTED"))
+    return [
+        f"- **{traps['matched']} of {traps['cases_scored']} refusal traps declined "
+        f"correctly.** These are cases where the CORRECT answer is that the system says "
+        "nothing, which no other eval here asks about.",
+        f"- {len(kinds)} distinct reasons to decline, not one repeated: {', '.join(kinds)}.",
+        f"- **{real} of {len(traps['cases'])} run on real data**: a live gage reading, the "
+        "date the 2021 Shasta order issued, a day from the July 2025 sequence, and rights "
+        "the Board itself published without a priority date. The remaining one is "
+        "constructed and is labelled so in the artifact.",
+        "- Scoring this axis immediately found a real defect: the Sentinel accepted a "
+        "discharge of -5 cfs and CLASSIFIED it, which on a sensor fault reads as far below "
+        "the minimum and points at curtailment. Now unrepresentable at the domain object.",
+    ]
+
+
+def _corpus_index_claim() -> list[str]:
+    """What the embedding index covers, and what it cannot."""
+    path = REPO / "core" / "src" / "curtail_core" / "data" / "corpus_index.json"
+    if not path.is_file():
+        return ["- The corpus index has not been built."]
+    index = json.loads(path.read_text())
+    counts = index["counts"]
+    source = index["source"]
+    return [
+        f"- **{counts['chunks']} passages** indexed with **{source['model']}** at "
+        f"{source['dimensions']} dimensions, across "
+        f"**{counts['documents_represented']} of {counts['documents_read']} documents**.",
+        f"- The {counts['documents_read'] - counts['documents_represented']} absent "
+        "documents are NAMED with their reason on every search response. They are scanned "
+        "images with no text layer, so a question they would answer is not findable here "
+        "at all, and a search that quietly covers most of a corpus invites the reader to "
+        "conclude the corpus is silent.",
+        "- **No owner name, business name, contact address or right identifier is "
+        "indexed.** The rights tables are parsed exactly elsewhere; only prose is embedded, "
+        "and a test asserts the committed artifact against every one of those patterns.",
+        "- Vectors are normalised at build time and the loader REFUSES an index whose "
+        "vectors are not actually unit length, because this model returns a non-unit vector "
+        "below its full dimensionality and a dot product over those ranks partly by "
+        "magnitude without raising.",
+    ]
+
+
 def build() -> str:
     manifest: dict[str, Any] = json.loads(MANIFEST.read_text())
     status = manifest["extraction_status"]
@@ -858,6 +947,21 @@ def build() -> str:
         add(f"- {item}")
     add("")
     add(f"_All {len(items)} items accounted for: {len(still_open)} open, {len(closed)} closed._")
+    add("")
+    add("## The headline, in the watermaster's currency")
+    add("")
+    for line in _response_lag_claim():
+        add(line)
+    add("")
+    add("## Knowing when to decline")
+    add("")
+    for line in _refusal_claim():
+        add(line)
+    add("")
+    add("## What the corpus index covers")
+    add("")
+    for line in _corpus_index_claim():
+        add(line)
     add("")
     add(
         "_Provenance: run `git log -- docs/FACTS.md` for when this was last "
