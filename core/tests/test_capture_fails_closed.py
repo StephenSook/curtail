@@ -71,6 +71,47 @@ class TestABadTakeIsRefused:
         )
         assert "r.status >= 400" in source, "responses are observed but their status is not checked"
 
+    def test_the_whole_origin_is_watched_not_just_the_api(self) -> None:
+        """A 404 on the vendored chart bundle is a completed HTTP transaction outside
+        /api/, and the console renders the failure INSIDE the card, so a take could
+        film "the charting bundle did not load" over narration about the season and
+        pass every check scoped to /api/."""
+        source = SCRIPT.read_text()
+        assert "r.url.startswith(origin)" in source, (
+            "the failure watch is scoped narrower than the origin again, so an asset "
+            "404 films as a calm broken card"
+        )
+        assert '"/api/" in r.url' not in source, (
+            "an /api/-only filter is back beside the origin watch, which suggests one "
+            "of the two listeners regressed"
+        )
+
+    def test_a_settled_card_must_hold_a_result(self) -> None:
+        """settle() proves the card re-rendered; it cannot prove what rendered. The
+        console renders Unavailable and Refused inside the card with a fresh stamp,
+        so a take could film a calm refusal over narration describing a working
+        product and pass every network check."""
+        source = SCRIPT.read_text()
+        assert "def result_state" in source
+        assert "s-system" in source, (
+            "the result check no longer looks for the console's system-state class"
+        )
+        assert source.count("result_state(page,") >= 4, (
+            "fewer than four settles assert a result, so at least one filmed card can "
+            "settle on a refusal unnoticed"
+        )
+
+    def test_a_refused_take_leaves_no_video_behind(self) -> None:
+        """The raise refuses the exit code; the .webm it left behind was still a file,
+        and a file that exists is a file something downstream eventually globs."""
+        body = tail()
+        assert "video.unlink()" in body, (
+            "a refused take stays on disk for a future assembler to mux"
+        )
+        assert body.index("video.unlink()") < body.index("raise CaptureFailedError"), (
+            "the cleanup happens after the raise, which is to say never"
+        )
+
     def test_partial_coverage_is_written_into_the_artifact(self) -> None:
         """The capture films the agent-execution beats and leaves the evidence beats to
         separate captures. That split is a design decision, but a marks file listing five
