@@ -270,7 +270,7 @@ _All 18 items accounted for: 9 open, 9 closed._
 
 ## What the corpus index covers
 
-- **609 passages** indexed with **gemini-embedding-001** at 768 dimensions, across **96 of 101 documents**.
+- **577 passages** indexed with **gemini-embedding-001** at 768 dimensions, across **96 of 101 documents**.
 - The 5 absent documents are NAMED with their reason on every search response. They are scanned images with no text layer, so a question they would answer is not findable here at all, and a search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
 - **No owner name, business name, contact address or right identifier is indexed.** The rights tables are parsed exactly elsewhere; only prose is embedded, and a test asserts the committed artifact against every one of those patterns.
 - Vectors are normalised at build time and the loader REFUSES an index whose vectors are not actually unit length, because this model returns a non-unit vector below its full dimensionality and a dot product over those ranks partly by magnitude without raising.

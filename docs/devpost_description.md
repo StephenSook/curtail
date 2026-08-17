@@ -42,7 +42,7 @@ The Season Ledger is durable in Cloud Firestore, and durability is proven by a *
 
 ## Efficient vector embedding strategies
 
-101 Board documents indexed as 609 passages with `gemini-embedding-001`, covering 96 of 101 documents. **The 5 it cannot search are named on every response** with the reason: they are scanned images with no text layer. A search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
+101 Board documents indexed as 577 passages with `gemini-embedding-001`, covering 96 of 101 documents. **The 5 it cannot search are named on every response** with the reason: they are scanned images with no text layer. A search that quietly covers most of a corpus invites the reader to conclude the corpus is silent.
 
 No owner name, business name, contact address or right identifier is indexed. An earlier build leaked 49 Attachment A fragments carrying private individuals' names before the filter was corrected, and a test now asserts the committed artifact against every one of those patterns.
 
