@@ -207,6 +207,36 @@ def _first_commit_date() -> str:
     return result.stdout.splitlines()[0].strip()
 
 
+#: URL shapes a recorded link must match before this generator will render it as done.
+#: Shape is what an offline check can hold; liveness and public visibility belong to
+#: `scripts/pre_submit.py`, whose oembed probe answers the question a regex cannot.
+VIDEO_URL_SHAPE = (
+    r"https://(?:youtu\.be/[\w-]{11}|www\.youtube\.com/watch\?v=[\w-]{11}|vimeo\.com/\d+)"
+)
+SOCIAL_URL_SHAPE = (
+    r"https://(?:www\.)?(?:x\.com|twitter\.com|linkedin\.com|instagram\.com|facebook\.com)/\S+"
+)
+CONTENT_URL_SHAPE = r"https://\S+"
+
+
+def _recorded_url(links: dict[str, object], key: str, shape: str, what: str) -> str:
+    """The recorded URL, empty, or a refusal: never a malformed value rendered as done.
+
+    An arbitrary non-empty string labeled DONE is a falsely ready submission, and the
+    document this feeds is exactly where somebody would read readiness from.
+    """
+    import re
+
+    url = str(links.get(key, "")).strip()
+    if url and not re.fullmatch(shape, url):
+        raise SystemExit(
+            f"{key} in submission_links.json is recorded but does not look like "
+            f"{what}: {url!r}. Fix the record; this generator refuses to render a "
+            "malformed URL as done."
+        )
+    return url
+
+
 def _models(source: str) -> list[str]:
     import re
 
@@ -245,16 +275,24 @@ def main(argv: list[str] | None = None) -> int:
     # Everything that cannot be derived from the repository is read from the one file
     # that records it, so each item's status is computed rather than remembered. A
     # blank is indistinguishable from a decision not to answer, so unmet items keep
-    # stating what they need.
+    # stating what they need. A recorded URL is SHAPE-CHECKED before it can render as
+    # done, because this generator runs offline and a malformed or off-platform URL
+    # rendered as DONE is a falsely ready submission; whether the video is actually
+    # public is a network question and stays with `make pre-submit`'s oembed probe.
     links = json.loads((REPO / "docs" / "submission_links.json").read_text())
-    video_url = str(links.get("video_url", "")).strip()
-    social_url = str(links.get("social_bonus_url", "")).strip()
-    content_url = str(links.get("content_bonus_url", "")).strip()
+    video_url = _recorded_url(links, "video_url", VIDEO_URL_SHAPE, "YouTube or Vimeo")
+    social_url = _recorded_url(
+        links, "social_bonus_url", SOCIAL_URL_SHAPE, "X, LinkedIn, Instagram or Facebook"
+    )
+    content_url = _recorded_url(
+        links, "content_bonus_url", CONTENT_URL_SHAPE, "a public https platform"
+    )
 
     outstanding = [
         (
             "Demo video URL",
-            f"DONE. {video_url}, recorded with its verification in `submission_links.json`."
+            f"DONE. {video_url}, shape-checked here; its public status is recorded in "
+            "`submission_links.json` and re-proved live by `make pre-submit`."
             if video_url
             else "public on YouTube or Vimeo, 4 minutes maximum, English or "
             "subtitled, must show the backend running on Google Cloud",

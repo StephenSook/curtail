@@ -483,6 +483,39 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
             )
             assert text.strip(), f"{name} is empty, so this asserts nothing"
 
+    def test_a_malformed_recorded_url_refuses_instead_of_rendering_done(self) -> None:
+        """An arbitrary non-empty string in submission_links.json must never render as
+        DONE: the generator refuses, mirroring pre_submit's verification gate rather
+        than contradicting it. Empty stays empty, which renders as the requirement."""
+        module = self._module()
+        with pytest.raises(SystemExit):
+            module._recorded_url(
+                {"video_url": "http://example.com/not-a-video"},
+                "video_url",
+                module.VIDEO_URL_SHAPE,
+                "YouTube or Vimeo",
+            )
+        with pytest.raises(SystemExit):
+            module._recorded_url(
+                {"social_bonus_url": "https://example.com/anywhere"},
+                "social_bonus_url",
+                module.SOCIAL_URL_SHAPE,
+                "X, LinkedIn, Instagram or Facebook",
+            )
+        assert (
+            module._recorded_url({}, "video_url", module.VIDEO_URL_SHAPE, "YouTube or Vimeo")
+            == ""
+        )
+        assert (
+            module._recorded_url(
+                {"video_url": "https://youtu.be/Kz5tv6oe070"},
+                "video_url",
+                module.VIDEO_URL_SHAPE,
+                "YouTube or Vimeo",
+            )
+            == "https://youtu.be/Kz5tv6oe070"
+        )
+
     def test_the_draft_endpoint_really_queues_exactly_one(self) -> None:
         """The claim in the answer text, checked against the code that makes it true.
 

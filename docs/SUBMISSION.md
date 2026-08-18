@@ -54,7 +54,7 @@ would be true of the design and false of the system.
 
 ## Outstanding, with what each needs
 
-- **Demo video URL**: DONE. https://youtu.be/Kz5tv6oe070, recorded with its verification in `submission_links.json`.
+- **Demo video URL**: DONE. https://youtu.be/Kz5tv6oe070, shape-checked here; its public status is recorded in `submission_links.json` and re-proved live by `make pre-submit`.
 - **Social bonus link**: DONE. https://x.com/steve_social_/status/2089548743863419261, a post carrying #AllThingsAgenticHackathon, recorded in `submission_links.json` and on the Devpost form.
 - **Content bonus link**: INTERIM. The form field holds the demo video (https://youtu.be/Kz5tv6oe070), which qualifies by the form's own letter (public video, description carries the required created-for-this-hackathon language) but is not the how-it-was-built post the bonus text describes. A dedicated post is drafted; when it publishes, swap the URL on the Devpost form and in `submission_links.json` together.
 
