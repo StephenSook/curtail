@@ -516,6 +516,34 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
             == "https://youtu.be/Kz5tv6oe070"
         )
 
+    def test_the_content_shape_is_open_by_platform_and_closed_by_structure(self) -> None:
+        """The rules say the content piece may live on ANY public platform, so an
+        allowlist would wrongly refuse a self-hosted post; the shape therefore holds
+        structure only. That `https://example.com/anywhere` passes is the DECIDED
+        consequence of the rules' wording, asserted here so the behaviour is a record
+        rather than an accident. What shape can hold: https, a real dotted host, and
+        a path, so a bare homepage or an http URL never renders as done."""
+        module = self._module()
+
+        def content(url: str) -> str:
+            return module._recorded_url(
+                {"content_bonus_url": url},
+                "content_bonus_url",
+                module.CONTENT_URL_SHAPE,
+                "a public https platform",
+            )
+
+        assert content("https://dev.to/someone/how-i-built-it-1234") != ""
+        assert content("https://example.com/anywhere") != ""
+        for malformed in (
+            "https://dev.to",
+            "https://dev.to/",
+            "http://dev.to/someone/post",
+            "not a url",
+        ):
+            with pytest.raises(SystemExit):
+                content(malformed)
+
     def test_the_draft_endpoint_really_queues_exactly_one(self) -> None:
         """The claim in the answer text, checked against the code that makes it true.
 

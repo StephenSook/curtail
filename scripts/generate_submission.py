@@ -210,13 +210,18 @@ def _first_commit_date() -> str:
 #: URL shapes a recorded link must match before this generator will render it as done.
 #: Shape is what an offline check can hold; liveness and public visibility belong to
 #: `scripts/pre_submit.py`, whose oembed probe answers the question a regex cannot.
+#: Video and social are platform-bounded because the rules name their platforms. The
+#: content bonus is deliberately NOT: the rules say "any public platform", so an
+#: allowlist here would refuse a legitimate self-hosted post. Its shape holds what
+#: structure a piece of content must have, https on a real host with a path, and no
+#: more; that the URL is a real, public piece is a check a regex cannot make.
 VIDEO_URL_SHAPE = (
     r"https://(?:youtu\.be/[\w-]{11}|www\.youtube\.com/watch\?v=[\w-]{11}|vimeo\.com/\d+)"
 )
 SOCIAL_URL_SHAPE = (
     r"https://(?:www\.)?(?:x\.com|twitter\.com|linkedin\.com|instagram\.com|facebook\.com)/\S+"
 )
-CONTENT_URL_SHAPE = r"https://\S+"
+CONTENT_URL_SHAPE = r"https://[^\s/]+\.[^\s/]+/\S+"
 
 
 def _recorded_url(links: dict[str, object], key: str, shape: str, what: str) -> str:
@@ -276,9 +281,10 @@ def main(argv: list[str] | None = None) -> int:
     # that records it, so each item's status is computed rather than remembered. A
     # blank is indistinguishable from a decision not to answer, so unmet items keep
     # stating what they need. A recorded URL is SHAPE-CHECKED before it can render as
-    # done, because this generator runs offline and a malformed or off-platform URL
-    # rendered as DONE is a falsely ready submission; whether the video is actually
-    # public is a network question and stays with `make pre-submit`'s oembed probe.
+    # done, because this generator runs offline and a malformed URL, or an
+    # off-platform one where the rules name the platforms (video, social), rendered
+    # as DONE is a falsely ready submission; whether a URL is actually public is a
+    # network question and stays with `make pre-submit`'s oembed probe.
     links = json.loads((REPO / "docs" / "submission_links.json").read_text())
     video_url = _recorded_url(links, "video_url", VIDEO_URL_SHAPE, "YouTube or Vimeo")
     social_url = _recorded_url(
