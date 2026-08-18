@@ -28,7 +28,7 @@ submission outright, however good the system is.
 | Which Google SDK did you use? | **Agent Development Kit (ADK), Google GenAI SDK (google-genai)** | grep of shipped source |
 | Which Google Cloud Service (s) did you use? | **Cloud Run, Firestore** | grep of shipped source and the Dockerfile |
 | Architecture diagram | `docs/architecture.png` (928,687 bytes) | a file UPLOAD, not a text answer, so it never appears in custom_answers |
-| Which Google AI Models did you use? Gemini 3.5 or newer is REQUIRED. | **gemini-3.5-flash, gemma3:4b** | grep of shipped source |
+| Which Google AI Models did you use? Gemini 3.5 or newer is REQUIRED. | **Chirp3-HD-Achernar, chirp_3, gemini-3.5-flash, gemini-embedding-001, gemma3:4b** | grep of shipped source |
 
 ## Optional fields the repository can still answer
 
@@ -39,7 +39,7 @@ and a judge who cannot click anything scores what they could not exercise as abs
 |---|---|
 | Hosted project URL | https://curtail-console-api-672785135387.us-central1.run.app |
 | Testing instructions (judges only) | No login needed. The console runs on load; Classify and Run the fleet need no credentials. Draft an order takes about 80s (a model call plus both guards) and queues ONE draft. Only signing needs the passphrase. /api/facts and /api/season/shasta are open. |
-| Google AI models, long form | Gemini 3.5 Flash through Vertex AI drafts every order (scribe.py line 49). Gemma 3 4B runs locally through Ollama to normalize documents (normalizer.py line 49), so no document leaves the machine. Both greppable in the shipped source. |
+| Google AI models, long form | Gemini 3.5 Flash through Vertex AI drafts every order (scribe.py). Gemma 3 4B runs locally through Ollama so no document leaves the machine (normalizer.py). Chirp 3 speech both ways (speech.py). gemini-embedding-001 corpus search (embeddings.py). |
 
 ## What is NOT ticked, and why that is deliberate
 
@@ -54,9 +54,9 @@ would be true of the design and false of the system.
 
 ## Outstanding, with what each needs
 
-- **Demo video URL**: DONE. Public on YouTube (3:41 against the 4:00 cap), showing the backend on Google Cloud; the URL and its verification live in `submission_links.json`.
-- **Social bonus link**: DONE. An X post carrying #AllThingsAgenticHackathon, recorded in `submission_links.json` and on the Devpost form.
-- **Content bonus link**: INTERIM. The Devpost form field currently holds the demo video, which qualifies by the form's own letter (a public video whose description carries the required created-for-this-hackathon language) but is not the how-it-was-built post the bonus text describes. A dedicated post is drafted and awaits publication under the author's own account; when it publishes, swap the URL on the Devpost form and in `submission_links.json` together. If it never publishes, the video stays, and this entry says so rather than implying the stronger claim.
+- **Demo video URL**: DONE. https://youtu.be/Kz5tv6oe070, recorded with its verification in `submission_links.json`.
+- **Social bonus link**: DONE. https://x.com/steve_social_/status/2089548743863419261, a post carrying #AllThingsAgenticHackathon, recorded in `submission_links.json` and on the Devpost form.
+- **Content bonus link**: INTERIM. The form field holds the demo video (https://youtu.be/Kz5tv6oe070), which qualifies by the form's own letter (public video, description carries the required created-for-this-hackathon language) but is not the how-it-was-built post the bonus text describes. A dedicated post is drafted; when it publishes, swap the URL on the Devpost form and in `submission_links.json` together.
 
 ## Two dates worth not getting wrong
 
