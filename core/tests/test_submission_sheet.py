@@ -559,6 +559,18 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
             "The site was created in 2020. Instructions for the purposes of entering "
             "data. A hackathon happened."
         )
+        # First-person contractions are compliant phrasings, straight or curly
+        # apostrophe, and a gate that rejects them falsely denies honest content.
+        assert module._has_required_language(
+            "I've created this post for the purposes of entering the hackathon."
+        )
+        assert module._has_required_language(
+            "We\u2019ve created this piece for the purposes of entering the "
+            "All Things Agentic Hackathon."
+        )
+        assert module._has_required_language(
+            "We have created this article for the purposes of entering the hackathon."
+        )
         # Third-party authorship is not the author's declaration: the rules say YOU
         # created it, so a sentence whose creator is somebody else must fail.
         assert not module._has_required_language(
