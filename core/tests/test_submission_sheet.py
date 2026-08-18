@@ -559,6 +559,15 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
             "The site was created in 2020. Instructions for the purposes of entering "
             "data. A hackathon happened."
         )
+        # Third-party authorship is not the author's declaration: the rules say YOU
+        # created it, so a sentence whose creator is somebody else must fail.
+        assert not module._has_required_language(
+            "The organizers created this challenge for the purposes of entering the "
+            "All Things Agentic Hackathon."
+        )
+        assert not module._has_required_language(
+            "Google created this page for the purposes of entering the hackathon."
+        )
 
     def test_the_content_shape_is_open_by_platform_and_closed_by_structure(self) -> None:
         """The rules say the content piece may live on ANY public platform, so an
