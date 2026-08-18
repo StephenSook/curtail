@@ -189,23 +189,62 @@ def _fetch(url: str) -> str:
         return str(response.read().decode("utf-8", errors="replace"))
 
 
+def _visible_text(html: str) -> str:
+    """The text a reader can see, whitespace-normalised.
+
+    A raw-HTML substring search can be satisfied by an og:description attribute, an
+    HTML comment, or a script payload, none of which a judge reads. The stdlib parser
+    drops all three for free: attribute values and comments never reach
+    `handle_data`, and script/style/noscript/template subtrees are skipped
+    explicitly. Reader comments rendered as page text remain visible text, which is
+    the honest boundary of what a fetch can distinguish.
+    """
+    from html.parser import HTMLParser
+
+    class Collector(HTMLParser):
+        SKIP = frozenset({"script", "style", "noscript", "template"})
+
+        def __init__(self) -> None:
+            super().__init__(convert_charrefs=True)
+            self.depth = 0
+            self.parts: list[str] = []
+
+        def handle_starttag(self, tag: str, attrs: object) -> None:
+            if tag in self.SKIP:
+                self.depth += 1
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag in self.SKIP and self.depth:
+                self.depth -= 1
+
+        def handle_data(self, data: str) -> None:
+            if not self.depth:
+                self.parts.append(data)
+
+    collector = Collector()
+    collector.feed(html)
+    return " ".join(" ".join(collector.parts).split())
+
+
 def _content_is_public_with_language(url: str) -> tuple[bool, str]:
     """Public AND carrying the required created-for-this-hackathon language.
 
     Fetched cookie-less, so this is what a judge gets, not what the author sees while
     signed in. Both halves matter: a live post without the language fails the bonus
-    exactly as hard as a dead link.
+    exactly as hard as a dead link. The phrase must appear in the page's VISIBLE
+    text, because a match inside metadata or an HTML comment is not language the
+    piece of content actually says.
     """
     try:
         body = _fetch(url)
     except Exception as exc:
         return False, f"NOT reachable logged-out ({str(exc)[:60]})"
-    if REQUIRED_CONTENT_LANGUAGE not in body:
+    if REQUIRED_CONTENT_LANGUAGE not in _visible_text(body):
         return False, (
-            f"reachable, but the served body lacks the required language "
+            f"reachable, but the page's visible text lacks the required language "
             f"({REQUIRED_CONTENT_LANGUAGE!r})"
         )
-    return True, "public, and the served body carries the required language"
+    return True, "public, and the visible text carries the required language"
 
 
 def _social_post_is_public_with_hashtag(url: str) -> tuple[bool, str]:

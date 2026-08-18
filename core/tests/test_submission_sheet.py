@@ -515,6 +515,37 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
             == "https://youtu.be/Kz5tv6oe070"
         )
 
+    def test_metadata_comments_and_scripts_cannot_satisfy_the_language_check(self) -> None:
+        """The content probe reads VISIBLE text: a phrase living only in an
+        og:description attribute, an HTML comment, or a script payload is not language
+        the piece of content says, and a raw-substring search would have accepted all
+        three. No network: this exercises the extractor on constructed pages."""
+        import importlib.util
+        import sys
+
+        path = REPO / "scripts" / "pre_submit.py"
+        spec = importlib.util.spec_from_file_location("pre_submit_under_test", path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["pre_submit_under_test"] = module
+        spec.loader.exec_module(module)
+
+        phrase = module.REQUIRED_CONTENT_LANGUAGE
+        assert isinstance(phrase, str) and phrase
+        hidden = (
+            f'<meta property="og:description" content="x {phrase} x">'
+            f"<!-- {phrase} -->"
+            f'<script>var s = "{phrase}";</script>'
+            f"<style>/* {phrase} */</style>"
+            "<p>an article about something else entirely</p>"
+        )
+        assert phrase not in module._visible_text(hidden), (
+            "the extractor surfaced text from metadata, a comment, or a script, so "
+            "the language check can be satisfied by markup no reader sees"
+        )
+        visible = f"<div><p>I created this piece of content {phrase} this hackathon.</p></div>"
+        assert phrase in module._visible_text(visible)
+
     def test_the_content_shape_is_open_by_platform_and_closed_by_structure(self) -> None:
         """The rules say the content piece may live on ANY public platform, so an
         allowlist would wrongly refuse a self-hosted post; the shape therefore holds
