@@ -6,8 +6,8 @@
   "diagram_uploaded_at": "2026-08-14",
   "_diagram_evidence": "Not self-certified after all. Devpost returned attachment_id 9929 for docs/architecture.png, 928687 bytes, on submission 1138035, field 28092, with attachment_count 1. The byte count matches the local file exactly, which is the check that distinguishes an upload that happened from an upload that was reported.",
   "_devpost_project": "https://devpost.com/software/curtail (draft, project 1385364). Created and filled; NOT submitted. Submitting is a separate authorized step.",
-  "content_bonus_url": "https://youtu.be/Kz5tv6oe070",
-  "_content_evidence": "The published demo video carries the form's required language verbatim in its YouTube description ('This video was created for the purposes of entering the All Things Agentic Hackathon.') and is public, not unlisted. A dedicated how-it-was-built piece would be a stronger claim; if one is published later, swap this URL on the Devpost form and here together.",
+  "content_bonus_url": "https://dev.to/stephensook/how-i-built-curtail-a-governed-agent-fleet-for-water-curtailment-where-the-human-always-signs-3861",
+  "_content_evidence": "A dedicated how-it-was-built post on dev.to, published 2026-08-17, replacing the interim demo-video claim. Verified from a cookie-less fetch, not the editor's own confirmation: HTTP 200, the exact title served, and the required created-for-this-hackathon sentence present in the page body. The Devpost form field was updated to this URL in the same step and re-read after a fresh page load.",
   "social_bonus_url": "https://x.com/steve_social_/status/2089548743863419261",
   "_social_evidence": "Posted 2026-08-17 on X with the required #AllThingsAgenticHackathon hashtag, the video link, and the hook image; verified live on the profile after posting, not from the composer's own send confirmation."
 }
