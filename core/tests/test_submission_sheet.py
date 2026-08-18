@@ -503,8 +503,7 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
                 "X, LinkedIn, Instagram or Facebook",
             )
         assert (
-            module._recorded_url({}, "video_url", module.VIDEO_URL_SHAPE, "YouTube or Vimeo")
-            == ""
+            module._recorded_url({}, "video_url", module.VIDEO_URL_SHAPE, "YouTube or Vimeo") == ""
         )
         assert (
             module._recorded_url(
