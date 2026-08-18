@@ -135,7 +135,100 @@ def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
             bool(uploaded),
         )
     )
+
+    # The bonuses are optional, so an EMPTY record blocks nothing. A RECORDED one is a
+    # claim standing on the Devpost form, so once present it must verify here or the
+    # gate refuses: the generator shape-checks these URLs, and shape cannot see a dead
+    # post, a private one, or one missing the language the rules require. Same
+    # verify-or-refuse contract as the video, including the --offline half.
+    content = str(data.get("content_bonus_url", "")).strip()
+    if content:
+        if not verify:
+            items.append(
+                (
+                    f"content bonus ({content[:48]})",
+                    "recorded but NOT verified: --offline makes no network call",
+                    False,
+                )
+            )
+        else:
+            ok, why = _content_is_public_with_language(content)
+            items.append((f"content bonus ({content[:48]})", why, ok))
+
+    social = str(data.get("social_bonus_url", "")).strip()
+    if social:
+        if not verify:
+            items.append(
+                (
+                    f"social bonus ({social[:48]})",
+                    "recorded but NOT verified: --offline makes no network call",
+                    False,
+                )
+            )
+        else:
+            ok, why = _social_post_is_public_with_hashtag(social)
+            items.append((f"social bonus ({social[:48]})", why, ok))
     return items
+
+
+#: The rules' own requirement for the content bonus, quoted at the substring every
+#: honest phrasing must contain: "language that says you created the piece of content
+#: for the purposes of entering this hackathon".
+REQUIRED_CONTENT_LANGUAGE = "for the purposes of entering"
+
+#: The hashtag the rules require on the social post.
+REQUIRED_HASHTAG = "#AllThingsAgenticHackathon"
+
+
+def _fetch(url: str) -> str:
+    """The body a logged-out reader gets. Raises on anything but success."""
+    request = urllib.request.Request(url, headers={"User-Agent": "curtail-pre-submit"})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        if response.status != 200:
+            raise RuntimeError(f"HTTP {response.status}")
+        return str(response.read().decode("utf-8", errors="replace"))
+
+
+def _content_is_public_with_language(url: str) -> tuple[bool, str]:
+    """Public AND carrying the required created-for-this-hackathon language.
+
+    Fetched cookie-less, so this is what a judge gets, not what the author sees while
+    signed in. Both halves matter: a live post without the language fails the bonus
+    exactly as hard as a dead link.
+    """
+    try:
+        body = _fetch(url)
+    except Exception as exc:
+        return False, f"NOT reachable logged-out ({str(exc)[:60]})"
+    if REQUIRED_CONTENT_LANGUAGE not in body:
+        return False, (
+            f"reachable, but the served body lacks the required language "
+            f"({REQUIRED_CONTENT_LANGUAGE!r})"
+        )
+    return True, "public, and the served body carries the required language"
+
+
+def _social_post_is_public_with_hashtag(url: str) -> tuple[bool, str]:
+    """Public AND carrying the required hashtag, via the platform's oembed endpoint.
+
+    X serves post pages through a login-walled SPA, so fetching the page proves
+    nothing; the oembed endpoint answers anonymously for PUBLIC posts only and its
+    payload carries the post text, which is where the hashtag must appear. Platforms
+    without an anonymous probe are refused rather than waved through: record the
+    verification by hand in the evidence note and this stays a conscious check.
+    """
+    if "x.com/" in url or "twitter.com/" in url:
+        probe = "https://publish.twitter.com/oembed?url=" + urllib.parse.quote(
+            url.replace("//x.com/", "//twitter.com/"), safe=""
+        )
+        try:
+            payload = _fetch(probe)
+        except Exception as exc:
+            return False, f"NOT public per oembed ({str(exc)[:60]})"
+        if REQUIRED_HASHTAG.lower() not in payload.lower():
+            return False, f"public, but the post text lacks {REQUIRED_HASHTAG}"
+        return True, f"public per oembed, and the post carries {REQUIRED_HASHTAG}"
+    return False, ("no anonymous publicness probe for this platform; verify by hand and record it")
 
 
 def _video_is_public(url: str) -> tuple[bool, str]:
