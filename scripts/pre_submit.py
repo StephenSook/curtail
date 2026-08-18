@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import urllib.parse
 import urllib.request
@@ -171,10 +172,20 @@ def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
     return items
 
 
-#: The rules' own requirement for the content bonus, quoted at the substring every
-#: honest phrasing must contain: "language that says you created the piece of content
-#: for the purposes of entering this hackathon".
-REQUIRED_CONTENT_LANGUAGE = "for the purposes of entering"
+#: The rules' requirement for the content bonus: "language that says you created the
+#: piece of content for the purposes of entering this hackathon". The check binds all
+#: three parts, CREATED plus the phrase plus HACKATHON, inside one short span,
+#: because the bare phrase alone matches unrelated prose ("for the purposes of
+#: entering data") and proves nothing about authorship or this event.
+REQUIRED_CONTENT_LANGUAGE = re.compile(
+    r"\bcreated\b[^.!?]{0,80}?\bfor the purposes of entering\b[^.!?]{0,60}?\bhackathon\b",
+    re.IGNORECASE,
+)
+
+
+def _has_required_language(text: str) -> bool:
+    return REQUIRED_CONTENT_LANGUAGE.search(text) is not None
+
 
 #: The hashtag the rules require on the social post.
 REQUIRED_HASHTAG = "#AllThingsAgenticHackathon"
@@ -239,12 +250,15 @@ def _content_is_public_with_language(url: str) -> tuple[bool, str]:
         body = _fetch(url)
     except Exception as exc:
         return False, f"NOT reachable logged-out ({str(exc)[:60]})"
-    if REQUIRED_CONTENT_LANGUAGE not in _visible_text(body):
+    if not _has_required_language(_visible_text(body)):
         return False, (
-            f"reachable, but the page's visible text lacks the required language "
-            f"({REQUIRED_CONTENT_LANGUAGE!r})"
+            "reachable, but the visible text never says the content was CREATED for "
+            "the purposes of entering this HACKATHON, which is the language the rules "
+            "require"
         )
-    return True, "public, and the visible text carries the required language"
+    return True, (
+        "public, and the visible text says created for the purposes of entering this hackathon"
+    )
 
 
 def _social_post_is_public_with_hashtag(url: str) -> tuple[bool, str]:
