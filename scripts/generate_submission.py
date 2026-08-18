@@ -93,9 +93,10 @@ JUDGE_INSTRUCTIONS = (
 )
 
 AI_MODELS_ANSWER = (
-    "Gemini 3.5 Flash through Vertex AI drafts every order (scribe.py line 49). Gemma 3 "
-    "4B runs locally through Ollama to normalize documents (normalizer.py line 49), so "
-    "no document leaves the machine. Both greppable in the shipped source."
+    "Gemini 3.5 Flash through Vertex AI drafts every order (scribe.py). Gemma 3 4B "
+    "runs locally through Ollama so no document leaves the machine (normalizer.py). "
+    "Chirp 3 speech both ways (speech.py). gemini-embedding-001 corpus search "
+    "(embeddings.py)."
 )
 
 
@@ -209,7 +210,13 @@ def _first_commit_date() -> str:
 def _models(source: str) -> list[str]:
     import re
 
-    found = set(re.findall(r"\b(gemini-[0-9.]+-[a-z-]+|gemma[0-9]?:[0-9a-z.]+)\b", source))
+    found = set(
+        re.findall(
+            r"\b(gemini-[0-9.]+-[a-z-]+|gemini-embedding-[0-9]+|gemma[0-9]?:[0-9a-z.]+"
+            r"|Chirp3-HD-[A-Za-z]+|chirp_3)\b",
+            source,
+        )
+    )
     return sorted(found)
 
 
@@ -235,20 +242,50 @@ def main(argv: list[str] | None = None) -> int:
     models = _models(source)
     started = _first_commit_date()
 
-    # Everything that cannot be derived from the repository. Named with what it needs,
-    # because a blank is indistinguishable from a decision not to answer.
+    # Everything that cannot be derived from the repository is read from the one file
+    # that records it, so each item's status is computed rather than remembered. A
+    # blank is indistinguishable from a decision not to answer, so unmet items keep
+    # stating what they need.
+    links = json.loads((REPO / "docs" / "submission_links.json").read_text())
+    video_url = str(links.get("video_url", "")).strip()
+    social_url = str(links.get("social_bonus_url", "")).strip()
+    content_url = str(links.get("content_bonus_url", "")).strip()
+
     outstanding = [
         (
             "Demo video URL",
-            "public on YouTube or Vimeo, 4 minutes maximum, English or "
+            f"DONE. {video_url}, recorded with its verification in `submission_links.json`."
+            if video_url
+            else "public on YouTube or Vimeo, 4 minutes maximum, English or "
             "subtitled, must show the backend running on Google Cloud",
         ),
         (
+            "Social bonus link",
+            f"DONE. {social_url}, a post carrying #AllThingsAgenticHackathon, "
+            "recorded in `submission_links.json` and on the Devpost form."
+            if social_url
+            else "optional. Must carry #AllThingsAgenticHackathon",
+        ),
+        (
             "Content bonus link",
-            "optional. A public post about how this was built, "
+            # The same URL doing double duty as the demo video is an interim claim,
+            # not the how-it-was-built post the bonus text describes. Say which state
+            # holds rather than letting DONE imply the stronger one.
+            (
+                f"INTERIM. The form field holds the demo video ({content_url}), which "
+                "qualifies by the form's own letter (public video, description carries "
+                "the required created-for-this-hackathon language) but is not the "
+                "how-it-was-built post the bonus text describes. A dedicated post is "
+                "drafted; when it publishes, swap the URL on the Devpost form and in "
+                "`submission_links.json` together."
+                if content_url == video_url
+                else f"DONE. {content_url}, recorded in `submission_links.json` and on "
+                "the Devpost form."
+            )
+            if content_url
+            else "optional. A public post about how this was built, "
             "carrying language saying it was created for this hackathon",
         ),
-        ("Social bonus link", "optional. Must carry #AllThingsAgenticHackathon"),
     ]
 
     lines = [
