@@ -54,9 +54,9 @@ would be true of the design and false of the system.
 
 ## Outstanding, with what each needs
 
-- **Demo video URL**: public on YouTube or Vimeo, 4 minutes maximum, English or subtitled, must show the backend running on Google Cloud
-- **Content bonus link**: optional. A public post about how this was built, carrying language saying it was created for this hackathon
-- **Social bonus link**: optional. Must carry #AllThingsAgenticHackathon
+- **Demo video URL**: DONE. Public on YouTube (3:41 against the 4:00 cap), showing the backend on Google Cloud; the URL and its verification live in `submission_links.json`.
+- **Social bonus link**: DONE. An X post carrying #AllThingsAgenticHackathon, recorded in `submission_links.json` and on the Devpost form.
+- **Content bonus link**: INTERIM. The Devpost form field currently holds the demo video, which qualifies by the form's own letter (a public video whose description carries the required created-for-this-hackathon language) but is not the how-it-was-built post the bonus text describes. A dedicated post is drafted and awaits publication under the author's own account; when it publishes, swap the URL on the Devpost form and in `submission_links.json` together. If it never publishes, the video stays, and this entry says so rather than implying the stronger claim.
 
 ## Two dates worth not getting wrong
 
