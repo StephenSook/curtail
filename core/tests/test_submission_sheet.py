@@ -526,12 +526,14 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
         module = self._module()
 
         def content(url: str) -> str:
-            return module._recorded_url(
+            result = module._recorded_url(
                 {"content_bonus_url": url},
                 "content_bonus_url",
                 module.CONTENT_URL_SHAPE,
                 "a public https platform",
             )
+            assert isinstance(result, str)
+            return result
 
         assert content("https://dev.to/someone/how-i-built-it-1234") != ""
         assert content("https://example.com/anywhere") != ""
