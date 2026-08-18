@@ -530,21 +530,35 @@ class TestTheJudgeFacingAnswersAreTrueAndFit:
         sys.modules["pre_submit_under_test"] = module
         spec.loader.exec_module(module)
 
-        phrase = module.REQUIRED_CONTENT_LANGUAGE
-        assert isinstance(phrase, str) and phrase
+        sentence = (
+            "I created this piece of content for the purposes of entering the "
+            "All Things Agentic Hackathon."
+        )
         hidden = (
-            f'<meta property="og:description" content="x {phrase} x">'
-            f"<!-- {phrase} -->"
-            f'<script>var s = "{phrase}";</script>'
-            f"<style>/* {phrase} */</style>"
+            f'<meta property="og:description" content="x {sentence} x">'
+            f"<!-- {sentence} -->"
+            f'<script>var s = "{sentence}";</script>'
+            f"<style>/* {sentence} */</style>"
             "<p>an article about something else entirely</p>"
         )
-        assert phrase not in module._visible_text(hidden), (
+        assert not module._has_required_language(module._visible_text(hidden)), (
             "the extractor surfaced text from metadata, a comment, or a script, so "
             "the language check can be satisfied by markup no reader sees"
         )
-        visible = f"<div><p>I created this piece of content {phrase} this hackathon.</p></div>"
-        assert phrase in module._visible_text(visible)
+        visible = f"<div><p>{sentence}</p></div>"
+        assert module._has_required_language(module._visible_text(visible))
+        # The video description's phrasing must satisfy it too, so both published
+        # artifacts stay claimable without rewording.
+        assert module._has_required_language(
+            "This video was created for the purposes of entering the All Things Agentic Hackathon."
+        )
+        # The bare phrase proves neither authorship nor this event, and a sentence
+        # boundary between the parts must not bridge.
+        assert not module._has_required_language("for the purposes of entering data about rivers")
+        assert not module._has_required_language(
+            "The site was created in 2020. Instructions for the purposes of entering "
+            "data. A hackathon happened."
+        )
 
     def test_the_content_shape_is_open_by_platform_and_closed_by_structure(self) -> None:
         """The rules say the content piece may live on ANY public platform, so an
