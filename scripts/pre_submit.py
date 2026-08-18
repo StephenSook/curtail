@@ -172,13 +172,17 @@ def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
     return items
 
 
-#: The rules' requirement for the content bonus: "language that says you created the
-#: piece of content for the purposes of entering this hackathon". The check binds all
-#: three parts, CREATED plus the phrase plus HACKATHON, inside one short span,
-#: because the bare phrase alone matches unrelated prose ("for the purposes of
-#: entering data") and proves nothing about authorship or this event.
+#: The rules' requirement for the content bonus: "language that says YOU created the
+#: piece of content for the purposes of entering this hackathon". Three bindings, each
+#: closing a hole a looser check accepted: the bare phrase matches unrelated prose
+#: ("for the purposes of entering data"); an unbound CREATED accepts third-party
+#: authorship ("the organizers created this for the purposes of entering the
+#: hackathon"); so the SUBJECT must be first person or the piece itself, the phrase
+#: must follow within the same sentence, and HACKATHON must close the span.
 REQUIRED_CONTENT_LANGUAGE = re.compile(
-    r"\bcreated\b[^.!?]{0,80}?\bfor the purposes of entering\b[^.!?]{0,60}?\bhackathon\b",
+    r"\b(?:(?:i|we)\s+(?:have\s+)?created"
+    r"|this\s+(?:video|post|article|blog|piece(?:\s+of\s+content)?|content)\s+was\s+created)\b"
+    r"[^.!?]{0,80}?\bfor the purposes of entering\b[^.!?]{0,60}?\bhackathon\b",
     re.IGNORECASE,
 )
 
