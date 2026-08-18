@@ -180,7 +180,9 @@ def _human_items(*, verify: bool = True) -> list[tuple[str, str, bool]]:
 #: hackathon"); so the SUBJECT must be first person or the piece itself, the phrase
 #: must follow within the same sentence, and HACKATHON must close the span.
 REQUIRED_CONTENT_LANGUAGE = re.compile(
-    r"\b(?:(?:i|we)\s+(?:have\s+)?created"
+    # The apostrophe class covers straight U+0027 and curly U+2019, spelled as an
+    # escape because a literal curly quote trips RUF001.
+    r"\b(?:(?:i|we)(?:['\u2019]ve)?\s+(?:have\s+)?created"
     r"|this\s+(?:video|post|article|blog|piece(?:\s+of\s+content)?|content)\s+was\s+created)\b"
     r"[^.!?]{0,80}?\bfor the purposes of entering\b[^.!?]{0,60}?\bhackathon\b",
     re.IGNORECASE,
