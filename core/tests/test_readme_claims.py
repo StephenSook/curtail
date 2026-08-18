@@ -1565,41 +1565,68 @@ class TestNoSurfaceClaimsAnArtifactThatDoesNotExist:
         links = json.loads((REPO / "docs" / "submission_links.json").read_text())
         return bool(str(links.get("video_url", "")).strip())
 
-    def test_the_video_is_not_described_in_the_present_tense_before_it_exists(self) -> None:
-        if self.video_is_published():
-            # Retired by publication, never by skipping: CI fails the whole job on a
-            # skip, because a skipped guard is a false green. With a video recorded,
-            # the present tense is honest only if the record is a real YouTube
-            # location and names the verification it rests on. CI never queries the
-            # network, so this asserts the RECORD; `make pre-submit` probes the URL.
-            links = json.loads((REPO / "docs" / "submission_links.json").read_text())
-            video_url = str(links.get("video_url", "")).strip()
-            assert re.fullmatch(
-                r"https://(?:youtu\.be/[\w-]{11}|www\.youtube\.com/watch\?v=[\w-]{11})",
-                video_url,
-            ), f"video_url is recorded but is not a YouTube video URL: {video_url!r}"
-            assert "oembed" in str(links.get("_video_evidence", "")), (
-                "video_url is recorded without an _video_evidence note naming the "
-                "oembed check, so publication was reported rather than verified"
-            )
-            return
+    #: Claims verified BY A HUMAN against the published video, recorded verbatim as the
+    #: line's stripped text. Publication turns "video shows X" from categorically false
+    #: into merely unverified, and a URL proves existence, not content. To retire a
+    #: failure here: watch the published video, confirm the sentence, add the exact
+    #: line. Empty means every present-tense content claim currently fails, which is
+    #: the strict direction (an empty allowlist rejects everything, it approves
+    #: nothing).
+    CLAIMS_VERIFIED_AGAINST_PUBLISHED_VIDEO: frozenset[str] = frozenset()
 
-        # Phrasings that assert the video currently demonstrates something. A future or
-        # planned framing is fine and is deliberately not matched.
+    def _asserting_claim_lines(self) -> list[tuple[str, str]]:
+        """(location, stripped line) for every present-tense video-content claim.
+
+        A future or planned framing is fine and is deliberately not matched.
+        """
         asserting = re.compile(
             r"\b(?:the\s+)?(?:demo\s+)?video\s+(?:shows|demonstrates|proves|contains|"
             r"captures|records|walks through)\b",
             re.IGNORECASE,
         )
-        offenders: list[str] = []
-        for name in self.SURFACES:
-            for number, line in enumerate((REPO / name).read_text().splitlines(), 1):
-                if asserting.search(line):
-                    offenders.append(f"{name}:{number}: {line.strip()[:110]}")
-        assert not offenders, (
-            "a judge-facing surface says the video shows something and no video_url is "
-            "recorded in docs/submission_links.json, so the artifact does not exist yet:\n"
-            + "\n".join(offenders)
+        return [
+            (f"{name}:{number}", line.strip())
+            for name in self.SURFACES
+            for number, line in enumerate((REPO / name).read_text().splitlines(), 1)
+            if asserting.search(line)
+        ]
+
+    def test_the_video_is_not_described_in_the_present_tense_before_it_exists(self) -> None:
+        offenders = self._asserting_claim_lines()
+        if not self.video_is_published():
+            assert not offenders, (
+                "a judge-facing surface says the video shows something and no video_url "
+                "is recorded in docs/submission_links.json, so the artifact does not "
+                "exist yet:\n" + "\n".join(f"{loc}: {line[:110]}" for loc, line in offenders)
+            )
+            return
+
+        # Published, never skipped: CI fails the whole job on a skip, because a skipped
+        # guard is a false green. A recorded URL proves the video EXISTS, not that it
+        # shows what the prose says, so the scan keeps running and each claim must be
+        # individually verified against the published film. CI never queries the
+        # network; `make pre-submit` probes the live URL.
+        links = json.loads((REPO / "docs" / "submission_links.json").read_text())
+        video_url = str(links.get("video_url", "")).strip()
+        assert re.fullmatch(
+            r"https://(?:youtu\.be/[\w-]{11}|www\.youtube\.com/watch\?v=[\w-]{11})",
+            video_url,
+        ), f"video_url is recorded but is not a YouTube video URL: {video_url!r}"
+        assert "oembed" in str(links.get("_video_evidence", "")), (
+            "video_url is recorded without an _video_evidence note naming the "
+            "oembed check, so publication was reported rather than verified"
+        )
+        unverified = [
+            (loc, line)
+            for loc, line in offenders
+            if line not in self.CLAIMS_VERIFIED_AGAINST_PUBLISHED_VIDEO
+        ]
+        assert not unverified, (
+            "a judge-facing surface asserts what the video shows, and that sentence has "
+            "not been verified against the published film. Watch the video, confirm the "
+            "claim, then record the exact line in "
+            "CLAIMS_VERIFIED_AGAINST_PUBLISHED_VIDEO:\n"
+            + "\n".join(f"{loc}: {line[:110]}" for loc, line in unverified)
         )
 
     def test_the_guard_knows_when_it_would_stop_applying(self) -> None:
