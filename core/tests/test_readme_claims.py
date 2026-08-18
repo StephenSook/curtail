@@ -1567,7 +1567,22 @@ class TestNoSurfaceClaimsAnArtifactThatDoesNotExist:
 
     def test_the_video_is_not_described_in_the_present_tense_before_it_exists(self) -> None:
         if self.video_is_published():
-            pytest.skip("the video is published, so describing what it shows is a fact")
+            # Retired by publication, never by skipping: CI fails the whole job on a
+            # skip, because a skipped guard is a false green. With a video recorded,
+            # the present tense is honest only if the record is a real YouTube
+            # location and names the verification it rests on. CI never queries the
+            # network, so this asserts the RECORD; `make pre-submit` probes the URL.
+            links = json.loads((REPO / "docs" / "submission_links.json").read_text())
+            video_url = str(links.get("video_url", "")).strip()
+            assert re.fullmatch(
+                r"https://(?:youtu\.be/[\w-]{11}|www\.youtube\.com/watch\?v=[\w-]{11})",
+                video_url,
+            ), f"video_url is recorded but is not a YouTube video URL: {video_url!r}"
+            assert "oembed" in str(links.get("_video_evidence", "")), (
+                "video_url is recorded without an _video_evidence note naming the "
+                "oembed check, so publication was reported rather than verified"
+            )
+            return
 
         # Phrasings that assert the video currently demonstrates something. A future or
         # planned framing is fine and is deliberately not matched.
