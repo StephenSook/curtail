@@ -1,6 +1,7 @@
 {
   "_note": "What no command can derive. Fill these in as they become true; `make pre-submit` reads this file and can only report READY once they are. Committed so the state is visible in review rather than living in somebody's head.",
-  "video_url": "",
+  "video_url": "https://youtu.be/Kz5tv6oe070",
+  "_video_evidence": "Published PUBLIC on YouTube 2026-08-17, verified by the oembed gate returning HTTP 200 with the exact title ('Curtail: agents draft the curtailment order, a named human signs', author Stephen Sookra). 3:41 against the 4:00 cap; the shipped file passed duration, resolution, loudness, beat-frame and QR-decode gates before upload.",
   "organization_name": "N/A, submitting as an individual",
   "diagram_uploaded_at": "2026-08-14",
   "_diagram_evidence": "Not self-certified after all. Devpost returned attachment_id 9929 for docs/architecture.png, 928687 bytes, on submission 1138035, field 28092, with attachment_count 1. The byte count matches the local file exactly, which is the check that distinguishes an upload that happened from an upload that was reported.",
