@@ -59,7 +59,7 @@ live rather than described.
 ## When this was recorded
 
 - Project the drill called: `curtail-505118`
-- Recorded at: `2026-08-16T01:43:17+00:00`
+- Recorded at: `2026-08-31T21:10:50+00:00`
 
 Re-run before recording. A drill is evidence about the moment it ran, and this
 one calls a live vendor filter whose behaviour is not ours to pin.
