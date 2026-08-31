@@ -8,11 +8,11 @@ source, and repository source cannot see that production is stale. Nothing here
 deploys on merge, so the repository can be correct and the live URL behind it.
 
 - Service: https://curtail-console-api-672785135387.us-central1.run.app
-- Commit the container reports: `509301318740759a66a29c18d365ae40659c473f`
+- Commit the container reports: `096d58c8f4c28e1a71b1f77d5cec3323340b1f68`
 - Store the live service names: Cloud Firestore, native mode, project curtail-505118, collection `seasons`. One document per basin, appended under a tra
-- Probed at repository commit: `509301318740759a66a29c18d365ae40659c473f`
-- Probed at: `2026-08-17T04:58:33+00:00`
-- Serving revision at probe time: `curtail-console-api-00069-49l`
+- Probed at repository commit: `096d58c8f4c28e1a71b1f77d5cec3323340b1f68`
+- Probed at: `2026-08-31T21:17:58+00:00`
+- Serving revision at probe time: `curtail-console-api-00070-w2w`
 
 **This is a SNAPSHOT, and everything below is historical.** Nothing re-probes on
 its own, and CI deliberately never queries the network, so this record describes
@@ -100,14 +100,9 @@ the final node of a full traversal, and its card says exactly that.
 
 ## The most recent traversal in Cloud Trace
 
-- `curtail.fleet_request`
-- `invocation`
-- `invoke_workflow curtailment`
-- `invoke_node gage_sentinel`
-- `invoke_node allocation_core`
-- `invoke_node order_scribe`
-- `invoke_node herald`
+no fleet traversal was traced in the last 6 hours. This is not evidence that telemetry is broken: nobody may have run one.
 
-7 spans. ADK opens `invoke_node` per fleet member and
-`invoke_workflow` around the traversal; the root `curtail.fleet_request`
-span carries the correlation id, so a trace and a log line join on one key.
+Recorded as unknown rather than as a failure. The fact sheet's telemetry
+claim is computed from source, and source cannot see whether a span landed;
+this section is the other half of that question and it can only answer when
+somebody has actually driven the fleet.
