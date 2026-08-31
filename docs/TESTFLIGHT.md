@@ -5,17 +5,19 @@
 | | |
 |---|---|
 | Public link | https://testflight.apple.com/join/AqbsQ1J5 |
-| Internal testing | live now, group `Field Testers`, no Apple review involved |
-| External testing | awaiting Beta App Review, group `Judges` |
-| Watcher | `uv run python scripts/watch_testflight.py --once` |
+| Internal testing | live, group `Field Testers`, no Apple review involved |
+| External testing | **approved by Beta App Review**, group `Judges`, link open to anyone |
+| Watcher | `uv run --with cryptography python scripts/watch_testflight.py --once` |
 
 ## Read the state before you trust the link
 
-The public link is permanent and was issued when the external group was created, so it
-resolves today. Until Beta App Review approves the first build of a version it answers
-`200` with **"This beta isn't accepting any new testers right now"**.
+The public link is permanent and was issued when the external group was created. Beta App
+Review **approved** build 1 (`beta_review_state: APPROVED`, read from the App Store
+Connect API on 2026-08-31), so the link serves the join flow to anyone. While review was
+pending it answered `200` with **"This beta isn't accepting any new testers right now"**,
+and it will read closed that way again if a build of a new version re-enters review.
 
-That is not a broken link and it is not an error. Apple runs two separate paths:
+That closed message is not a broken link and not an error. Apple runs two separate paths:
 
 | | Beta App Review | who installs |
 |---|---|---|
@@ -28,17 +30,21 @@ clocks, and a page that shows only one of them is misleading whichever one it pi
 Ask the API rather than a person:
 
 ```
-uv run python scripts/watch_testflight.py --once
+uv run --with cryptography python scripts/watch_testflight.py --once
 ```
 
 ```json
 {
   "internal_state": "IN_BETA_TESTING",
-  "external_state": "WAITING_FOR_BETA_REVIEW",
-  "beta_review_state": "WAITING_FOR_REVIEW",
+  "external_state": "BETA_APPROVED",
+  "beta_review_state": "APPROVED",
   "installable_internally": true
 }
 ```
+
+The `--with cryptography` matters: the watcher signs its App Store Connect assertion with
+ES256 and `cryptography` is not a project dependency, so the bare `uv run` invocation dies
+on the import before ever reaching Apple.
 
 Exit `0` means installable, `1` means asked and not yet, and **`2` means UNKNOWN**: the
 question could not be asked at all. Those last two are kept apart deliberately, because a
@@ -47,8 +53,13 @@ failure that costs a deadline.
 
 ## Watching it without watching it
 
-A launchd agent runs the watcher on offset minutes (7, 22, 37, 52) and raises a desktop
-notification **on a change**, not on every run.
+While review was pending, a launchd agent ran the watcher on offset minutes (7, 22, 37,
+52) and raised a desktop notification **on a change**, not on every run. It is retired
+now that review has passed. An honest note for the next version: the agent's runs had
+been crashing on the missing `cryptography` import described above, before ever reaching
+Apple, which is exactly the UNKNOWN failure the exit codes below warn about. The approval
+was confirmed by the on-demand command and by fetching the public link itself, not by the
+dead agent.
 
 ```
 ~/Library/LaunchAgents/app.curtail.testflight-watch.plist
